@@ -53,7 +53,7 @@ export default async function AttendanceHistoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {attendanceRecords.map((record) => (
+                    {attendanceRecords.map((record: any) => (
                       <TableRow key={record.id}>
                         <TableCell>
                           {new Date(record.clock_in).toLocaleDateString("en-MY", {

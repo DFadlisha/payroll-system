@@ -37,8 +37,8 @@ export default async function StaffDashboard() {
     .lte("clock_in", lastDay.toISOString())
 
   const totalDays = monthAttendance?.length || 0
-  const totalHours = monthAttendance?.reduce((sum, record) => sum + (record.total_hours || 0), 0) || 0
-  const totalOvertime = monthAttendance?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || 0
+  const totalHours = monthAttendance?.reduce((sum: number, record: any) => sum + (record.total_hours || 0), 0) || 0
+  const totalOvertime = monthAttendance?.reduce((sum: number, record: any) => sum + (record.overtime_hours || 0), 0) || 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

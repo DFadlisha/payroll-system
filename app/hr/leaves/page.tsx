@@ -27,9 +27,9 @@ export default async function HRLeavesPage() {
     .select("*, profiles!inner(full_name, email)")
     .order("created_at", { ascending: false })
 
-  const pendingLeaves = leaves?.filter((l) => l.status === "pending") || []
-  const approvedLeaves = leaves?.filter((l) => l.status === "approved") || []
-  const rejectedLeaves = leaves?.filter((l) => l.status === "rejected") || []
+  const pendingLeaves = leaves?.filter((l: any) => l.status === "pending") || []
+  const approvedLeaves = leaves?.filter((l: any) => l.status === "approved") || []
+  const rejectedLeaves = leaves?.filter((l: any) => l.status === "rejected") || []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">

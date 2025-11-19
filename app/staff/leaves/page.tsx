@@ -63,7 +63,7 @@ export default async function LeavesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {leaves.map((leave) => (
+                      {leaves.map((leave: any) => (
                         <TableRow key={leave.id}>
                           <TableCell className="capitalize">{leave.leave_type}</TableCell>
                           <TableCell>

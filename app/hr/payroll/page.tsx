@@ -35,11 +35,11 @@ export default async function PayrollPage() {
     .eq("year", currentYear)
     .order("created_at", { ascending: false })
 
-  const totalGrossPay = payrolls?.reduce((sum, p) => sum + p.gross_pay, 0) || 0
-  const totalNetPay = payrolls?.reduce((sum, p) => sum + p.net_pay, 0) || 0
-  const totalEPF = payrolls?.reduce((sum, p) => sum + p.epf_employee + p.epf_employer, 0) || 0
-  const totalSOCSO = payrolls?.reduce((sum, p) => sum + p.socso_employee + p.socso_employer, 0) || 0
-  const totalEIS = payrolls?.reduce((sum, p) => sum + p.eis_employee + p.eis_employer, 0) || 0
+  const totalGrossPay = payrolls?.reduce((sum: number, p: any) => sum + p.gross_pay, 0) || 0
+  const totalNetPay = payrolls?.reduce((sum: number, p: any) => sum + p.net_pay, 0) || 0
+  const totalEPF = payrolls?.reduce((sum: number, p: any) => sum + p.epf_employee + p.epf_employer, 0) || 0
+  const totalSOCSO = payrolls?.reduce((sum: number, p: any) => sum + p.socso_employee + p.socso_employer, 0) || 0
+  const totalEIS = payrolls?.reduce((sum: number, p: any) => sum + p.eis_employee + p.eis_employer, 0) || 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">

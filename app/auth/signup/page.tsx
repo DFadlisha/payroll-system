@@ -66,7 +66,7 @@ export default function SignUpPage() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -81,7 +81,13 @@ export default function SignUpPage() {
       })
 
       if (error) throw error
-      router.push("/auth/verify")
+      
+      // If email confirmation is disabled, user is already logged in
+      if (data?.session) {
+        router.push(role === "hr" ? "/hr" : "/staff")
+      } else {
+        router.push("/auth/verify")
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
     } finally {

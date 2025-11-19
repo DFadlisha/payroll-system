@@ -40,7 +40,7 @@ export default async function PayslipsPage() {
 
         {payrolls && payrolls.length > 0 ? (
           <div className="space-y-6">
-            {payrolls.map((payroll) => (
+            {payrolls.map((payroll: any) => (
               <Payslip key={payroll.id} payroll={payroll} profile={profile} />
             ))}
           </div>

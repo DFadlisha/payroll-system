@@ -67,13 +67,13 @@ export function GeneratePayrollButton({ month, year }: GeneratePayrollButtonProp
 
       for (const employee of employees) {
         // Get employee's attendance
-        const employeeAttendance = attendanceRecords?.filter((a) => a.user_id === employee.id) || []
+        const employeeAttendance = attendanceRecords?.filter((a: any) => a.user_id === employee.id) || []
 
         const regularHours = employeeAttendance.reduce(
-          (sum, a) => sum + (a.total_hours || 0) - (a.overtime_hours || 0),
+          (sum: number, a: any) => sum + (a.total_hours || 0) - (a.overtime_hours || 0),
           0,
         )
-        const overtimeHours = employeeAttendance.reduce((sum, a) => sum + (a.overtime_hours || 0), 0)
+        const overtimeHours = employeeAttendance.reduce((sum: number, a: any) => sum + (a.overtime_hours || 0), 0)
 
         // Calculate payroll
         const payroll = calculatePayroll(

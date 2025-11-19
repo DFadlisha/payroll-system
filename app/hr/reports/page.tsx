@@ -31,10 +31,10 @@ export default async function ReportsPage() {
     .eq("month", currentMonth)
     .eq("year", currentYear)
 
-  const totalEPFEmployee = payrolls?.reduce((sum, p) => sum + p.epf_employee, 0) || 0
-  const totalEPFEmployer = payrolls?.reduce((sum, p) => sum + p.epf_employer, 0) || 0
-  const totalSOCSO = payrolls?.reduce((sum, p) => sum + p.socso_employee + p.socso_employer, 0) || 0
-  const totalEIS = payrolls?.reduce((sum, p) => sum + p.eis_employee + p.eis_employer, 0) || 0
+  const totalEPFEmployee = payrolls?.reduce((sum: number, p: any) => sum + p.epf_employee, 0) || 0
+  const totalEPFEmployer = payrolls?.reduce((sum: number, p: any) => sum + p.epf_employer, 0) || 0
+  const totalSOCSO = payrolls?.reduce((sum: number, p: any) => sum + p.socso_employee + p.socso_employer, 0) || 0
+  const totalEIS = payrolls?.reduce((sum: number, p: any) => sum + p.eis_employee + p.eis_employer, 0) || 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">

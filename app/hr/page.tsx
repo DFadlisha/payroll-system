@@ -31,7 +31,7 @@ export default async function HRDashboard() {
 
   const { data: companyProfiles } = await supabase.from("profiles").select("id").eq("company_id", profile.company_id)
 
-  const companyUserIds = companyProfiles?.map((p) => p.id) || []
+  const companyUserIds = companyProfiles?.map((p: any) => p.id) || []
 
   const { data: monthAttendance } = await supabase
     .from("attendance")
@@ -45,7 +45,7 @@ export default async function HRDashboard() {
     .in("user_id", companyUserIds)
     .eq("status", "pending")
 
-  const totalHoursThisMonth = monthAttendance?.reduce((sum, record) => sum + (record.total_hours || 0), 0) || 0
+  const totalHoursThisMonth = monthAttendance?.reduce((sum: number, record: any) => sum + (record.total_hours || 0), 0) || 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">
@@ -98,7 +98,7 @@ export default async function HRDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {monthAttendance?.filter((a) => {
+                {monthAttendance?.filter((a: any) => {
                   const clockIn = new Date(a.clock_in)
                   return clockIn.toDateString() === now.toDateString()
                 }).length || 0}
