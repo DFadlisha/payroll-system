@@ -75,13 +75,14 @@ export function GeneratePayrollButton({ month, year }: GeneratePayrollButtonProp
         )
         const overtimeHours = employeeAttendance.reduce((sum: number, a: any) => sum + (a.overtime_hours || 0), 0)
 
-        // Calculate payroll
+        // Calculate payroll with employment type
         const payroll = calculatePayroll(
           employee.basic_salary,
           regularHours,
           overtimeHours,
           employee.hourly_rate,
           employee.citizenship_status,
+          employee.employment_type || "permanent",
         )
 
         payrollRecords.push({

@@ -103,22 +103,56 @@ export function calculatePayroll(
   overtimeHours: number,
   hourlyRate?: number,
   citizenshipStatus = "citizen",
-  employmentType: "permanent" | "contract" | "intern" = "permanent",
+  employmentType: "permanent" | "contract" | "intern" | "part-time" = "permanent",
 ): PayrollCalculation {
-  // Calculate gross pay
-  const regularPay = hourlyRate ? regularHours * hourlyRate : basicSalary
-  const overtimePay = hourlyRate ? overtimeHours * hourlyRate * 1.5 : (basicSalary / 160) * overtimeHours * 1.5 // Assuming 160 hours/month
-  const grossPay = regularPay + overtimePay
+  let grossPay = 0
+
+  // Calculate gross pay based on employment type
+  if (employmentType === "part-time") {
+    // Part-time: purely hourly based
+    const effectiveHourlyRate = hourlyRate || basicSalary / 160
+    const regularPay = regularHours * effectiveHourlyRate
+    const overtimePay = overtimeHours * effectiveHourlyRate * 1.5
+    grossPay = regularPay + overtimePay
+  } else if (employmentType === "intern") {
+    // Intern: hourly or fixed allowance
+    if (hourlyRate) {
+      grossPay = regularHours * hourlyRate + overtimeHours * hourlyRate
+    } else {
+      grossPay = basicSalary // Fixed allowance
+    }
+  } else {
+    // Permanent/Contract: salary + overtime
+    const regularPay = hourlyRate ? regularHours * hourlyRate : basicSalary
+    const overtimePay = hourlyRate 
+      ? overtimeHours * hourlyRate * 1.5 
+      : (basicSalary / 160) * overtimeHours * 1.5
+    grossPay = regularPay + overtimePay
+  }
 
   let epf = { employee: 0, employer: 0 }
   let socso = { employee: 0, employer: 0 }
   let eis = { employee: 0, employer: 0 }
 
+  // Calculate statutory deductions based on employment type
   if (employmentType !== "intern") {
-    // Calculate statutory deductions only for non-interns
-    epf = calculateEPF(grossPay, citizenshipStatus)
-    socso = calculateSOCSO(grossPay)
-    eis = calculateEIS(grossPay)
+    // Interns are exempt from EPF/SOCSO/EIS
+    if (employmentType === "permanent" || employmentType === "contract") {
+      // Full deductions for permanent and contract staff
+      epf = calculateEPF(grossPay, citizenshipStatus)
+      socso = calculateSOCSO(grossPay)
+      eis = calculateEIS(grossPay)
+    } else if (employmentType === "part-time") {
+      // Part-time: EPF if eligible, reduced SOCSO
+      if (grossPay >= 1000) {
+        epf = calculateEPF(grossPay, citizenshipStatus)
+      }
+      socso = calculateSOCSO(grossPay)
+      // Part-time may not be eligible for EIS depending on hours worked
+      if (regularHours >= 70) { // approximately 70+ hours per month
+        eis = calculateEIS(grossPay)
+      }
+    }
   }
 
   // Total employee deductions

@@ -30,7 +30,7 @@ export default async function PayrollPage() {
   // Get payroll records for current month
   const { data: payrolls } = await supabase
     .from("payroll")
-    .select("*, profiles!inner(full_name, email)")
+    .select("*, profiles!inner(full_name, email, employment_type)")
     .eq("month", currentMonth)
     .eq("year", currentYear)
     .order("created_at", { ascending: false })
@@ -118,10 +118,10 @@ export default async function PayrollPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Employee</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Hours</TableHead>
                       <TableHead>Gross Pay</TableHead>
-                      <TableHead>EPF</TableHead>
-                      <TableHead>SOCSO</TableHead>
-                      <TableHead>EIS</TableHead>
+                      <TableHead>Deductions</TableHead>
                       <TableHead>Net Pay</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -129,11 +129,33 @@ export default async function PayrollPage() {
                   <TableBody>
                     {payrolls.map((payroll: any) => (
                       <TableRow key={payroll.id}>
-                        <TableCell className="font-medium">{payroll.profiles.full_name}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{payroll.profiles.full_name}</div>
+                          <div className="text-xs text-muted-foreground">{payroll.profiles.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {(payroll.profiles.employment_type || "permanent").replace("-", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div>Reg: {payroll.regular_hours.toFixed(1)}h</div>
+                            {payroll.overtime_hours > 0 && (
+                              <div className="text-orange-600">OT: {payroll.overtime_hours.toFixed(1)}h</div>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>RM {payroll.gross_pay.toFixed(2)}</TableCell>
-                        <TableCell>RM {(payroll.epf_employee + payroll.epf_employer).toFixed(2)}</TableCell>
-                        <TableCell>RM {(payroll.socso_employee + payroll.socso_employer).toFixed(2)}</TableCell>
-                        <TableCell>RM {(payroll.eis_employee + payroll.eis_employer).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="text-sm text-red-600">
+                            {payroll.profiles.employment_type === "intern" ? (
+                              <span className="text-muted-foreground">N/A</span>
+                            ) : (
+                              <span>RM {(payroll.epf_employee + payroll.socso_employee + payroll.eis_employee).toFixed(2)}</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-semibold text-green-600">RM {payroll.net_pay.toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge

@@ -23,7 +23,8 @@ export function HRNav() {
   const navItems = [
     { href: "/hr", label: "Dashboard", icon: Home },
     { href: "/hr/employees", label: "Employees", icon: Users },
-    { href: "/hr/payroll", label: "Payroll", icon: DollarSign },
+    { href: "/hr/employees/payroll", label: "Employee Payroll", icon: Users },
+    { href: "/hr/payroll", label: "Generate Payroll", icon: DollarSign },
     { href: "/hr/reports", label: "Reports", icon: FileText },
     { href: "/hr/leaves", label: "Leaves", icon: Calendar },
   ]

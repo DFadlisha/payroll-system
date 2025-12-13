@@ -4,7 +4,7 @@ export interface Profile {
   full_name: string
   role: "staff" | "hr"
   company_id?: string
-  employment_type?: "permanent" | "contract" | "intern"
+  employment_type?: "permanent" | "contract" | "intern" | "part-time"
   epf_number?: string
   socso_number?: string
   citizenship_status?: "citizen" | "permanent_resident" | "foreigner"
@@ -22,6 +22,12 @@ export interface Attendance {
   total_hours?: number
   overtime_hours: number
   status: "active" | "completed"
+  clock_in_latitude?: number
+  clock_in_longitude?: number
+  clock_in_address?: string
+  clock_out_latitude?: number
+  clock_out_longitude?: number
+  clock_out_address?: string
   created_at: string
 }
 
