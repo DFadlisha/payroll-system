@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Home, Users, DollarSign, FileText, LogOut, Menu, Calendar } from "lucide-react"
+import { Home, Users, DollarSign, FileText, LogOut, Menu, Calendar, Clock } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
 
@@ -23,6 +23,7 @@ export function HRNav() {
   const navItems = [
     { href: "/hr", label: "Dashboard", icon: Home },
     { href: "/hr/employees", label: "Employees", icon: Users },
+    { href: "/hr/attendance", label: "Attendance", icon: Clock },
     { href: "/hr/employees/payroll", label: "Employee Payroll", icon: Users },
     { href: "/hr/payroll", label: "Generate Payroll", icon: DollarSign },
     { href: "/hr/reports", label: "Reports", icon: FileText },
@@ -58,7 +59,8 @@ export function HRNav() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-8">
-              <Link href="/hr" className="text-xl font-bold text-indigo-600">
+              <Link href="/hr" className="flex items-center gap-2 text-xl font-bold text-indigo-600">
+                <span className="bg-indigo-600 text-white px-2 py-1 rounded text-sm">MI-NES</span>
                 HR Portal
               </Link>
               <div className="flex gap-2">
@@ -76,8 +78,9 @@ export function HRNav() {
       {/* Mobile Navigation */}
       <nav className="md:hidden bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="flex items-center justify-between h-16 px-4">
-          <Link href="/hr" className="text-xl font-bold text-indigo-600">
-            HR Portal
+          <Link href="/hr" className="flex items-center gap-2 text-xl font-bold text-indigo-600">
+            <span className="bg-indigo-600 text-white px-2 py-1 rounded text-xs">MI-NES</span>
+            HR
           </Link>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>

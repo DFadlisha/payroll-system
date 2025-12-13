@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FileText } from "lucide-react"
+import { ExportReportsButton } from "@/components/export-reports-button"
 
 export default async function ReportsPage() {
   const supabase = await createClient()
@@ -27,9 +28,16 @@ export default async function ReportsPage() {
   // Get payroll data for statutory reports
   const { data: payrolls } = await supabase
     .from("payroll")
-    .select("*, profiles!inner(full_name, email, epf_number, socso_number)")
+    .select("*, profiles!inner(id, full_name, email, epf_number, socso_number)")
+    .eq("profiles.company_id", profile.company_id)
     .eq("month", currentMonth)
     .eq("year", currentYear)
+
+  // Get all company profiles for export
+  const { data: companyProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, epf_number, socso_number, employment_type")
+    .eq("company_id", profile.company_id)
 
   const totalEPFEmployee = payrolls?.reduce((sum: number, p: any) => sum + p.epf_employee, 0) || 0
   const totalEPFEmployer = payrolls?.reduce((sum: number, p: any) => sum + p.epf_employer, 0) || 0
@@ -39,18 +47,26 @@ export default async function ReportsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <FileText className="h-8 w-8" />
-            Statutory Reports
-          </h1>
-          <p className="text-gray-600">
-            Monthly contribution reports for{" "}
-            {now.toLocaleDateString("en-MY", {
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <FileText className="h-8 w-8" />
+              Statutory Reports
+            </h1>
+            <p className="text-gray-600">
+              Monthly contribution reports for{" "}
+              {now.toLocaleDateString("en-MY", {
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+          <ExportReportsButton 
+            payrollData={payrolls || []} 
+            profiles={companyProfiles || []}
+            month={currentMonth}
+            year={currentYear}
+          />
         </div>
 
         <div className="grid gap-6 md:grid-cols-3 mb-6">

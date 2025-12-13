@@ -27,10 +27,11 @@ export default async function PayrollPage() {
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
-  // Get payroll records for current month
+  // Get payroll records for current month (company filtered)
   const { data: payrolls } = await supabase
     .from("payroll")
-    .select("*, profiles!inner(full_name, email, employment_type)")
+    .select("*, profiles!inner(full_name, email, employment_type, company_id)")
+    .eq("profiles.company_id", profile.company_id)
     .eq("month", currentMonth)
     .eq("year", currentYear)
     .order("created_at", { ascending: false })
@@ -102,7 +103,7 @@ export default async function PayrollPage() {
             <CardDescription>Process payroll for all employees for the current month</CardDescription>
           </CardHeader>
           <CardContent>
-            <GeneratePayrollButton month={currentMonth} year={currentYear} />
+            <GeneratePayrollButton month={currentMonth} year={currentYear} companyId={profile.company_id} />
           </CardContent>
         </Card>
 
@@ -119,7 +120,8 @@ export default async function PayrollPage() {
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Hours</TableHead>
+                      <TableHead>Basic</TableHead>
+                      <TableHead>Allowances</TableHead>
                       <TableHead>Gross Pay</TableHead>
                       <TableHead>Deductions</TableHead>
                       <TableHead>Net Pay</TableHead>
@@ -127,32 +129,54 @@ export default async function PayrollPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payrolls.map((payroll: any) => (
+                    {payrolls.map((payroll: any) => {
+                      const totalAllowances = (payroll.ot_normal || 0) + (payroll.ot_sunday || 0) + 
+                        (payroll.ot_public || 0) + (payroll.project_bonus || 0) + 
+                        (payroll.shift_allowance || 0) + (payroll.attendance_bonus || 0)
+                      return (
                       <TableRow key={payroll.id}>
                         <TableCell>
                           <div className="font-medium">{payroll.profiles.full_name}</div>
                           <div className="text-xs text-muted-foreground">{payroll.profiles.email}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {(payroll.profiles.employment_type || "permanent").replace("-", " ")}
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              payroll.profiles.employment_type === "permanent" ? "bg-green-50 text-green-700" :
+                              payroll.profiles.employment_type === "part-time" ? "bg-blue-50 text-blue-700" :
+                              "bg-orange-50 text-orange-700"
+                            }
+                          >
+                            {payroll.profiles.employment_type === "permanent" ? "Full-Time" :
+                             payroll.profiles.employment_type === "part-time" ? "Part-Time" : "Intern"}
                           </Badge>
                         </TableCell>
+                        <TableCell>RM {(payroll.basic_salary || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <div>Reg: {payroll.regular_hours.toFixed(1)}h</div>
-                            {payroll.overtime_hours > 0 && (
-                              <div className="text-orange-600">OT: {payroll.overtime_hours.toFixed(1)}h</div>
+                            {totalAllowances > 0 ? (
+                              <div className="space-y-1">
+                                <div className="text-green-600 font-medium">+RM {totalAllowances.toFixed(2)}</div>
+                                {payroll.ot_normal > 0 && <div className="text-xs text-muted-foreground">OT: RM{payroll.ot_normal.toFixed(2)}</div>}
+                                {payroll.project_bonus > 0 && <div className="text-xs text-muted-foreground">Proj: RM{payroll.project_bonus.toFixed(2)}</div>}
+                                {payroll.attendance_bonus > 0 && <div className="text-xs text-muted-foreground">Att: RM{payroll.attendance_bonus.toFixed(2)}</div>}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                            {payroll.late_deduction > 0 && (
+                              <div className="text-xs text-red-600">Late: -RM{payroll.late_deduction.toFixed(2)}</div>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>RM {payroll.gross_pay.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium">RM {payroll.gross_pay.toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="text-sm text-red-600">
                             {payroll.profiles.employment_type === "intern" ? (
                               <span className="text-muted-foreground">N/A</span>
                             ) : (
-                              <span>RM {(payroll.epf_employee + payroll.socso_employee + payroll.eis_employee).toFixed(2)}</span>
+                              <span>-RM {(payroll.epf_employee + payroll.socso_employee + payroll.eis_employee).toFixed(2)}</span>
                             )}
                           </div>
                         </TableCell>
@@ -166,12 +190,16 @@ export default async function PayrollPage() {
                                   ? "secondary"
                                   : "outline"
                             }
+                            className={
+                              payroll.status === "paid" ? "bg-green-100 text-green-800" :
+                              payroll.status === "finalized" ? "bg-blue-100 text-blue-800" : ""
+                            }
                           >
                             {payroll.status.toUpperCase()}
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </div>

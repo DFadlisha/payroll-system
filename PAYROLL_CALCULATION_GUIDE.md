@@ -1,4 +1,4 @@
-# Payroll System - Calculation Guide
+# MI-NES Payroll System - Calculation Guide
 
 ## Overview
 This payroll system supports **4 employment types** with different calculation methods based on attendance records:
@@ -7,6 +7,22 @@ This payroll system supports **4 employment types** with different calculation m
 2. **Contract Staff** - Fixed-term employees with monthly salary  
 3. **Part-Time Staff** - Hourly workers paid by hours worked
 4. **Interns** - Trainees with allowances (no statutory deductions)
+
+---
+
+## Standard Rates (MI-NES)
+
+| Variable Name      | Rate (RM) | Description                              |
+|-------------------|-----------|------------------------------------------|
+| RATE_OT_NORMAL    | 10.00     | Per Hour (1.5x equivalent)               |
+| RATE_OT_SUNDAY    | 12.50     | Per Hour (2.0x equivalent)               |
+| RATE_OT_PUBLIC    | 20.00     | Per Hour (Estimated 2x Normal rate)      |
+| RATE_PROJECT      | 15.00     | Per Project Completed                    |
+| RATE_SHIFT        | 10.00     | Per Extra Shift                          |
+| RATE_ATTENDANCE   | 5.00      | Per Day (Good Attendance Bonus)          |
+| RATE_LATE         | 1.00      | Deduction Per Minute Late                |
+| BASIC_STAFF       | 1,700.00  | Full-Time Basic Salary                   |
+| BASIC_INTERN      | 800.00    | Internship Allowance                     |
 
 ---
 
@@ -69,6 +85,38 @@ This payroll system supports **4 employment types** with different calculation m
 - ❌ **No EIS**
 
 **Net Pay:** Gross Pay (no deductions)
+
+---
+
+## Allowances & Bonuses Calculation
+
+### Overtime Pay
+Overtime is calculated using fixed rates instead of multipliers:
+
+| Overtime Type     | Rate      | Example Calculation            |
+|------------------|-----------|--------------------------------|
+| Normal (Weekday) | RM10/hr   | 5 hours × RM10 = RM50          |
+| Sunday           | RM12.50/hr| 4 hours × RM12.50 = RM50       |
+| Public Holiday   | RM20/hr   | 3 hours × RM20 = RM60          |
+
+### Bonuses
+| Bonus Type       | Rate      | Example Calculation            |
+|------------------|-----------|--------------------------------|
+| Project Bonus    | RM15/project | 2 projects × RM15 = RM30    |
+| Extra Shift      | RM10/shift   | 3 shifts × RM10 = RM30      |
+| Good Attendance  | RM5/day      | 22 days × RM5 = RM110       |
+
+### Deductions
+| Deduction Type   | Rate      | Example Calculation            |
+|------------------|-----------|--------------------------------|
+| Late Penalty     | RM1/minute   | 15 minutes × RM1 = RM15     |
+
+### Total Allowances Formula
+```
+Total Allowances = OT Normal + OT Sunday + OT Public + Project Bonus + Shift Allowance + Attendance Bonus
+Net Allowances = Total Allowances - Late Deduction
+Gross Pay = Basic Salary + Net Allowances
+```
 
 ---
 
