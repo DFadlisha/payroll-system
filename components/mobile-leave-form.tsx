@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, Loader2, Send, CalendarDays } from "lucide-react"
+import { CalendarIcon, Loader2, Send, CalendarDays, Upload, FileText, X } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -26,6 +26,8 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
   const [endDate, setEndDate] = useState<Date>()
   const [reason, setReason] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [medicalFile, setMedicalFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
   const { toast } = useToast()
@@ -41,19 +43,54 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
 
   const internMonths = calculateInternMonths()
   const isIntern = employmentType === "intern"
+  const isMedicalLeave = leaveType === "medical"
 
   // Leave options based on employment type
   const leaveOptions = isIntern
     ? [
         { value: "replacement", label: "Replacement Leave", description: `${internMonths} day(s) based on ${internMonths} month(s)` },
+        { value: "medical", label: "Medical Leave", description: "Requires MC upload" },
         { value: "emergency", label: "Emergency Leave" },
       ]
     : [
         { value: "annual", label: "Annual Leave" },
-        { value: "sick", label: "Sick Leave" },
+        { value: "medical", label: "Medical Leave", description: "Requires MC or appointment proof" },
         { value: "emergency", label: "Emergency Leave" },
         { value: "unpaid", label: "Unpaid Leave" },
       ]
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "File size must be less than 5MB",
+          variant: "destructive",
+        })
+        return
+      }
+      // Check file type
+      const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Error",
+          description: "Only JPG, PNG or PDF files are allowed",
+          variant: "destructive",
+        })
+        return
+      }
+      setMedicalFile(file)
+    }
+  }
+
+  const removeFile = () => {
+    setMedicalFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
 
   const calculateDays = () => {
     if (!startDate || !endDate) return 0
@@ -74,6 +111,16 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
       return
     }
 
+    // Medical leave requires proof upload
+    if (isMedicalLeave && !medicalFile) {
+      toast({
+        title: "Error",
+        description: "Please upload MC or appointment proof for medical leave",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (endDate < startDate) {
       toast({
         title: "Error",
@@ -85,13 +132,36 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
 
     setIsLoading(true)
     try {
+      let medicalProofUrl = null
+
+      // Upload medical proof if provided
+      if (medicalFile) {
+        const fileExt = medicalFile.name.split('.').pop()
+        const fileName = `${userId}-${Date.now()}.${fileExt}`
+        const filePath = `medical-proofs/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('leave-documents')
+          .upload(filePath, medicalFile)
+
+        if (uploadError) {
+          // If bucket doesn't exist, just store without file
+          console.warn("Could not upload file:", uploadError.message)
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('leave-documents')
+            .getPublicUrl(filePath)
+          medicalProofUrl = urlData.publicUrl
+        }
+      }
+
       const { error } = await supabase.from("leaves").insert({
         user_id: userId,
         leave_type: leaveType,
         start_date: format(startDate, "yyyy-MM-dd"),
         end_date: format(endDate, "yyyy-MM-dd"),
         days: calculateDays(),
-        reason,
+        reason: isMedicalLeave ? `${reason} [MC/Appointment proof: ${medicalFile?.name || 'attached'}]` : reason,
         status: "pending",
       })
 
@@ -107,6 +177,10 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
       setStartDate(undefined)
       setEndDate(undefined)
       setReason("")
+      setMedicalFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
       router.refresh()
     } catch (error: any) {
       toast({
@@ -149,6 +223,64 @@ export function MobileLeaveForm({ userId, employmentType, internStartDate }: Mob
           <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
             📋 As an intern ({internMonths} month{internMonths !== 1 ? 's' : ''}), you are entitled to {internMonths} replacement leave day{internMonths !== 1 ? 's' : ''} and emergency leave.
           </p>
+        </div>
+      )}
+
+      {/* Medical Leave File Upload */}
+      {isMedicalLeave && (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Medical Certificate / Appointment Proof <span className="text-rose-500">*</span>
+          </Label>
+          <div className="p-3 bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800">
+            <p className="text-xs font-medium text-rose-700 dark:text-rose-300 mb-3">
+              🏥 Please upload your MC or medical appointment letter as proof
+            </p>
+            
+            {!medicalFile ? (
+              <div 
+                className="border-2 border-dashed border-rose-200 dark:border-rose-700 rounded-xl p-4 text-center cursor-pointer hover:border-rose-400 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-8 w-8 mx-auto text-rose-400 mb-2" />
+                <p className="text-sm text-rose-600 dark:text-rose-400 font-medium">Tap to upload</p>
+                <p className="text-xs text-rose-500 dark:text-rose-500 mt-1">JPG, PNG or PDF (max 5MB)</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-rose-700">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-800">
+                    <FileText className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">
+                      {medicalFile.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {(medicalFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeFile}
+                  className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-100"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
         </div>
       )}
 
