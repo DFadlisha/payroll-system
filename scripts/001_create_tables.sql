@@ -7,6 +7,7 @@ create table if not exists public.profiles (
   email text not null,
   full_name text not null,
   role text not null check (role in ('staff', 'hr')),
+  employment_type text not null default 'permanent' check (employment_type in ('permanent', 'part-time', 'intern')),
   epf_number text,
   socso_number text,
   citizenship_status text check (citizenship_status in ('citizen', 'permanent_resident', 'foreigner')),
@@ -15,6 +16,11 @@ create table if not exists public.profiles (
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
+
+-- Note: Employment types and statutory deductions:
+-- - 'permanent' (Full-Time): EPF + SOCSO + EIS deductions apply
+-- - 'part-time': EPF + SOCSO + EIS deductions apply (if eligible based on salary/hours)
+-- - 'intern': NO EPF/SOCSO/EIS deductions (exempt from statutory contributions)
 
 -- Create attendance table
 create table if not exists public.attendance (

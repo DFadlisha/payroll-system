@@ -23,7 +23,8 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
-  const [role, setRole] = useState<"staff" | "hr">("staff")
+  const [role, setRole] = useState<"staff" | "hr" | "intern">("staff")
+  const [employmentType, setEmploymentType] = useState<"part-time" | "permanent" | "intern">("permanent")
   const [basicSalary, setBasicSalary] = useState("")
   const [selectedCompany, setSelectedCompany] = useState<string>("")
   const [companies, setCompanies] = useState<Company[]>([])
@@ -73,7 +74,8 @@ export default function SignUpPage() {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/verify`,
           data: {
             full_name: fullName,
-            role: role,
+            role: role === "intern" ? "staff" : role,
+            employment_type: employmentType,
             basic_salary: Number.parseFloat(basicSalary) || 0,
             company_id: selectedCompany,
           },
@@ -175,16 +177,38 @@ export default function SignUpPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="role">Role</Label>
-                  <Select value={role} onValueChange={(value: "staff" | "hr") => setRole(value)}>
+                  <Select value={role} onValueChange={(value: "staff" | "hr" | "intern") => {
+                    setRole(value)
+                    if (value === "intern") {
+                      setEmploymentType("intern")
+                    } else if (value === "staff") {
+                      setEmploymentType("permanent")
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="intern">Intern</SelectItem>
                       <SelectItem value="hr">HR</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {role === "staff" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="employmentType">Employment Type</Label>
+                    <Select value={employmentType} onValueChange={(value: "part-time" | "permanent") => setEmploymentType(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="permanent">Full-Time (Permanent)</SelectItem>
+                        <SelectItem value="part-time">Part-Time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="grid gap-2">
                   <Label htmlFor="basicSalary">Basic Salary (RM)</Label>
                   <Input
