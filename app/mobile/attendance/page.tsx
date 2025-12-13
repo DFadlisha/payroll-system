@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, MapPin, Calendar } from "lucide-react"
+import { Clock, MapPin, Calendar, History } from "lucide-react"
 import { MobileClockInOut } from "@/components/mobile-clock-in-out"
 
 export default async function MobileAttendancePage() {
@@ -28,121 +28,151 @@ export default async function MobileAttendancePage() {
     .order("clock_in", { ascending: false })
 
   return (
-    <div className="container max-w-2xl px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Attendance</h1>
-        <p className="text-muted-foreground">Track your work hours with location</p>
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-500" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"30\" height=\"30\" viewBox=\"0 0 30 30\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M1.22676 0C1.91374 0 2.45351 0.539773 2.45351 1.22676C2.45351 1.91374 1.91374 2.45351 1.22676 2.45351C0.539773 2.45351 0 1.91374 0 1.22676C0 0.539773 0.539773 0 1.22676 0Z\" fill=\"rgba(255,255,255,0.07)\"%3E%3C/path%3E%3C/svg%3E')] opacity-50" />
+        
+        <div className="relative px-5 pt-12 pb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
+              <Clock className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Attendance</h1>
+              <p className="text-blue-100 text-sm">Track your work hours</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Clock In/Out Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Clock In / Out</CardTitle>
-          <CardDescription>Your location will be recorded</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MobileClockInOut userId={user.id} />
-        </CardContent>
-      </Card>
+      {/* Content */}
+      <div className="px-5 py-6 space-y-6 -mt-2">
+        {/* Clock In/Out Section */}
+        <Card className="border-0 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 overflow-hidden">
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg shadow-blue-500/30">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Clock In / Out</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Location will be recorded</p>
+              </div>
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <MobileClockInOut userId={user.id} />
+          </CardContent>
+        </Card>
 
-      {/* Attendance History */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Recent Attendance</h2>
-        {attendanceRecords && attendanceRecords.length > 0 ? (
-          <div className="space-y-3">
-            {attendanceRecords.map((record: any) => (
-              <Card key={record.id}>
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {/* Date */}
-                    <div className="flex items-center justify-between">
+        {/* Attendance History */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <History className="h-5 w-5 text-slate-500" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Records</h2>
+            <Badge variant="outline" className="ml-auto">{attendanceRecords?.length || 0} records</Badge>
+          </div>
+          
+          {attendanceRecords && attendanceRecords.length > 0 ? (
+            <div className="space-y-3">
+              {attendanceRecords.map((record: any) => (
+                <Card key={record.id} className="border-0 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* Date Header */}
+                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-4 py-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
+                        <Calendar className="h-4 w-4 text-slate-500" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {new Date(record.clock_in).toLocaleDateString("en-MY", {
                             weekday: "short",
-                            year: "numeric",
-                            month: "short",
                             day: "numeric",
+                            month: "short",
                           })}
                         </span>
                       </div>
-                      <Badge variant={record.status === "active" ? "default" : "secondary"}>
-                        {record.status}
+                      <Badge 
+                        className={record.status === "active" 
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200" 
+                          : "bg-slate-100 text-slate-600 border-slate-200"
+                        }
+                      >
+                        {record.status === "active" ? "Working" : "Completed"}
                       </Badge>
                     </div>
 
-                    {/* Clock In */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Clock In</span>
-                        <span className="font-medium">
-                          {new Date(record.clock_in).toLocaleTimeString("en-MY", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                    <div className="p-4 space-y-4">
+                      {/* Clock Times */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            Clock In
+                          </p>
+                          <p className="text-lg font-bold text-slate-900 dark:text-white">
+                            {new Date(record.clock_in).toLocaleTimeString("en-MY", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        {record.clock_out && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-rose-500" />
+                              Clock Out
+                            </p>
+                            <p className="text-lg font-bold text-slate-900 dark:text-white">
+                              {new Date(record.clock_out).toLocaleTimeString("en-MY", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Location */}
                       {record.clock_in_address && (
-                        <div className="flex items-start gap-2 pl-4">
-                          <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex items-start gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                          <MapPin className="h-4 w-4 mt-0.5 text-blue-500 flex-shrink-0" />
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
                             {record.clock_in_address}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Total Hours */}
+                      {record.total_hours && (
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-sm text-slate-500 font-medium">Total Hours</span>
+                          <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                            {record.total_hours.toFixed(2)} hrs
                           </span>
                         </div>
                       )}
                     </div>
-
-                    {/* Clock Out */}
-                    {record.clock_out && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Clock Out</span>
-                          <span className="font-medium">
-                            {new Date(record.clock_out).toLocaleTimeString("en-MY", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        {record.clock_out_address && (
-                          <div className="flex items-start gap-2 pl-4">
-                            <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground">
-                              {record.clock_out_address}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Total Hours */}
-                    {record.total_hours && (
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <span className="text-sm font-medium">Total Hours</span>
-                        <span className="text-lg font-bold">
-                          {record.total_hours.toFixed(2)} hrs
-                        </span>
-                      </div>
-                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-0 shadow-md">
+              <CardContent className="py-12">
+                <div className="text-center space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center">
+                    <Clock className="h-8 w-8 text-slate-400" />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">No attendance records found</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Clock in to start tracking your attendance
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <div>
+                    <p className="font-semibold text-slate-700 dark:text-slate-300">No records yet</p>
+                    <p className="text-sm text-slate-500">Clock in to start tracking your attendance</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   )

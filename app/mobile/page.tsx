@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Calendar, FileText, MapPin, TrendingUp } from "lucide-react"
+import { Clock, Calendar, FileText, MapPin, TrendingUp, ChevronRight, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { MobileClockInOut } from "@/components/mobile-clock-in-out"
 
@@ -58,155 +58,191 @@ export default async function MobilePage() {
     0
   )
 
+  const getEmploymentBadge = (type: string) => {
+    switch (type) {
+      case "intern":
+        return { label: "Intern", color: "bg-amber-100 text-amber-700 border-amber-200" }
+      case "part-time":
+        return { label: "Part-Time", color: "bg-blue-100 text-blue-700 border-blue-200" }
+      case "permanent":
+        return { label: "Full-Time", color: "bg-emerald-100 text-emerald-700 border-emerald-200" }
+      default:
+        return { label: type, color: "bg-slate-100 text-slate-700 border-slate-200" }
+    }
+  }
+
+  const employmentBadge = getEmploymentBadge(profile?.employment_type || "")
+
   return (
-    <div className="container max-w-2xl px-4 py-6 space-y-6">
-      {/* Welcome Section */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Welcome back!</h1>
-        <p className="text-muted-foreground">{profile?.full_name}</p>
-        <Badge variant="outline" className="text-xs">
-          {profile?.employment_type === "intern" && "Intern"}
-          {profile?.employment_type === "part-time" && "Part-Time Staff"}
-          {profile?.employment_type === "permanent" && "Permanent Staff"}
-          {profile?.employment_type === "contract" && "Contract Staff"}
-        </Badge>
-      </div>
-
-      {/* Clock In/Out Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Attendance
-          </CardTitle>
-          <CardDescription>Clock in/out with location tracking</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MobileClockInOut userId={user.id} />
-        </CardContent>
-      </Card>
-
-      {/* Today's Status */}
-      {todayAttendance && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Today's Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Clock In</span>
-              <span className="font-medium">
-                {new Date(todayAttendance.clock_in).toLocaleTimeString("en-MY", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+    <div className="min-h-screen">
+      {/* Hero Header with Gradient */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"30\" height=\"30\" viewBox=\"0 0 30 30\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M1.22676 0C1.91374 0 2.45351 0.539773 2.45351 1.22676C2.45351 1.91374 1.91374 2.45351 1.22676 2.45351C0.539773 2.45351 0 1.91374 0 1.22676C0 0.539773 0.539773 0 1.22676 0Z\" fill=\"rgba(255,255,255,0.07)\"%3E%3C/path%3E%3C/svg%3E')] opacity-50" />
+        
+        <div className="relative px-5 pt-12 pb-8">
+          {/* Greeting */}
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="h-4 w-4 text-amber-300" />
+                <span className="text-indigo-100 text-sm font-medium">Welcome back</span>
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">{profile?.full_name}</h1>
+              <Badge className={`${employmentBadge.color} border font-medium`}>
+                {employmentBadge.label}
+              </Badge>
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+              <span className="text-2xl font-bold text-white">
+                {profile?.full_name?.charAt(0) || "U"}
               </span>
             </div>
-            {todayAttendance.clock_in_address && (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">
-                  {todayAttendance.clock_in_address}
-                </span>
+          </div>
+
+          {/* Quick Stats Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-white/80" />
+                <span className="text-xs text-white/80 font-medium">This Month</span>
               </div>
-            )}
-            {todayAttendance.clock_out && (
-              <>
+              <p className="text-2xl font-bold text-white">{totalHoursThisMonth?.toFixed(0) || "0"}</p>
+              <p className="text-xs text-white/70">hours worked</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="h-4 w-4 text-white/80" />
+                <span className="text-xs text-white/80 font-medium">Pending</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{pendingLeaves || 0}</p>
+              <p className="text-xs text-white/70">leave requests</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-5 py-6 space-y-6 -mt-2">
+        {/* Clock In/Out Card - Premium Design */}
+        <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50">
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Attendance</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Clock in with GPS tracking</p>
+              </div>
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <MobileClockInOut userId={user.id} />
+          </CardContent>
+        </Card>
+
+        {/* Today's Status - if clocked in */}
+        {todayAttendance && (
+          <Card className="border-0 shadow-lg shadow-emerald-100/50 dark:shadow-emerald-900/20 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Today's Status</h3>
+              </div>
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Clock Out</span>
-                  <span className="font-medium">
-                    {new Date(todayAttendance.clock_out).toLocaleTimeString("en-MY", {
+                  <span className="text-sm text-emerald-700 dark:text-emerald-300">Clock In</span>
+                  <span className="font-semibold text-emerald-900 dark:text-emerald-100">
+                    {new Date(todayAttendance.clock_in).toLocaleTimeString("en-MY", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
                 </div>
-                {todayAttendance.total_hours && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Total Hours</span>
-                    <span className="font-medium">
-                      {todayAttendance.total_hours.toFixed(2)} hours
+                {todayAttendance.clock_in_address && (
+                  <div className="flex items-start gap-2 bg-white/50 dark:bg-slate-900/50 rounded-xl p-3">
+                    <MapPin className="h-4 w-4 mt-0.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    <span className="text-xs text-emerald-700 dark:text-emerald-300">
+                      {todayAttendance.clock_in_address}
                     </span>
                   </div>
                 )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                {todayAttendance.clock_out && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-emerald-700 dark:text-emerald-300">Clock Out</span>
+                      <span className="font-semibold text-emerald-900 dark:text-emerald-100">
+                        {new Date(todayAttendance.clock_out).toLocaleTimeString("en-MY", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    {todayAttendance.total_hours && (
+                      <div className="flex items-center justify-between pt-3 border-t border-emerald-200 dark:border-emerald-800">
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Total</span>
+                        <span className="text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                          {todayAttendance.total_hours.toFixed(2)} hrs
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Hours This Month
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{totalHoursThisMonth?.toFixed(1) || "0"}</p>
-          </CardContent>
-        </Card>
+        {/* Quick Actions */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white px-1">Quick Actions</h2>
+          <div className="space-y-3">
+            <Link href="/mobile/attendance">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
+                    <Clock className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900 dark:text-white">Attendance History</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">View all clock records</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
+                </CardContent>
+              </Card>
+            </Link>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Pending Leaves
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{pendingLeaves || 0}</p>
-          </CardContent>
-        </Card>
-      </div>
+            <Link href="/mobile/leaves">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900 dark:text-white">Apply for Leave</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Request time off</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
+                </CardContent>
+              </Card>
+            </Link>
 
-      {/* Quick Actions */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Quick Actions</h2>
-        <div className="grid gap-3">
-          <Link href="/mobile/attendance">
-            <Card className="hover:bg-accent transition-colors cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">View Attendance History</p>
-                  <p className="text-sm text-muted-foreground">See all your clock records</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/mobile/leaves">
-            <Card className="hover:bg-accent transition-colors cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Apply for Leave</p>
-                  <p className="text-sm text-muted-foreground">Request time off</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/mobile/payslips">
-            <Card className="hover:bg-accent transition-colors cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">View Payslips</p>
-                  <p className="text-sm text-muted-foreground">Download your pay records</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+            <Link href="/mobile/payslips">
+              <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900 dark:text-white">View Payslips</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Download pay records</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -13,12 +13,14 @@ interface ClockInOutProps {
 
 export function ClockInOut({ userId }: ClockInOutProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [mounted, setMounted] = useState(false)
   const [activeAttendance, setActiveAttendance] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
+    setMounted(true)
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
@@ -108,20 +110,20 @@ export function ClockInOut({ userId }: ClockInOutProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="text-center">
-          <div className="text-4xl font-bold text-gray-900 mb-2">
-            {currentTime.toLocaleTimeString("en-MY", {
+          <div className="text-4xl font-bold text-gray-900 mb-2" suppressHydrationWarning>
+            {mounted ? currentTime.toLocaleTimeString("en-MY", {
               hour: "2-digit",
               minute: "2-digit",
               second: "2-digit",
-            })}
+            }) : "--:--:--"}
           </div>
-          <div className="text-sm text-gray-600">
-            {currentTime.toLocaleDateString("en-MY", {
+          <div className="text-sm text-gray-600" suppressHydrationWarning>
+            {mounted ? currentTime.toLocaleDateString("en-MY", {
               weekday: "long",
               year: "numeric",
               month: "long",
               day: "numeric",
-            })}
+            }) : "Loading..."}
           </div>
         </div>
 

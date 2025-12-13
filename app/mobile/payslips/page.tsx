@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Download, DollarSign, Calendar } from "lucide-react"
+import { FileText, Download, DollarSign, Wallet, TrendingUp, Receipt, Info, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 export default async function MobilePayslipsPage() {
@@ -31,16 +31,16 @@ export default async function MobilePayslipsPage() {
     .order("year", { ascending: false })
     .order("month", { ascending: false })
 
-  const getStatusBadge = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case "draft":
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Draft</Badge>
+        return { color: "bg-slate-100 text-slate-600 border-slate-200", dotColor: "bg-slate-400" }
       case "finalized":
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Finalized</Badge>
+        return { color: "bg-blue-100 text-blue-700 border-blue-200", dotColor: "bg-blue-500" }
       case "paid":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Paid</Badge>
+        return { color: "bg-emerald-100 text-emerald-700 border-emerald-200", dotColor: "bg-emerald-500" }
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return { color: "bg-slate-100 text-slate-600 border-slate-200", dotColor: "bg-slate-400" }
     }
   }
 
@@ -49,200 +49,236 @@ export default async function MobilePayslipsPage() {
     return date.toLocaleDateString("en-MY", { month: "long" })
   }
 
-  const downloadPayslip = async (payroll: any) => {
-    // This would typically generate a PDF, but for now we'll use a simple approach
-    const payslipData = `
-PAYSLIP
--------
-Employee: ${profile?.full_name}
-Employment Type: ${profile?.employment_type}
-Period: ${getMonthName(payroll.month)} ${payroll.year}
-
-Earnings:
-Gross Pay: RM ${payroll.gross_pay.toFixed(2)}
-
-Deductions:
-EPF (Employee): RM ${payroll.epf_employee.toFixed(2)}
-SOCSO (Employee): RM ${payroll.socso_employee.toFixed(2)}
-EIS (Employee): RM ${payroll.eis_employee.toFixed(2)}
-
-Net Pay: RM ${payroll.net_pay.toFixed(2)}
-
-Regular Hours: ${payroll.regular_hours.toFixed(2)}
-Overtime Hours: ${payroll.overtime_hours.toFixed(2)}
-    `
-
-    const blob = new Blob([payslipData], { type: "text/plain" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `payslip-${payroll.year}-${payroll.month.toString().padStart(2, "0")}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+  const getEmploymentTypeLabel = (type: string) => {
+    switch (type) {
+      case "intern":
+        return "Intern"
+      case "part-time":
+        return "Part-Time Staff"
+      case "permanent":
+        return "Full-Time Staff"
+      default:
+        return type?.replace("-", " ")
+    }
   }
 
+  // Calculate total earnings this year
+  const currentYear = new Date().getFullYear()
+  const yearToDateEarnings = payrolls
+    ?.filter((p: any) => p.year === currentYear && p.status === "paid")
+    .reduce((sum: number, p: any) => sum + p.net_pay, 0) || 0
+
   return (
-    <div className="container max-w-2xl px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Payslips</h1>
-        <p className="text-muted-foreground">View and download your payslips</p>
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"30\" height=\"30\" viewBox=\"0 0 30 30\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M1.22676 0C1.91374 0 2.45351 0.539773 2.45351 1.22676C2.45351 1.91374 1.91374 2.45351 1.22676 2.45351C0.539773 2.45351 0 1.91374 0 1.22676C0 0.539773 0.539773 0 1.22676 0Z\" fill=\"rgba(255,255,255,0.07)\"%3E%3C/path%3E%3C/svg%3E')] opacity-50" />
+        
+        <div className="relative px-5 pt-12 pb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
+              <Wallet className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Payslips</h1>
+              <p className="text-emerald-100 text-sm">View and download payslips</p>
+            </div>
+          </div>
+
+          {/* Year to Date Card */}
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-emerald-100 text-sm">Year to Date ({currentYear})</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  RM {yearToDateEarnings.toLocaleString("en-MY", { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/20">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Employee Info Card */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
+      {/* Content */}
+      <div className="px-5 py-6 space-y-6 -mt-2">
+        {/* Employee Info Card */}
+        <Card className="border-0 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 overflow-hidden">
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Employee Details</p>
+          </div>
+          <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Employee Name</span>
-              <span className="font-medium">{profile?.full_name}</span>
+              <span className="text-sm text-slate-500">Name</span>
+              <span className="font-medium text-slate-900 dark:text-white">{profile?.full_name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Employment Type</span>
-              <Badge variant="outline" className="capitalize">
-                {profile?.employment_type?.replace("-", " ")}
+              <span className="text-sm text-slate-500">Employment Type</span>
+              <Badge className={`font-medium ${
+                profile?.employment_type === "permanent" 
+                  ? "bg-indigo-100 text-indigo-700 border-indigo-200" 
+                  : profile?.employment_type === "part-time"
+                  ? "bg-purple-100 text-purple-700 border-purple-200"
+                  : "bg-amber-100 text-amber-700 border-amber-200"
+              } border`}>
+                {getEmploymentTypeLabel(profile?.employment_type)}
               </Badge>
             </div>
             {profile?.epf_number && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">EPF Number</span>
-                <span className="font-medium">{profile.epf_number}</span>
+                <span className="text-sm text-slate-500">EPF Number</span>
+                <span className="font-medium text-slate-900 dark:text-white font-mono">{profile.epf_number}</span>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Payslips List */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Payment History</h2>
-        {payrolls && payrolls.length > 0 ? (
-          <div className="space-y-3">
-            {payrolls.map((payroll: any) => (
-              <Card key={payroll.id}>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <FileText className="h-5 w-5 text-primary" />
+        {/* Payslips List */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white px-1">Payment History</h2>
+          
+          {payrolls && payrolls.length > 0 ? (
+            <div className="space-y-3">
+              {payrolls.map((payroll: any) => {
+                const statusConfig = getStatusConfig(payroll.status)
+                return (
+                  <Card key={payroll.id} className="border-0 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                    <CardContent className="p-0">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30">
+                            <Receipt className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-white">
+                              {getMonthName(payroll.month)} {payroll.year}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {payroll.regular_hours.toFixed(1)} hrs
+                              {payroll.overtime_hours > 0 && ` + ${payroll.overtime_hours.toFixed(1)} OT`}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">
-                            {getMonthName(payroll.month)} {payroll.year}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {payroll.regular_hours.toFixed(1)} regular hrs
-                            {payroll.overtime_hours > 0 &&
-                              ` + ${payroll.overtime_hours.toFixed(1)} OT hrs`}
-                          </p>
-                        </div>
+                        <Badge className={`${statusConfig.color} border font-medium capitalize`}>
+                          {payroll.status}
+                        </Badge>
                       </div>
-                      {getStatusBadge(payroll.status)}
-                    </div>
 
-                    {/* Amount Summary */}
-                    <div className="space-y-2 p-3 bg-muted rounded-lg">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Gross Pay</span>
-                        <span>RM {payroll.gross_pay.toFixed(2)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Total Deductions</span>
-                        <span className="text-red-600">
-                          - RM{" "}
-                          {(
-                            payroll.epf_employee +
-                            payroll.socso_employee +
-                            payroll.eis_employee
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t flex items-center justify-between">
-                        <span className="font-medium">Net Pay</span>
-                        <span className="text-xl font-bold text-green-600">
-                          RM {payroll.net_pay.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
+                      <div className="p-4 space-y-4">
+                        {/* Net Pay Highlight */}
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Net Pay</span>
+                          <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                            RM {payroll.net_pay.toFixed(2)}
+                          </span>
+                        </div>
 
-                    {/* Deduction Details */}
-                    <div className="space-y-2 text-sm">
-                      <p className="text-muted-foreground font-medium">Deductions:</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground">EPF</p>
-                          <p className="font-medium">RM {payroll.epf_employee.toFixed(2)}</p>
+                        {/* Amount Details */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                            <p className="text-xs text-slate-500 font-medium">Gross Pay</p>
+                            <p className="font-semibold text-slate-900 dark:text-white mt-1">
+                              RM {payroll.gross_pay.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl">
+                            <p className="text-xs text-rose-600 font-medium">Deductions</p>
+                            <p className="font-semibold text-rose-600 mt-1">
+                              - RM {(payroll.epf_employee + payroll.socso_employee + payroll.eis_employee).toFixed(2)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">SOCSO</p>
-                          <p className="font-medium">RM {payroll.socso_employee.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">EIS</p>
-                          <p className="font-medium">RM {payroll.eis_employee.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Download Button */}
-                    {(payroll.status === "finalized" || payroll.status === "paid") && (
-                      <Link
-                        href={`/staff/payslips?payrollId=${payroll.id}`}
-                        target="_blank"
-                        className="w-full"
-                      >
-                        <Button variant="outline" className="w-full" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
-                          View Full Payslip
-                        </Button>
-                      </Link>
-                    )}
+                        {/* Deduction Breakdown */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                            <p className="text-[10px] text-slate-500 font-medium">EPF</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              RM {payroll.epf_employee.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                            <p className="text-[10px] text-slate-500 font-medium">SOCSO</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              RM {payroll.socso_employee.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-center p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                            <p className="text-[10px] text-slate-500 font-medium">EIS</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              RM {payroll.eis_employee.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* View Full Payslip Button */}
+                        {(payroll.status === "finalized" || payroll.status === "paid") && (
+                          <Link
+                            href={`/staff/payslips?payrollId=${payroll.id}`}
+                            target="_blank"
+                            className="block"
+                          >
+                            <Button 
+                              variant="outline" 
+                              className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-semibold group hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              View Full Payslip
+                              <ChevronRight className="ml-auto h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <Card className="border-0 shadow-md">
+              <CardContent className="py-12">
+                <div className="text-center space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-slate-400" />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">No payslips available</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Payslips will appear here once generated by HR
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white">No payslips available</p>
+                    <p className="text-sm text-slate-500 mt-1">Payslips will appear here once generated by HR</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Info Note */}
+        <Card className="border-0 shadow-md overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  Payslip Information
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                  {profile?.employment_type === "intern" &&
+                    "As an intern, you are not subject to EPF/SOCSO/EIS deductions."}
+                  {profile?.employment_type === "part-time" &&
+                    "Part-time staff may have different deduction rates based on working hours."}
+                  {profile?.employment_type === "permanent" &&
+                    "Your payslip includes all statutory deductions (EPF, SOCSO, EIS)."}
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Info Note */}
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <DollarSign className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Payslip Information
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                {profile?.employment_type === "intern" &&
-                  "As an intern, you are not subject to EPF/SOCSO/EIS deductions."}
-                {profile?.employment_type === "part-time" &&
-                  "Part-time employees may have different deduction rates."}
-                {profile?.employment_type === "permanent" &&
-                  "Your payslip includes all statutory deductions (EPF, SOCSO, EIS)."}
-                {profile?.employment_type === "contract" &&
-                  "Contract employees may have different benefit structures."}
-              </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }
