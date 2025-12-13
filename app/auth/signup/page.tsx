@@ -88,7 +88,8 @@ export default function SignUpPage() {
       
       // If email confirmation is disabled, user is already logged in
       if (data?.session) {
-        router.push(role === "hr" ? "/hr" : "/staff")
+        // HR goes to web dashboard, Staff/Intern goes to mobile app
+        router.push(role === "hr" ? "/hr" : "/mobile")
       } else {
         router.push("/auth/verify")
       }
@@ -202,8 +203,12 @@ export default function SignUpPage() {
                     setRole(value)
                     if (value === "intern") {
                       setEmploymentType("intern")
+                      setBasicSalary("800") // Fixed intern allowance
                     } else if (value === "staff") {
                       setEmploymentType("permanent")
+                      setBasicSalary("") // Reset for manual input
+                    } else {
+                      setBasicSalary("") // Reset for HR
                     }
                   }}>
                     <SelectTrigger>
@@ -219,7 +224,14 @@ export default function SignUpPage() {
                 {role === "staff" && (
                   <div className="grid gap-2">
                     <Label htmlFor="employmentType">Employment Type</Label>
-                    <Select value={employmentType} onValueChange={(value: "part-time" | "permanent") => setEmploymentType(value)}>
+                    <Select value={employmentType} onValueChange={(value: "part-time" | "permanent") => {
+                      setEmploymentType(value)
+                      if (value === "part-time") {
+                        setBasicSalary("1700") // Fixed part-time salary
+                      } else {
+                        setBasicSalary("") // Reset for manual input
+                      }
+                    }}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -230,18 +242,34 @@ export default function SignUpPage() {
                     </Select>
                   </div>
                 )}
-                <div className="grid gap-2">
-                  <Label htmlFor="basicSalary">Basic Salary (RM)</Label>
-                  <Input
-                    id="basicSalary"
-                    type="number"
-                    step="0.01"
-                    placeholder="3000.00"
-                    required
-                    value={basicSalary}
-                    onChange={(e) => setBasicSalary(e.target.value)}
-                  />
-                </div>
+                {role === "intern" ? (
+                  <div className="grid gap-2">
+                    <Label>Intern Allowance (RM)</Label>
+                    <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
+                      RM 800.00 (Fixed)
+                    </div>
+                  </div>
+                ) : employmentType === "part-time" ? (
+                  <div className="grid gap-2">
+                    <Label>Part-Time Salary (RM)</Label>
+                    <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
+                      RM 1,700.00 (Fixed)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    <Label htmlFor="basicSalary">Basic Salary (RM)</Label>
+                    <Input
+                      id="basicSalary"
+                      type="number"
+                      step="0.01"
+                      placeholder="3000.00"
+                      required
+                      value={basicSalary}
+                      onChange={(e) => setBasicSalary(e.target.value)}
+                    />
+                  </div>
+                )}
                 {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Sign Up"}

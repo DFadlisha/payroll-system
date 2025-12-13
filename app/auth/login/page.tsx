@@ -93,7 +93,8 @@ export default function LoginPage() {
         throw new Error("You do not have access to this company")
       }
 
-      router.push(profile?.role === "hr" ? "/hr" : "/staff")
+      // HR goes to web dashboard, Staff/Intern goes to mobile app
+      router.push(profile?.role === "hr" ? "/hr" : "/mobile")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
     } finally {
