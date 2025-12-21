@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = sanitize($_POST['full_name'] ?? '');
     $email = sanitize($_POST['email'] ?? '');
     $phone = sanitize($_POST['phone'] ?? '');
+    $role = sanitize($_POST['role'] ?? 'staff');
     $employment_type = sanitize($_POST['employment_type'] ?? 'permanent');
     $company_id = $_POST['company_id'] ?? '';
     $basic_salary = floatval($_POST['basic_salary'] ?? 0);
@@ -73,6 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
+    // Valid roles
+    $valid_roles = ['staff', 'hr'];
+    
     // Valid employment types from Supabase schema
     $valid_types = ['permanent', 'contract', 'intern', 'part-time'];
     
@@ -80,6 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($full_name) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = __('errors.required_field');
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = __('errors.invalid_request');
+    } elseif (!in_array($role, $valid_roles)) {
         $error = __('errors.invalid_request');
     } elseif (!in_array($employment_type, $valid_types)) {
         $error = __('errors.invalid_request');
@@ -116,18 +122,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt = $conn->prepare("
                         INSERT INTO profiles (id, email, full_name, password, role, employment_type, company_id, basic_salary, hourly_rate, internship_months, created_at) 
-                        VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, ?, ?, NOW())
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                     ");
                     $internship_value = ($employment_type === 'intern') ? $internship_months : null;
-                    $stmt->execute([$uuid, $email, $full_name, $hashed_password, $employment_type, $company_id_value, $basic_salary, $hourly_rate, $internship_value]);
+                    $stmt->execute([$uuid, $email, $full_name, $hashed_password, $role, $employment_type, $company_id_value, $basic_salary, $hourly_rate, $internship_value]);
                 } catch (PDOException $e) {
                     // If internship_months column doesn't exist, insert without it
                     if (strpos($e->getMessage(), 'internship_months') !== false) {
                         $stmt = $conn->prepare("
                             INSERT INTO profiles (id, email, full_name, password, role, employment_type, company_id, basic_salary, hourly_rate, created_at) 
-                            VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, ?, NOW())
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                         ");
-                        $stmt->execute([$uuid, $email, $full_name, $hashed_password, $employment_type, $company_id_value, $basic_salary, $hourly_rate]);
+                        $stmt->execute([$uuid, $email, $full_name, $hashed_password, $role, $employment_type, $company_id_value, $basic_salary, $hourly_rate]);
                     } else {
                         throw $e;
                     }
@@ -440,6 +446,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endforeach; ?>
                         </div>
                         <input type="hidden" name="company_id" id="company_id" value="<?= htmlspecialchars($companies[0]['id'] ?? '') ?>">
+                    </div>
+                    
+                    <!-- Role Selection -->
+                    <div class="mb-3">
+                        <label for="role" class="form-label">
+                            <i class="bi bi-shield-check me-1"></i> Register As <span class="required">*</span>
+                        </label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="staff" selected>
+                                👤 Staff Member
+                            </option>
+                            <option value="hr">
+                                ⚙️ HR Manager
+                            </option>
+                        </select>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> Select HR if you will manage employees, payroll, and attendance
+                        </small>
+                        <div class="invalid-feedback">Please select your role.</div>
                     </div>
                     
                     <div class="mb-3">
