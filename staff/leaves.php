@@ -23,20 +23,23 @@ $action = $_GET['action'] ?? '';
 $message = '';
 $messageType = '';
 
-// Get user details including role and internship months
+// Get user details including employment_type and internship_months (Supabase schema)
 try {
     $conn = getConnection();
-    $stmt = $conn->prepare("SELECT role, internship_months FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT employment_type, internship_months FROM profiles WHERE id = ?");
     $stmt->execute([$userId]);
     $userDetails = $stmt->fetch(PDO::FETCH_ASSOC);
-    $userRole = $userDetails['role'] ?? 'staff';
-    $internshipMonths = $userDetails['internship_months'] ?? 0;
+    $employmentType = $userDetails['employment_type'] ?? 'permanent';
+    $internshipMonths = intval($userDetails['internship_months'] ?? 0);
 } catch (PDOException $e) {
-    $userRole = 'staff';
+    $employmentType = 'permanent';
     $internshipMonths = 0;
 }
 
-$isIntern = ($userRole === 'intern');
+$isIntern = ($employmentType === 'intern');
+if ($isIntern && $internshipMonths <= 0) {
+    $internshipMonths = 3; // Default to 3 months if not set
+}
 
 // Process leave application
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_leave'])) {
@@ -45,9 +48,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_leave'])) {
     $endDate = sanitize($_POST['end_date'] ?? '');
     $reason = sanitize($_POST['reason'] ?? '');
     
-    // Validate
+    // Validate leave_type based on Supabase schema: annual, sick, emergency, unpaid
+    $validLeaveTypes = ['annual', 'sick', 'emergency', 'unpaid'];
+    
     if (empty($leaveType) || empty($startDate) || empty($endDate)) {
         $message = 'Please fill in all required fields.';
+        $messageType = 'error';
+    } elseif (!in_array($leaveType, $validLeaveTypes)) {
+        $message = 'Invalid leave type selected.';
         $messageType = 'error';
     } elseif (strtotime($endDate) < strtotime($startDate)) {
         $message = 'End date cannot be before start date.';
@@ -64,35 +72,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_leave'])) {
             $end = new DateTime($endDate);
             $totalDays = $end->diff($start)->days + 1;
             
-            // For intern, check NRL balance
-            if ($isIntern) {
-                $currentYear = date('Y');
-                $stmt = $conn->prepare("
-                    SELECT COALESCE(SUM(total_days), 0) as nrl_used
-                    FROM leaves 
-                    WHERE user_id = ? AND leave_type = 'nrl' AND status IN ('approved', 'pending') AND YEAR(start_date) = ?
-                ");
-                $stmt->execute([$userId, $currentYear]);
-                $nrlUsed = $stmt->fetch()['nrl_used'] ?? 0;
-                $nrlBalance = $internshipMonths - $nrlUsed;
-                
-                if ($totalDays > $nrlBalance) {
-                    $message = "Insufficient NRL balance. You have {$nrlBalance} day(s) remaining.";
-                    $messageType = 'error';
-                }
-            }
+            // Generate UUID for leave
+            $leaveUuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
             
-            if (empty($message)) {
-                $stmt = $conn->prepare("
-                    INSERT INTO leaves (user_id, leave_type, start_date, end_date, total_days, reason)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$userId, $leaveType, $startDate, $endDate, $totalDays, $reason]);
-                
-                $message = 'Leave application submitted successfully. Waiting for HR approval.';
-                $messageType = 'success';
-                $action = ''; // Reset to list view
-            }
+            // Insert into leaves table (Supabase schema)
+            $stmt = $conn->prepare("
+                INSERT INTO leaves (id, user_id, leave_type, start_date, end_date, days, reason, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+            ");
+            $stmt->execute([$leaveUuid, $userId, $leaveType, $startDate, $endDate, $totalDays, $reason]);
+            
+            $message = 'Leave application submitted successfully. Waiting for HR approval.';
+            $messageType = 'success';
+            $action = ''; // Reset to list view
             
         } catch (PDOException $e) {
             error_log("Leave application error: " . $e->getMessage());
@@ -120,9 +118,9 @@ try {
     if ($isIntern) {
         // Intern: NRL balance = internship months
         $stmt = $conn->prepare("
-            SELECT COALESCE(SUM(total_days), 0) as nrl_used
+            SELECT COALESCE(SUM(days), 0) as nrl_used
             FROM leaves 
-            WHERE user_id = ? AND leave_type = 'nrl' AND status = 'approved' AND YEAR(start_date) = ?
+            WHERE user_id = ? AND leave_type = 'nrl' AND status = 'approved' AND EXTRACT(YEAR FROM start_date) = ?
         ");
         $stmt->execute([$userId, $currentYear]);
         $nrlUsed = $stmt->fetch()['nrl_used'] ?? 0;
@@ -134,10 +132,10 @@ try {
         // Staff/Part-time: Annual & Medical leave
         $stmt = $conn->prepare("
             SELECT 
-                SUM(CASE WHEN leave_type = 'annual' AND status = 'approved' THEN total_days ELSE 0 END) as annual_used,
-                SUM(CASE WHEN leave_type = 'medical' AND status = 'approved' THEN total_days ELSE 0 END) as medical_used
+                SUM(CASE WHEN leave_type = 'annual' AND status = 'approved' THEN days ELSE 0 END) as annual_used,
+                SUM(CASE WHEN leave_type = 'medical' AND status = 'approved' THEN days ELSE 0 END) as medical_used
             FROM leaves 
-            WHERE user_id = ? AND YEAR(start_date) = ?
+            WHERE user_id = ? AND EXTRACT(YEAR FROM start_date) = ?
         ");
         $stmt->execute([$userId, $currentYear]);
         $leaveUsed = $stmt->fetch(PDO::FETCH_ASSOC);

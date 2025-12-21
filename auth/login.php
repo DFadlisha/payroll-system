@@ -4,7 +4,7 @@
  * LOGIN PAGE
  * ============================================
  * Users login using email and password.
- * Redirect to HR or Staff dashboard based on role.
+ * Select company before login.
  * ============================================
  */
 
@@ -22,11 +22,52 @@ if (isLoggedIn()) {
 }
 
 $error = '';
+$companies = [];
+
+// Get list of companies from Supabase
+try {
+    $conn = getConnection();
+    $stmt = $conn->query("SELECT id, name, logo_url FROM companies ORDER BY name");
+    $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Convert logo_url to local filename if needed
+    foreach ($companies as &$company) {
+        if (empty($company['logo_url'])) {
+            $company['logo_url'] = 'nes.jpg'; // default
+        }
+    }
+    unset($company);
+
+    // Put NES first in the list for display clarity
+    usort($companies, function ($a, $b) {
+        $aIsNes = stripos($a['name'], 'nes') !== false;
+        $bIsNes = stripos($b['name'], 'nes') !== false;
+        if ($aIsNes === $bIsNes) {
+            return strcasecmp($a['name'], $b['name']);
+        }
+        return $aIsNes ? -1 : 1;
+    });
+} catch (PDOException $e) {
+    // If companies table doesn't exist or error, use default
+    $companies = [
+        ['id' => 'nes-001', 'name' => 'NES Solution & Network Sdn Bhd', 'logo_url' => 'nes.jpg'],
+        ['id' => 'mi-001', 'name' => 'Mentari Infiniti Network Sdn Bhd', 'logo_url' => 'mentari.png']
+    ];
+}
+
+// Debug helper: show companies when ?debug=1 is passed
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo '<pre style="background:#111;color:#0f0;padding:10px;">';
+    echo "Companies loaded:\n";
+    print_r($companies);
+    echo '</pre>';
+}
 
 // Process login form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = sanitize($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $companyId = $_POST['company_id'] ?? '';
     
     // Validate input
     if (empty($email) || empty($password)) {
@@ -35,20 +76,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $conn = getConnection();
             
-            // Find user with email
-            $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND is_active = 1");
-            $stmt->execute([$email]);
+            // Find user profile with email and company (profiles table uses UUID)
+            $stmt = $conn->prepare("SELECT p.*, c.name as company_name, c.logo_url 
+                                    FROM profiles p 
+                                    LEFT JOIN companies c ON p.company_id = c.id 
+                                    WHERE p.email = ? AND (p.company_id = ? OR ? = '')");
+            $stmt->execute([$email, $companyId, $companyId]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($user && password_verify($password, $user['password'])) {
-                // Login successful - set session
+                // Login successful - set session (using data from JOIN)
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['email'] = $user['email'];
                 $_SESSION['full_name'] = $user['full_name'];
-                $_SESSION['role'] = $user['role'];
+                $_SESSION['role'] = $user['role']; // hr or staff
+                $_SESSION['employment_type'] = $user['employment_type']; // permanent, contract, intern, part-time
                 $_SESSION['company_id'] = $user['company_id'];
+                $_SESSION['company_name'] = $user['company_name'] ?? 'Company';
+                $_SESSION['company_logo'] = $user['logo_url'] ?? 'nes.jpg';
+                $_SESSION['basic_salary'] = $user['basic_salary'] ?? 0;
+                $_SESSION['hourly_rate'] = $user['hourly_rate'] ?? 0;
                 
-                // Redirect based on role
+                // Redirect based on role (hr or staff)
                 if ($user['role'] === 'hr') {
                     redirect('../hr/dashboard.php');
                 } else {
@@ -76,8 +125,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #f97316;
+            --accent-teal: #14b8a6;
+            --accent-pink: #ec4899;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e5e7eb;
+        }
+        
         body {
-            background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -92,14 +153,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .login-card {
-            background: #fff;
+            background: var(--surface);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.28);
             overflow: hidden;
+            border: 1px solid var(--border);
         }
         
         .login-header {
-            background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
             padding: 30px;
             text-align: center;
             color: #fff;
@@ -126,14 +188,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .form-control {
             border-radius: 8px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--border);
             padding: 12px 15px;
             height: auto;
         }
         
         .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
         }
         
         .btn-login {
@@ -148,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .login-footer {
             text-align: center;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--surface-alt);
             font-size: 0.85rem;
         }
         
@@ -169,6 +231,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .alert {
             border-radius: 8px;
             margin-bottom: 20px;
+        }
+        
+        /* Company Selection */
+        .company-select-container {
+            margin-bottom: 20px;
+        }
+        
+        .company-cards {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .company-card {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+            max-width: 150px;
+        }
+        
+        .company-card:hover {
+            border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .company-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(20, 184, 166, 0.12));
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+        }
+        
+        .company-card img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+        
+        .company-card .company-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .company-card .company-short {
+            font-size: 0.65rem;
+            color: #6c757d;
         }
         
         /* Demo credentials box */
@@ -201,9 +316,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <div class="login-card">
-            <div class="login-header">
-                <i class="bi bi-building" style="font-size: 3rem;"></i>
-                <h1><?= __('app_name') ?></h1>
+            <div class="login-header" id="loginHeader">
+                <img src="../assets/logos/nes.jpg" alt="Logo" id="headerLogo" style="width: 80px; height: 80px; object-fit: contain; background: #fff; border-radius: 10px; padding: 5px;">
+                <h1 id="headerTitle"><?= __('app_name') ?></h1>
                 <p><?= __('app_subtitle') ?></p>
             </div>
             
@@ -215,15 +330,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
                 
-                <!-- Demo Credentials -->
-                <div class="demo-credentials">
-                    <h6><i class="bi bi-info-circle me-1"></i> Demo Account</h6>
-                    <p class="mb-1"><strong>HR Admin:</strong> <code>admin@nes.com.my</code></p>
-                    <p class="mb-1"><strong>Staff:</strong> <code>staff@nes.com.my</code></p>
-                    <p class="mb-0"><strong>Password:</strong> <code>password123</code></p>
+                <!-- Company Selection -->
+                <div class="company-select-container">
+                    <label class="form-label text-center d-block mb-2">
+                        <i class="bi bi-building me-1"></i> <?= getCurrentLang() === 'ms' ? 'Pilih Syarikat' : 'Select Company' ?>
+                    </label>
+                    <div class="company-cards">
+                        <?php foreach ($companies as $index => $company): ?>
+                            <div class="company-card <?= $index === 0 ? 'selected' : '' ?>" 
+                                 data-company-id="<?= htmlspecialchars($company['id']) ?>"
+                                 data-company-name="<?= htmlspecialchars($company['name']) ?>"
+                                 data-company-logo="<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>"
+                                 onclick="selectCompany(this)">
+                                <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>" 
+                                     alt="<?= htmlspecialchars($company['name']) ?>"
+                                     onerror="this.src='../assets/logos/nes.jpg'">
+                                <div class="company-name"><?= htmlspecialchars(explode(' ', $company['name'])[0]) ?></div>
+                                <div class="company-short"><?= htmlspecialchars(substr($company['name'], 0, 25)) ?>...</div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 
                 <form method="POST" action="" class="needs-validation" novalidate>
+                    <input type="hidden" name="company_id" id="companyId" value="<?= $companies[0]['id'] ?? 1 ?>">
+                    
                     <div class="mb-3">
                         <label for="email" class="form-label">
                             <i class="bi bi-envelope me-1"></i> <?= __('login_page.email') ?>
@@ -264,8 +395,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="login-footer">
-                <p class="mb-0">
-                    &copy; <?= date('Y') ?> NES Solution & Network Sdn Bhd
+                <p class="mb-0" id="footerText">
+                    &copy; <?= date('Y') ?> <span id="footerCompany"><?= htmlspecialchars($companies[0]['name'] ?? 'Company') ?></span>
                 </p>
             </div>
         </div>
@@ -289,6 +420,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 icon.classList.remove('bi-eye-slash');
                 icon.classList.add('bi-eye');
             }
+        }
+        
+        // Select company function
+        function selectCompany(element) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.company-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card
+            element.classList.add('selected');
+            
+            // Update hidden input
+            document.getElementById('companyId').value = element.dataset.companyId;
+            
+            // Update header logo
+            const logo = element.dataset.companyLogo;
+            if (logo) {
+                document.getElementById('headerLogo').src = '../assets/logos/' + logo;
+            }
+            
+            // Update footer company name
+            document.getElementById('footerCompany').textContent = element.dataset.companyName;
         }
         
         // Form validation

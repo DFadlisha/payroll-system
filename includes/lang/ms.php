@@ -79,6 +79,7 @@ return [
         'btn_login' => 'Log Masuk',
         'invalid_credentials' => 'Email atau kata laluan tidak sah.',
         'account_inactive' => 'Akaun anda tidak aktif. Sila hubungi HR.',
+        'select_company' => 'Pilih Syarikat',
     ],
     
     // Register Page

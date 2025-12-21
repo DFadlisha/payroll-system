@@ -21,10 +21,10 @@ $viewId = $_GET['id'] ?? null;
 try {
     $conn = getConnection();
     
-    // Get payslip history
+    // Get payslip history (Supabase schema - status: draft, finalized, paid)
     $stmt = $conn->prepare("
         SELECT * FROM payroll 
-        WHERE user_id = ? AND status = 'paid'
+        WHERE user_id = ? AND status IN ('finalized', 'paid')
         ORDER BY year DESC, month DESC
     ");
     $stmt->execute([$userId]);
@@ -34,9 +34,9 @@ try {
     $currentPayslip = null;
     if ($viewId) {
         $stmt = $conn->prepare("
-            SELECT p.*, u.full_name, u.ic_number, u.bank_name, u.bank_account, u.employment_type
+            SELECT p.*, pr.full_name, pr.epf_number, pr.socso_number, pr.employment_type, pr.basic_salary as profile_salary
             FROM payroll p
-            JOIN users u ON p.user_id = u.id
+            JOIN profiles pr ON p.user_id = pr.id
             WHERE p.id = ? AND p.user_id = ?
         ");
         $stmt->execute([$viewId, $userId]);
@@ -50,34 +50,7 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small>Payroll System</small>
-    </div>
-    
-    <ul class="sidebar-menu">
-        <li>
-            <a href="dashboard.php">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="attendance.php">
-                <i class="bi bi-calendar-check"></i> Kehadiran
-            </a>
-        </li>
-        <li>
-            <a href="leaves.php">
-                <i class="bi bi-calendar-x"></i> Cuti
-            </a>
-        </li>
-        <li>
-            <a href="payslips.php" class="active">
-                <i class="bi bi-receipt"></i> Slip Gaji
-            </a>
-        </li>
+<?php include '../includes/staff_sidebar.php'; ?>
         <li>
             <a href="profile.php">
                 <i class="bi bi-person"></i> Profil

@@ -31,9 +31,9 @@ if (isset($_GET['lang'])) {
     exit;
 }
 
-// Set default language
-if (!isset($_SESSION['lang'])) {
-    $_SESSION['lang'] = 'en'; // Default to English
+// Set default language to English if not set or not in the allowed list
+if (!isset($_SESSION['lang']) || !in_array($_SESSION['lang'], ['en', 'ms'])) {
+    $_SESSION['lang'] = 'en'; // Always default to English
 }
 
 // Load language file

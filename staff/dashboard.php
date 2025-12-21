@@ -3,8 +3,8 @@
  * ============================================
  * STAFF DASHBOARD
  * ============================================
- * Dashboard utama untuk Staff.
- * Papar kehadiran, baki cuti, dan gaji.
+ * Main dashboard for Staff users.
+ * Display attendance, leave balance, and payroll summary.
  * ============================================
  */
 
@@ -12,7 +12,7 @@ $pageTitle = 'Dashboard - MI-NES Payroll';
 require_once '../includes/header.php';
 requireLogin();
 
-// Jika HR, redirect ke HR dashboard
+// If HR, redirect to HR dashboard
 if (isHR()) {
     redirect('../hr/dashboard.php');
 }
@@ -23,13 +23,13 @@ $today = date('Y-m-d');
 try {
     $conn = getConnection();
     
-    // Dapatkan maklumat profil
-    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+    // Dapatkan maklumat profil dari profiles table (Supabase schema)
+    $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Semak kehadiran hari ini
-    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
+    // Semak kehadiran hari ini (Supabase attendance uses clock_in timestamp)
+    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ?");
     $stmt->execute([$userId, $today]);
     $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -39,11 +39,12 @@ try {
     $stmt = $conn->prepare("
         SELECT 
             COUNT(*) as total_days,
-            SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
-            SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
-            SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as present,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            COALESCE(SUM(total_hours), 0) as total_hours,
+            COALESCE(SUM(overtime_hours), 0) as overtime_hours
         FROM attendance 
-        WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
+        WHERE user_id = ? AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?
     ");
     $stmt->execute([$userId, $currentMonth, $currentYear]);
     $attendanceStats = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -72,7 +73,7 @@ try {
     error_log("Staff Dashboard error: " . $e->getMessage());
     $user = null;
     $todayAttendance = null;
-    $attendanceStats = ['total_days' => 0, 'present' => 0, 'late' => 0, 'absent' => 0];
+    $attendanceStats = ['total_days' => 0, 'present' => 0, 'active' => 0, 'total_hours' => 0, 'overtime_hours' => 0];
     $recentLeaves = [];
     $latestPayslip = null;
 }
@@ -93,27 +94,27 @@ try {
         </li>
         <li>
             <a href="attendance.php" class="<?= $currentPage === 'attendance' ? 'active' : '' ?>">
-                <i class="bi bi-calendar-check"></i> Kehadiran
+                <i class="bi bi-calendar-check"></i> Attendance
             </a>
         </li>
         <li>
             <a href="leaves.php" class="<?= $currentPage === 'leaves' ? 'active' : '' ?>">
-                <i class="bi bi-calendar-x"></i> Cuti
+                <i class="bi bi-calendar-x"></i> Leaves
             </a>
         </li>
         <li>
             <a href="payslips.php" class="<?= $currentPage === 'payslips' ? 'active' : '' ?>">
-                <i class="bi bi-receipt"></i> Slip Gaji
+                <i class="bi bi-receipt"></i> Payslips
             </a>
         </li>
         <li>
             <a href="profile.php" class="<?= $currentPage === 'profile' ? 'active' : '' ?>">
-                <i class="bi bi-person"></i> Profil
+                <i class="bi bi-person"></i> Profile
             </a>
         </li>
         <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
             <a href="../auth/logout.php">
-                <i class="bi bi-box-arrow-left"></i> Log Keluar
+                <i class="bi bi-box-arrow-left"></i> Logout
             </a>
         </li>
     </ul>
@@ -145,7 +146,7 @@ try {
     
     <!-- Page Header -->
     <div class="page-header">
-        <h1>Selamat Datang!</h1>
+        <h1>Welcome Back!</h1>
         <p class="text-muted mb-0">
             <i class="bi bi-calendar me-1"></i>
             <?= getDayName($today) ?>, <?= formatDate($today) ?>
@@ -158,18 +159,18 @@ try {
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <h5 class="mb-2">
-                        <i class="bi bi-clock me-2"></i>Kehadiran Hari Ini
+                        <i class="bi bi-clock me-2"></i>Today's Attendance
                     </h5>
                     <?php if ($todayAttendance): ?>
                         <p class="mb-0">
-                            <span class="badge bg-success me-2">Sudah Clock In</span>
-                            Masuk: <strong><?= formatTime($todayAttendance['clock_in']) ?></strong>
+                            <span class="badge bg-success me-2">Clocked In</span>
+                            In: <strong><?= formatTime($todayAttendance['clock_in']) ?></strong>
                             <?php if ($todayAttendance['clock_out']): ?>
-                                | Keluar: <strong><?= formatTime($todayAttendance['clock_out']) ?></strong>
+                                | Out: <strong><?= formatTime($todayAttendance['clock_out']) ?></strong>
                             <?php endif; ?>
                         </p>
                     <?php else: ?>
-                        <p class="mb-0 text-muted">Anda belum clock in hari ini.</p>
+                        <p class="mb-0 text-muted">You haven't clocked in today.</p>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
@@ -189,7 +190,7 @@ try {
                         </form>
                     <?php else: ?>
                         <span class="badge bg-secondary fs-6 p-2">
-                            <i class="bi bi-check-circle me-1"></i>Selesai untuk hari ini
+                            <i class="bi bi-check-circle me-1"></i>Completed for today
                         </span>
                     <?php endif; ?>
                 </div>
@@ -204,7 +205,7 @@ try {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2><?= $attendanceStats['present'] ?? 0 ?></h2>
-                        <p>Hari Hadir</p>
+                        <p>Days Present</p>
                     </div>
                     <i class="bi bi-calendar-check" style="font-size: 2rem; opacity: 0.7;"></i>
                 </div>
@@ -216,7 +217,7 @@ try {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2><?= $attendanceStats['late'] ?? 0 ?></h2>
-                        <p>Hari Lewat</p>
+                        <p>Days Late</p>
                     </div>
                     <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.7;"></i>
                 </div>
@@ -228,7 +229,7 @@ try {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2><?= $attendanceStats['absent'] ?? 0 ?></h2>
-                        <p>Hari Tidak Hadir</p>
+                        <p>Days Absent</p>
                     </div>
                     <i class="bi bi-calendar-x" style="font-size: 2rem; opacity: 0.7;"></i>
                 </div>
@@ -240,7 +241,7 @@ try {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2><?= $latestPayslip ? formatMoney($latestPayslip['net_salary']) : '-' ?></h2>
-                        <p>Gaji Terakhir</p>
+                        <p>Latest Salary</p>
                     </div>
                     <i class="bi bi-cash-stack" style="font-size: 2rem; opacity: 0.7;"></i>
                 </div>
@@ -254,14 +255,14 @@ try {
         <div class="col-lg-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-calendar-x me-2"></i>Permohonan Cuti Terbaru</span>
-                    <a href="leaves.php" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                    <span><i class="bi bi-calendar-x me-2"></i>Recent Leave Requests</span>
+                    <a href="leaves.php" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <?php if (empty($recentLeaves)): ?>
                         <p class="text-muted text-center py-4">
                             <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                            Tiada permohonan cuti.
+                            No leave requests.
                         </p>
                     <?php else: ?>
                         <?php foreach ($recentLeaves as $leave): 
@@ -272,7 +273,7 @@ try {
                                     <div class="fw-bold"><?= getLeaveTypeName($leave['leave_type']) ?></div>
                                     <small class="text-muted">
                                         <?= formatDate($leave['start_date']) ?> - <?= formatDate($leave['end_date']) ?>
-                                        (<?= $leave['total_days'] ?> hari)
+                                        (<?= $leave['total_days'] ?> days)
                                     </small>
                                 </div>
                                 <span class="badge <?= $badge['class'] ?>"><?= $badge['name'] ?></span>
@@ -287,32 +288,32 @@ try {
         <div class="col-lg-6">
             <div class="card">
                 <div class="card-header">
-                    <i class="bi bi-lightning me-2"></i>Tindakan Pantas
+                    <i class="bi bi-lightning me-2"></i>Quick Actions
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-6">
                             <a href="leaves.php?action=new" class="btn btn-outline-primary w-100 py-3">
                                 <i class="bi bi-plus-circle d-block mb-2" style="font-size: 1.5rem;"></i>
-                                Mohon Cuti
+                                Apply Leave
                             </a>
                         </div>
                         <div class="col-6">
                             <a href="attendance.php" class="btn btn-outline-success w-100 py-3">
                                 <i class="bi bi-calendar-check d-block mb-2" style="font-size: 1.5rem;"></i>
-                                Rekod Kehadiran
+                                Attendance Record
                             </a>
                         </div>
                         <div class="col-6">
                             <a href="payslips.php" class="btn btn-outline-info w-100 py-3">
                                 <i class="bi bi-receipt d-block mb-2" style="font-size: 1.5rem;"></i>
-                                Slip Gaji
+                                Payslips
                             </a>
                         </div>
                         <div class="col-6">
                             <a href="profile.php" class="btn btn-outline-secondary w-100 py-3">
                                 <i class="bi bi-person d-block mb-2" style="font-size: 1.5rem;"></i>
-                                Kemaskini Profil
+                                Update Profile
                             </a>
                         </div>
                     </div>

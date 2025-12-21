@@ -19,25 +19,17 @@ $userId = $_SESSION['user_id'];
 $message = '';
 $messageType = '';
 
-// Process profile update
+// Process profile update (Supabase profiles table - limited fields)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullName = sanitize($_POST['full_name'] ?? '');
-    $phone = sanitize($_POST['phone'] ?? '');
-    $icNumber = sanitize($_POST['ic_number'] ?? '');
-    $address = sanitize($_POST['address'] ?? '');
-    $bankName = sanitize($_POST['bank_name'] ?? '');
-    $bankAccount = sanitize($_POST['bank_account'] ?? '');
-    
-    // Password change
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+    $epfNumber = sanitize($_POST['epf_number'] ?? '');
+    $socsoNumber = sanitize($_POST['socso_number'] ?? '');
     
     try {
         $conn = getConnection();
         
-        // Get current user data
-        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+        // Get current user data from profiles
+        $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -45,40 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Validate
         if (empty($fullName)) {
-            $errors[] = 'Nama penuh diperlukan.';
-        }
-        
-        // If changing password
-        if (!empty($newPassword)) {
-            if (!password_verify($currentPassword, $user['password'])) {
-                $errors[] = 'Password semasa tidak betul.';
-            } elseif (strlen($newPassword) < 6) {
-                $errors[] = 'Password baru mesti sekurang-kurangnya 6 aksara.';
-            } elseif ($newPassword !== $confirmPassword) {
-                $errors[] = 'Password baru tidak sepadan.';
-            }
+            $errors[] = 'Full name is required.';
         }
         
         if (empty($errors)) {
-            // Update profile
-            if (!empty($newPassword)) {
-                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("
-                    UPDATE users SET 
-                        full_name = ?, phone = ?, ic_number = ?, address = ?,
-                        bank_name = ?, bank_account = ?, password = ?
-                    WHERE id = ?
-                ");
-                $stmt->execute([$fullName, $phone, $icNumber, $address, $bankName, $bankAccount, $hashedPassword, $userId]);
-            } else {
-                $stmt = $conn->prepare("
-                    UPDATE users SET 
-                        full_name = ?, phone = ?, ic_number = ?, address = ?,
-                        bank_name = ?, bank_account = ?
-                    WHERE id = ?
-                ");
-                $stmt->execute([$fullName, $phone, $icNumber, $address, $bankName, $bankAccount, $userId]);
-            }
+            // Update profile (profiles table has limited editable fields)
+            $stmt = $conn->prepare("
+                UPDATE profiles SET 
+                    full_name = ?, epf_number = ?, socso_number = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$fullName, $epfNumber, $socsoNumber, $userId]);
             
             // Update session
             $_SESSION['full_name'] = $fullName;
@@ -97,10 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get user data
+// Get user profile (Supabase profiles table)
 try {
     $conn = getConnection();
-    $stmt = $conn->prepare("SELECT u.*, c.name as company_name FROM users u LEFT JOIN companies c ON u.company_id = c.id WHERE u.id = ?");
+    $stmt = $conn->prepare("SELECT p.*, c.name as company_name FROM profiles p LEFT JOIN companies c ON p.company_id = c.id WHERE p.id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -109,46 +78,7 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small>Payroll System</small>
-    </div>
-    
-    <ul class="sidebar-menu">
-        <li>
-            <a href="dashboard.php">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="attendance.php">
-                <i class="bi bi-calendar-check"></i> Kehadiran
-            </a>
-        </li>
-        <li>
-            <a href="leaves.php">
-                <i class="bi bi-calendar-x"></i> Cuti
-            </a>
-        </li>
-        <li>
-            <a href="payslips.php">
-                <i class="bi bi-receipt"></i> Slip Gaji
-            </a>
-        </li>
-        <li>
-            <a href="profile.php" class="active">
-                <i class="bi bi-person"></i> Profil
-            </a>
-        </li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php">
-                <i class="bi bi-box-arrow-left"></i> Log Keluar
-            </a>
-        </li>
-    </ul>
-</nav>
+<?php include '../includes/staff_sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="main-content">

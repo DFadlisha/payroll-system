@@ -166,31 +166,29 @@ function getLeaveStatusBadge($status) {
 }
 
 /**
- * Terjemah jenis pekerjaan ke Bahasa Malaysia
+ * Terjemah jenis pekerjaan (employment_type from Supabase)
  * @param string $type Jenis pekerjaan
  * @return string
  */
 function getEmploymentTypeName($type) {
     $types = [
-        'full_time' => 'Full-Time',
-        'staff' => 'Full-Time Staff',
-        'part_time' => 'Part-Time',
+        'permanent' => 'Permanent (Full-Time)',
+        'contract' => 'Contract',
+        'part-time' => 'Part-Time',
         'intern' => 'Intern'
     ];
     return $types[$type] ?? $type;
 }
 
 /**
- * Get role display name in English
+ * Get role display name (Supabase: hr, staff only)
  * @param string $role Role type
  * @return string
  */
 function getRoleName($role) {
     $roles = [
         'hr' => 'HR Admin',
-        'staff' => 'Full-Time Staff',
-        'part_time' => 'Part-Time',
-        'intern' => 'Intern'
+        'staff' => 'Staff'
     ];
     return $roles[$role] ?? $role;
 }

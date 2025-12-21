@@ -49,16 +49,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_hours'])) {
 try {
     $conn = getConnection();
     
-    // Get all employees with attendance for selected date
+    // Get all employees (profiles) with attendance for selected date
+    // Using profiles table and matching with attendance by user_id
     $stmt = $conn->prepare("
-        SELECT u.id, u.full_name, u.role,
-               a.id as attendance_id, a.clock_in, a.clock_out, a.status, a.notes,
-               a.ot_hours, a.ot_sunday_hours, a.ot_public_hours, 
-               a.project_hours, a.extra_shifts, a.late_minutes
-        FROM users u
-        LEFT JOIN attendance a ON u.id = a.user_id AND a.date = ?
-        WHERE u.company_id = ? AND u.is_active = 1 AND u.role IN ('staff', 'part_time', 'intern')
-        ORDER BY u.full_name
+        SELECT p.id, p.full_name, p.role, p.employment_type,
+               a.id as attendance_id, a.clock_in, a.clock_out, a.status,
+               a.overtime_hours, a.total_hours,
+               a.clock_in_latitude, a.clock_in_longitude, a.clock_in_address,
+               a.clock_out_latitude, a.clock_out_longitude, a.clock_out_address
+        FROM profiles p
+        LEFT JOIN attendance a ON p.id = a.user_id AND DATE(a.clock_in) = ?
+        WHERE p.company_id = ? AND p.role = 'staff'
+        ORDER BY p.full_name
     ");
     $stmt->execute([$selectedDate, $companyId]);
     $attendanceList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -69,8 +71,7 @@ try {
     $absent = 0;
     
     foreach ($attendanceList as $att) {
-        if ($att['status'] === 'present') $present++;
-        elseif ($att['status'] === 'late') $late++;
+        if ($att['status'] === 'completed' || $att['status'] === 'active') $present++;
         else $absent++;
     }
     

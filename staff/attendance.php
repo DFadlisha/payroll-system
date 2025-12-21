@@ -21,65 +21,94 @@ $today = date('Y-m-d');
 $message = '';
 $messageType = '';
 
-// Process clock in/out
+// Process clock in/out (Supabase attendance schema)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    $latitude = $_POST['latitude'] ?? null;
+    $longitude = $_POST['longitude'] ?? null;
+    $address = $_POST['address'] ?? null;
     
     try {
         $conn = getConnection();
         
         if ($action === 'clock_in') {
-            // Check if already clocked in today
-            $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
+            // Check if already clocked in today (active status)
+            $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active'");
             $stmt->execute([$userId, $today]);
             
             if ($stmt->fetch()) {
-                $message = 'Anda sudah clock in hari ini.';
+                $message = 'You have already clocked in today.';
                 $messageType = 'warning';
             } else {
-                // Determine if late (after 9:00 AM)
-                $currentTime = date('H:i:s');
-                $status = strtotime($currentTime) > strtotime('09:00:00') ? 'late' : 'present';
+                // Generate UUID for attendance
+                $attendanceUuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
                 
                 $stmt = $conn->prepare("
-                    INSERT INTO attendance (user_id, date, clock_in, status) 
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO attendance (id, user_id, clock_in, status, clock_in_latitude, clock_in_longitude, clock_in_address) 
+                    VALUES (?, ?, NOW(), 'active', ?, ?, ?)
                 ");
-                $stmt->execute([$userId, $today, $currentTime, $status]);
+                $stmt->execute([$attendanceUuid, $userId, $latitude, $longitude, $address]);
                 
-                $message = 'Clock in berjaya pada ' . formatTime($currentTime);
+                $message = 'Clock in successful at ' . date('h:i A');
                 $messageType = 'success';
             }
         } elseif ($action === 'clock_out') {
-            // Update clock out time
-            $currentTime = date('H:i:s');
-            
+            // Update clock out time and calculate hours
             $stmt = $conn->prepare("
-                UPDATE attendance SET clock_out = ? 
-                WHERE user_id = ? AND date = ? AND clock_out IS NULL
+                SELECT id, clock_in FROM attendance 
+                WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active' AND clock_out IS NULL
             ");
-            $stmt->execute([$currentTime, $userId, $today]);
+            $stmt->execute([$userId, $today]);
+            $activeRecord = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($stmt->rowCount() > 0) {
-                $message = 'Clock out berjaya pada ' . formatTime($currentTime);
+            if ($activeRecord) {
+                // Calculate total hours
+                $clockIn = new DateTime($activeRecord['clock_in']);
+                $clockOut = new DateTime();
+                $interval = $clockIn->diff($clockOut);
+                $totalHours = $interval->h + ($interval->i / 60);
+                
+                // Calculate overtime (over 8 hours)
+                $overtimeHours = max(0, $totalHours - 8);
+                
+                $stmt = $conn->prepare("
+                    UPDATE attendance SET 
+                        clock_out = NOW(), 
+                        status = 'completed',
+                        total_hours = ?,
+                        overtime_hours = ?,
+                        clock_out_latitude = ?,
+                        clock_out_longitude = ?,
+                        clock_out_address = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$totalHours, $overtimeHours, $latitude, $longitude, $address, $activeRecord['id']]);
+                
+                $message = 'Clock out successful at ' . date('h:i A') . '. Total hours: ' . number_format($totalHours, 2);
                 $messageType = 'success';
             } else {
-                $message = 'Tiada rekod clock in atau sudah clock out.';
+                $message = 'No active clock in record found.';
                 $messageType = 'warning';
             }
         }
     } catch (PDOException $e) {
         error_log("Attendance error: " . $e->getMessage());
-        $message = 'Ralat sistem. Sila cuba lagi.';
+        $message = 'System error. Please try again.';
         $messageType = 'error';
     }
 }
 
-// Get today's attendance
+// Get today's attendance (Supabase schema)
 try {
     $conn = getConnection();
     
-    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
+    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? ORDER BY clock_in DESC LIMIT 1");
     $stmt->execute([$userId, $today]);
     $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -88,8 +117,8 @@ try {
     $currentYear = date('Y');
     $stmt = $conn->prepare("
         SELECT * FROM attendance 
-        WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
-        ORDER BY date DESC
+        WHERE user_id = ? AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?
+        ORDER BY clock_in DESC
     ");
     $stmt->execute([$userId, $currentMonth, $currentYear]);
     $attendanceHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -99,13 +128,24 @@ try {
         'present' => 0,
         'late' => 0,
         'absent' => 0,
+        'completed' => 0,
+        'active' => 0,
         'total_hours' => 0
     ];
     
     foreach ($attendanceHistory as $record) {
-        if ($record['status'] === 'present') $stats['present']++;
-        elseif ($record['status'] === 'late') $stats['late']++;
-        elseif ($record['status'] === 'absent') $stats['absent']++;
+        if ($record['status'] === 'completed') $stats['completed']++;
+        elseif ($record['status'] === 'active') $stats['active']++;
+        
+        // Determine if present or late based on clock-in time
+        if ($record['clock_in']) {
+            $clockInTime = date('H:i:s', strtotime($record['clock_in']));
+            if ($clockInTime <= '09:00:00') {
+                $stats['present']++;
+            } else {
+                $stats['late']++;
+            }
+        }
         
         if ($record['clock_in'] && $record['clock_out']) {
             $in = strtotime($record['clock_in']);
@@ -113,6 +153,11 @@ try {
             $stats['total_hours'] += ($out - $in) / 3600;
         }
     }
+    
+    // Calculate absent days (working days - present days)
+    $totalWorkingDays = date('j'); // Current day of month
+    $totalAttended = $stats['present'] + $stats['late'];
+    $stats['absent'] = max(0, $totalWorkingDays - $totalAttended);
     
 } catch (PDOException $e) {
     error_log("Attendance fetch error: " . $e->getMessage());

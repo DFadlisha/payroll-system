@@ -17,7 +17,7 @@ $messageType = '';
 
 // Process leave approval/rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $leaveId = intval($_POST['leave_id'] ?? 0);
+    $leaveId = $_POST['leave_id'] ?? '';
     $action = $_POST['action'] ?? '';
     
     try {
@@ -25,41 +25,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($action === 'approve') {
             $stmt = $conn->prepare("
-                UPDATE leaves SET status = 'approved', approved_by = ?, approved_at = NOW()
+                UPDATE leaves SET status = 'approved', reviewed_by = ?, reviewed_at = NOW()
                 WHERE id = ?
             ");
             $stmt->execute([$_SESSION['user_id'], $leaveId]);
-            $message = 'Permohonan cuti telah diluluskan.';
+            $message = 'Leave request approved.';
             $messageType = 'success';
         } elseif ($action === 'reject') {
-            $reason = sanitize($_POST['rejection_reason'] ?? '');
             $stmt = $conn->prepare("
-                UPDATE leaves SET status = 'rejected', approved_by = ?, approved_at = NOW(), rejection_reason = ?
+                UPDATE leaves SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$_SESSION['user_id'], $reason, $leaveId]);
-            $message = 'Permohonan cuti telah ditolak.';
+            $stmt->execute([$_SESSION['user_id'], $leaveId]);
+            $message = 'Leave request rejected.';
             $messageType = 'warning';
         }
         
     } catch (PDOException $e) {
         error_log("Leave action error: " . $e->getMessage());
-        $message = 'Ralat sistem. Sila cuba lagi.';
+        $message = 'System error. Please try again.';
         $messageType = 'error';
     }
 }
 
-// Get leaves
+// Get leaves (using profiles table - Supabase schema)
 $status = $_GET['status'] ?? 'pending';
 
 try {
     $conn = getConnection();
     
     $sql = "
-        SELECT l.*, u.full_name, u.employment_type
+        SELECT l.*, p.full_name, p.employment_type
         FROM leaves l
-        JOIN users u ON l.user_id = u.id
-        WHERE u.company_id = ?
+        JOIN profiles p ON l.user_id = p.id
+        WHERE p.company_id = ?
     ";
     
     if ($status !== 'all') {
@@ -79,8 +78,8 @@ try {
     $stmt = $conn->prepare("
         SELECT l.status, COUNT(*) as count
         FROM leaves l
-        JOIN users u ON l.user_id = u.id
-        WHERE u.company_id = ?
+        JOIN profiles p ON l.user_id = p.id
+        WHERE p.company_id = ?
         GROUP BY l.status
     ");
     $stmt->execute([$companyId]);

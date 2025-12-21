@@ -79,6 +79,7 @@ return [
         'btn_login' => 'Login',
         'invalid_credentials' => 'Invalid email or password.',
         'account_inactive' => 'Your account is inactive. Please contact HR.',
+        'select_company' => 'Select Company',
     ],
     
     // Register Page

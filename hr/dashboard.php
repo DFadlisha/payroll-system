@@ -12,23 +12,23 @@ $pageTitle = __('nav.dashboard') . ' - ' . __('app_name');
 require_once '../includes/header.php';
 requireHR();
 
-// Dapatkan statistik
+// Dapatkan statistik (using Supabase schema - profiles table)
 try {
     $conn = getConnection();
     $companyId = $_SESSION['company_id'];
     
-    // Jumlah pekerja aktif
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE company_id = ? AND is_active = 1");
+    // Jumlah pekerja (profiles)
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM profiles WHERE company_id = ?");
     $stmt->execute([$companyId]);
     $totalEmployees = $stmt->fetch()['total'];
     
-    // Kehadiran hari ini
+    // Kehadiran hari ini (attendance with timestamp)
     $today = date('Y-m-d');
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total 
         FROM attendance a 
-        JOIN users u ON a.user_id = u.id 
-        WHERE u.company_id = ? AND a.date = ?
+        JOIN profiles p ON a.user_id = p.id 
+        WHERE p.company_id = ? AND DATE(a.clock_in) = ?
     ");
     $stmt->execute([$companyId, $today]);
     $todayAttendance = $stmt->fetch()['total'];
@@ -37,8 +37,8 @@ try {
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total 
         FROM leaves l 
-        JOIN users u ON l.user_id = u.id 
-        WHERE u.company_id = ? AND l.status = 'pending'
+        JOIN profiles p ON l.user_id = p.id 
+        WHERE p.company_id = ? AND l.status = 'pending'
     ");
     $stmt->execute([$companyId]);
     $pendingLeaves = $stmt->fetch()['total'];
@@ -48,19 +48,19 @@ try {
     $currentYear = date('Y');
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total 
-        FROM payroll p 
-        JOIN users u ON p.user_id = u.id 
-        WHERE u.company_id = ? AND p.month = ? AND p.year = ? AND p.status != 'paid'
+        FROM payroll pay 
+        JOIN profiles p ON pay.user_id = p.id 
+        WHERE p.company_id = ? AND pay.month = ? AND pay.year = ? AND pay.status != 'paid'
     ");
     $stmt->execute([$companyId, $currentMonth, $currentYear]);
     $unpaidPayroll = $stmt->fetch()['total'];
     
     // Senarai kehadiran hari ini
     $stmt = $conn->prepare("
-        SELECT u.full_name, a.clock_in, a.clock_out, a.status
+        SELECT p.full_name, a.clock_in, a.clock_out, a.status
         FROM attendance a 
-        JOIN users u ON a.user_id = u.id 
-        WHERE u.company_id = ? AND a.date = ?
+        JOIN profiles p ON a.user_id = p.id 
+        WHERE p.company_id = ? AND DATE(a.clock_in) = ?
         ORDER BY a.clock_in DESC
         LIMIT 10
     ");
@@ -69,10 +69,10 @@ try {
     
     // Senarai permohonan cuti terbaru
     $stmt = $conn->prepare("
-        SELECT l.*, u.full_name 
+        SELECT l.*, p.full_name 
         FROM leaves l 
-        JOIN users u ON l.user_id = u.id 
-        WHERE u.company_id = ? AND l.status = 'pending'
+        JOIN profiles p ON l.user_id = p.id 
+        WHERE p.company_id = ? AND l.status = 'pending'
         ORDER BY l.created_at DESC
         LIMIT 5
     ");

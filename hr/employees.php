@@ -25,103 +25,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Add new employee
     if (isset($_POST['add_employee'])) {
         $email = sanitize($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? 'password123';
         $fullName = sanitize($_POST['full_name'] ?? '');
         $role = sanitize($_POST['role'] ?? 'staff');
-        $employmentType = sanitize($_POST['employment_type'] ?? 'full_time');
+        $employmentType = sanitize($_POST['employment_type'] ?? 'permanent');
         $basicSalary = floatval($_POST['basic_salary'] ?? 0);
-        $phone = sanitize($_POST['phone'] ?? '');
-        $icNumber = sanitize($_POST['ic_number'] ?? '');
+        $hourlyRate = floatval($_POST['hourly_rate'] ?? 0);
         $epfNumber = sanitize($_POST['epf_number'] ?? '');
-        $internshipMonths = intval($_POST['internship_months'] ?? 0);
+        $socsoNumber = sanitize($_POST['socso_number'] ?? '');
+        $citizenshipStatus = sanitize($_POST['citizenship_status'] ?? 'citizen');
+        $password = $_POST['password'] ?? 'password123';
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         
         try {
-            // Check if email exists
-            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            // Check if email exists in profiles
+            $stmt = $conn->prepare("SELECT id FROM profiles WHERE email = ?");
             $stmt->execute([$email]);
             if ($stmt->fetch()) {
-                $message = 'Email sudah wujud dalam sistem.';
+                $message = 'Email already exists in system.';
                 $messageType = 'error';
             } else {
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("
-                    INSERT INTO users (email, password, full_name, role, employment_type, basic_salary, company_id, phone, ic_number, epf_number, internship_months)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$email, $hashedPassword, $fullName, $role, $employmentType, $basicSalary, $companyId, $phone, $icNumber, $epfNumber, $internshipMonths]);
+                // Generate UUID for new profile
+                $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
                 
-                $message = 'Pekerja berjaya ditambah.';
+                $stmt = $conn->prepare("
+                    INSERT INTO profiles (id, email, full_name, password, role, employment_type, basic_salary, hourly_rate, company_id, epf_number, socso_number, citizenship_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$uuid, $email, $fullName, $hashedPassword, $role, $employmentType, $basicSalary, $hourlyRate, $companyId, $epfNumber, $socsoNumber, $citizenshipStatus]);
+                
+                $message = 'Employee added successfully.';
                 $messageType = 'success';
                 $action = '';
             }
         } catch (PDOException $e) {
             error_log("Add employee error: " . $e->getMessage());
-            $message = 'Ralat sistem. Sila cuba lagi.';
+            $message = 'System error. Please try again.';
             $messageType = 'error';
         }
     }
     
     // Update employee
     if (isset($_POST['update_employee'])) {
-        $id = intval($_POST['employee_id']);
+        $id = $_POST['employee_id'];
         $fullName = sanitize($_POST['full_name'] ?? '');
         $role = sanitize($_POST['role'] ?? 'staff');
-        $employmentType = sanitize($_POST['employment_type'] ?? 'full_time');
+        $employmentType = sanitize($_POST['employment_type'] ?? 'permanent');
         $basicSalary = floatval($_POST['basic_salary'] ?? 0);
-        $phone = sanitize($_POST['phone'] ?? '');
-        $icNumber = sanitize($_POST['ic_number'] ?? '');
+        $hourlyRate = floatval($_POST['hourly_rate'] ?? 0);
         $epfNumber = sanitize($_POST['epf_number'] ?? '');
-        $internshipMonths = intval($_POST['internship_months'] ?? 0);
-        $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $socsoNumber = sanitize($_POST['socso_number'] ?? '');
+        $citizenshipStatus = sanitize($_POST['citizenship_status'] ?? 'citizen');
         
         try {
             $stmt = $conn->prepare("
-                UPDATE users SET full_name = ?, role = ?, employment_type = ?, basic_salary = ?, 
-                       phone = ?, ic_number = ?, epf_number = ?, internship_months = ?, is_active = ?
+                UPDATE profiles SET full_name = ?, role = ?, employment_type = ?, basic_salary = ?, 
+                       hourly_rate = ?, epf_number = ?, socso_number = ?, citizenship_status = ?, updated_at = NOW()
                 WHERE id = ? AND company_id = ?
             ");
-            $stmt->execute([$fullName, $role, $employmentType, $basicSalary, $phone, $icNumber, $epfNumber, $internshipMonths, $isActive, $id, $companyId]);
+            $stmt->execute([$fullName, $role, $employmentType, $basicSalary, $hourlyRate, $epfNumber, $socsoNumber, $citizenshipStatus, $id, $companyId]);
             
-            $message = 'Maklumat pekerja berjaya dikemaskini.';
+            $message = 'Employee updated successfully.';
             $messageType = 'success';
             $action = '';
             $editId = null;
         } catch (PDOException $e) {
             error_log("Update employee error: " . $e->getMessage());
-            $message = 'Ralat sistem. Sila cuba lagi.';
+            $message = 'System error. Please try again.';
             $messageType = 'error';
         }
     }
     
     // Delete employee
     if (isset($_POST['delete_employee'])) {
-        $id = intval($_POST['employee_id']);
+        $id = $_POST['employee_id'];
         
         try {
-            // Soft delete - just deactivate
-            $stmt = $conn->prepare("UPDATE users SET is_active = 0 WHERE id = ? AND company_id = ?");
+            // Delete profile (or you could add a status column if you want soft delete)
+            $stmt = $conn->prepare("DELETE FROM profiles WHERE id = ? AND company_id = ?");
             $stmt->execute([$id, $companyId]);
             
-            $message = 'Pekerja berjaya dipadamkan.';
+            $message = 'Employee deleted successfully.';
             $messageType = 'success';
         } catch (PDOException $e) {
             error_log("Delete employee error: " . $e->getMessage());
-            $message = 'Ralat sistem. Sila cuba lagi.';
+            $message = 'System error. Please try again.';
             $messageType = 'error';
         }
     }
 }
 
-// Get employees list
+// Get employees list from profiles table
 try {
     $conn = getConnection();
-    $showInactive = isset($_GET['show_inactive']);
     
-    $sql = "SELECT * FROM users WHERE company_id = ?";
-    if (!$showInactive) {
-        $sql .= " AND is_active = 1";
-    }
-    $sql .= " ORDER BY full_name ASC";
+    $sql = "SELECT p.*, c.name as company_name 
+            FROM profiles p 
+            LEFT JOIN companies c ON p.company_id = c.id 
+            WHERE p.company_id = ?
+            ORDER BY p.full_name ASC";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute([$companyId]);
@@ -130,7 +137,7 @@ try {
     // Get employee for editing
     $editEmployee = null;
     if ($editId) {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND company_id = ?");
+        $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ? AND company_id = ?");
         $stmt->execute([$editId, $companyId]);
         $editEmployee = $stmt->fetch(PDO::FETCH_ASSOC);
     }

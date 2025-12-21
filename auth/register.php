@@ -4,9 +4,14 @@
  * REGISTRATION PAGE (Sign Up)
  * ============================================
  * New users can register for an account.
- * Default role is 'staff'. HR can change roles later.
+ * Select company and role during registration.
  * ============================================
  */
+
+// Prevent caching
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
@@ -23,64 +28,118 @@ if (isLoggedIn()) {
 
 $error = '';
 $success = '';
+$companies = [];
+
+// Get list of companies from Supabase
+try {
+    $conn = getConnection();
+    $stmt = $conn->query("SELECT id, name, logo_url FROM companies ORDER BY name");
+    $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($companies as &$company) {
+        if (empty($company['logo_url'])) {
+            $company['logo_url'] = 'nes.jpg';
+        }
+    }
+    unset($company);
+
+    // Put NES first for consistent display order
+    usort($companies, function ($a, $b) {
+        $aIsNes = stripos($a['name'], 'nes') !== false;
+        $bIsNes = stripos($b['name'], 'nes') !== false;
+        if ($aIsNes === $bIsNes) {
+            return strcasecmp($a['name'], $b['name']);
+        }
+        return $aIsNes ? -1 : 1;
+    });
+} catch (PDOException $e) {
+    // If companies table doesn't exist, use default
+    $companies = [
+        ['id' => 'nes-001', 'name' => 'NES Solution & Network Sdn Bhd', 'logo_url' => 'nes.jpg'],
+        ['id' => 'mi-001', 'name' => 'Mentari Infiniti Network Sdn Bhd', 'logo_url' => 'mentari.png']
+    ];
+}
 
 // Process registration form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = sanitize($_POST['full_name'] ?? '');
     $email = sanitize($_POST['email'] ?? '');
     $phone = sanitize($_POST['phone'] ?? '');
-    $role = sanitize($_POST['role'] ?? 'staff');
+    $employment_type = sanitize($_POST['employment_type'] ?? 'permanent');
+    $company_id = $_POST['company_id'] ?? '';
+    $basic_salary = floatval($_POST['basic_salary'] ?? 0);
+    $hourly_rate = floatval($_POST['hourly_rate'] ?? 0);
     $internship_months = intval($_POST['internship_months'] ?? 0);
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
-    // Valid roles
-    $valid_roles = ['staff', 'part_time', 'intern'];
+    // Valid employment types from Supabase schema
+    $valid_types = ['permanent', 'contract', 'intern', 'part-time'];
     
     // Validate input
     if (empty($full_name) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = __('errors.required_field');
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = __('errors.invalid_request');
-    } elseif (!in_array($role, $valid_roles)) {
-        $error = __('errors.invalid_request');
-    } elseif ($role === 'intern' && ($internship_months < 1 || $internship_months > 12)) {
+    } elseif (!in_array($employment_type, $valid_types)) {
         $error = __('errors.invalid_request');
     } elseif (strlen($password) < 6) {
         $error = __('errors.invalid_request');
     } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match.';
+        $error = __('register_page.password_mismatch');
     } else {
         try {
             $conn = getConnection();
             
-            // Check if email already exists
-            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            // Check if email already exists in profiles
+            $stmt = $conn->prepare("SELECT id FROM profiles WHERE email = ?");
             $stmt->execute([$email]);
             
             if ($stmt->fetch()) {
-                $error = 'This email is already registered. Please use a different email or login.';
+                $error = __('register_page.email_exists');
             } else {
                 // Hash the password
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 
-                // Set internship_months only for interns
-                $intern_months = ($role === 'intern') ? $internship_months : null;
+                // Generate UUID for profile
+                $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
                 
-                // Insert new user
-                $stmt = $conn->prepare("
-                    INSERT INTO users (full_name, email, phone, password, role, internship_months, is_active, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, 1, NOW())
-                ");
-                $stmt->execute([$full_name, $email, $phone, $hashed_password, $role, $intern_months]);
+                $company_id_value = !empty($company_id) ? $company_id : null;
                 
-                $success = 'Registration successful! You can now login with your email and password.';
+                // Try to insert with internship_months column first (if it exists)
+                try {
+                    $stmt = $conn->prepare("
+                        INSERT INTO profiles (id, email, full_name, password, role, employment_type, company_id, basic_salary, hourly_rate, internship_months, created_at) 
+                        VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, ?, ?, NOW())
+                    ");
+                    $internship_value = ($employment_type === 'intern') ? $internship_months : null;
+                    $stmt->execute([$uuid, $email, $full_name, $hashed_password, $employment_type, $company_id_value, $basic_salary, $hourly_rate, $internship_value]);
+                } catch (PDOException $e) {
+                    // If internship_months column doesn't exist, insert without it
+                    if (strpos($e->getMessage(), 'internship_months') !== false) {
+                        $stmt = $conn->prepare("
+                            INSERT INTO profiles (id, email, full_name, password, role, employment_type, company_id, basic_salary, hourly_rate, created_at) 
+                            VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, ?, NOW())
+                        ");
+                        $stmt->execute([$uuid, $email, $full_name, $hashed_password, $employment_type, $company_id_value, $basic_salary, $hourly_rate]);
+                    } else {
+                        throw $e;
+                    }
+                }
+                
+                $success = __('register_page.register_success');
                 
                 // Clear form data
                 $full_name = $email = $phone = '';
             }
         } catch (PDOException $e) {
-            $error = 'System error. Please try again later.';
+            $error = __('errors.system_error');
             error_log("Registration error: " . $e->getMessage());
         }
     }
@@ -91,15 +150,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - MI-NES Payroll System</title>
+    <title><?= __('register') ?> - <?= __('app_name') ?></title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #f97316;
+            --accent-teal: #14b8a6;
+            --accent-pink: #ec4899;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e5e7eb;
+        }
+
         body {
-            background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -115,14 +186,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .register-card {
-            background: #fff;
+            background: var(--surface);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.28);
             overflow: hidden;
+            border: 1px solid var(--border);
         }
         
         .register-header {
-            background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
             padding: 30px;
             text-align: center;
             color: #fff;
@@ -145,26 +217,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .form-control {
             border-radius: 8px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--border);
             padding: 12px 15px;
             height: auto;
         }
         
         .form-control:focus {
-            border-color: #198754;
-            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
         }
         
         .form-select {
             border-radius: 8px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--border);
             padding: 12px 15px;
             height: auto;
         }
         
         .form-select:focus {
-            border-color: #198754;
-            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
         }
         
         .btn-register {
@@ -179,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .register-footer {
             text-align: center;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--surface-alt);
             font-size: 0.85rem;
         }
         
@@ -216,6 +288,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #6c757d;
             margin-top: 5px;
         }
+        
+        /* Company Selection */
+        .company-selection {
+            margin-bottom: 20px;
+        }
+        
+        .company-cards {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .company-card {
+            flex: 1;
+            min-width: 150px;
+            max-width: 180px;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--surface);
+        }
+        
+        .company-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.15);
+        }
+        
+        .company-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(20, 184, 166, 0.12));
+            box-shadow: 0 5px 20px rgba(37, 99, 235, 0.22);
+        }
+        
+        .company-card .company-logo {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        
+        .company-card .company-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.3;
+        }
+        
+        .company-card .check-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .company-card.selected .check-badge {
+            display: flex;
+        }
+        
+        .company-card {
+            position: relative;
+        }
+        
+        .section-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .header-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: white;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -227,9 +393,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="register-card">
             <div class="register-header">
-                <i class="bi bi-person-plus" style="font-size: 3rem;"></i>
+                <img src="../assets/logos/nes.jpg" alt="Company Logo" class="header-logo" id="headerLogo">
                 <h1><?= __('register_page.title') ?></h1>
-                <p><?= __('app_name') ?></p>
+                <p id="headerCompanyName"><?= __('app_name') ?></p>
             </div>
             
             <div class="register-body">
@@ -253,6 +419,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <?php if (!$success): ?>
                 <form method="POST" action="" class="needs-validation" novalidate>
+                    <!-- Company Selection -->
+                    <div class="company-selection">
+                        <div class="section-label">
+                            <i class="bi bi-building"></i> <?= __('login_page.select_company') ?> <span class="required">*</span>
+                        </div>
+                        <div class="company-cards">
+                            <?php foreach ($companies as $index => $company): ?>
+                            <div class="company-card <?= $index === 0 ? 'selected' : '' ?>" 
+                                 onclick="selectCompany('<?= htmlspecialchars($company['id']) ?>', '<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>', '<?= htmlspecialchars($company['name']) ?>')">
+                                <div class="check-badge">
+                                    <i class="bi bi-check"></i>
+                                </div>
+                                <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>" 
+                                     alt="<?= htmlspecialchars($company['name']) ?>" 
+                                     class="company-logo"
+                                     onerror="this.src='../assets/logos/nes.jpg'">
+                                <div class="company-name"><?= htmlspecialchars($company['name']) ?></div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <input type="hidden" name="company_id" id="company_id" value="<?= htmlspecialchars($companies[0]['id'] ?? '') ?>">
+                    </div>
+                    
                     <div class="mb-3">
                         <label for="full_name" class="form-label">
                             <i class="bi bi-person me-1"></i> Full Name <span class="required">*</span>
@@ -285,48 +474,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     
                     <div class="mb-3">
-                        <label for="role" class="form-label">
+                        <label for="employment_type" class="form-label">
                             <i class="bi bi-briefcase me-1"></i> Employment Type <span class="required">*</span>
                         </label>
-                        <select class="form-select" id="role" name="role" required onchange="toggleInternshipField()">
-                            <option value="" disabled <?= empty($role ?? '') ? 'selected' : '' ?>>-- Select your role --</option>
-                            <option value="staff" <?= ($role ?? '') === 'staff' ? 'selected' : '' ?>>
-                                Full-Time Staff
+                        <select class="form-select" id="employment_type" name="employment_type" required onchange="toggleSalaryFields()">
+                            <option value="" disabled <?= empty($employment_type ?? '') ? 'selected' : '' ?>>-- Select employment type --</option>
+                            <option value="permanent" <?= ($employment_type ?? '') === 'permanent' ? 'selected' : '' ?>>
+                                Permanent (Full-Time)
                             </option>
-                            <option value="part_time" <?= ($role ?? '') === 'part_time' ? 'selected' : '' ?>>
+                            <option value="contract" <?= ($employment_type ?? '') === 'contract' ? 'selected' : '' ?>>
+                                Contract
+                            </option>
+                            <option value="part-time" <?= ($employment_type ?? '') === 'part-time' ? 'selected' : '' ?>>
                                 Part-Time
                             </option>
-                            <option value="intern" <?= ($role ?? '') === 'intern' ? 'selected' : '' ?>>
+                            <option value="intern" <?= ($employment_type ?? '') === 'intern' ? 'selected' : '' ?>>
                                 Intern
                             </option>
                         </select>
                         <div class="invalid-feedback">Please select your employment type.</div>
                     </div>
                     
-                    <!-- Internship Duration (Only for Intern) -->
-                    <div class="mb-3" id="internship_field" style="display: <?= ($role ?? '') === 'intern' ? 'block' : 'none' ?>;">
+                    <!-- Salary Fields -->
+                    <div class="row" id="salary_fields">
+                        <div class="col-md-6 mb-3">
+                            <label for="basic_salary" class="form-label">
+                                <i class="bi bi-cash me-1"></i> Basic Salary (RM)
+                            </label>
+                            <input type="number" class="form-control" id="basic_salary" name="basic_salary" 
+                                   placeholder="0.00" step="0.01" min="0"
+                                   value="<?= htmlspecialchars($basic_salary ?? '0') ?>">
+                            <small class="text-muted">Monthly salary for permanent/contract</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hourly_rate" class="form-label">
+                                <i class="bi bi-clock me-1"></i> Hourly Rate (RM)
+                            </label>
+                            <input type="number" class="form-control" id="hourly_rate" name="hourly_rate" 
+                                   placeholder="0.00" step="0.01" min="0"
+                                   value="<?= htmlspecialchars($hourly_rate ?? '0') ?>">
+                            <small class="text-muted">For part-time employees</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Internship Duration (Only for Interns) -->
+                    <div class="mb-3" id="internship_field" style="display: none;">
                         <label for="internship_months" class="form-label">
-                            <i class="bi bi-calendar-range me-1"></i> Internship Duration <span class="required">*</span>
+                            <i class="bi bi-calendar-range me-1"></i> Internship Duration (Months) <span class="required">*</span>
                         </label>
-                        <select class="form-select" id="internship_months" name="internship_months">
-                            <option value="">-- Select duration --</option>
-                            <option value="1" <?= ($internship_months ?? '') == 1 ? 'selected' : '' ?>>1 Month</option>
-                            <option value="2" <?= ($internship_months ?? '') == 2 ? 'selected' : '' ?>>2 Months</option>
-                            <option value="3" <?= ($internship_months ?? '') == 3 ? 'selected' : '' ?>>3 Months</option>
-                            <option value="4" <?= ($internship_months ?? '') == 4 ? 'selected' : '' ?>>4 Months</option>
-                            <option value="5" <?= ($internship_months ?? '') == 5 ? 'selected' : '' ?>>5 Months</option>
-                            <option value="6" <?= ($internship_months ?? '') == 6 ? 'selected' : '' ?>>6 Months</option>
-                            <option value="7" <?= ($internship_months ?? '') == 7 ? 'selected' : '' ?>>7 Months</option>
-                            <option value="8" <?= ($internship_months ?? '') == 8 ? 'selected' : '' ?>>8 Months</option>
-                            <option value="9" <?= ($internship_months ?? '') == 9 ? 'selected' : '' ?>>9 Months</option>
-                            <option value="10" <?= ($internship_months ?? '') == 10 ? 'selected' : '' ?>>10 Months</option>
-                            <option value="11" <?= ($internship_months ?? '') == 11 ? 'selected' : '' ?>>11 Months</option>
-                            <option value="12" <?= ($internship_months ?? '') == 12 ? 'selected' : '' ?>>12 Months</option>
-                        </select>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> NRL entitlement = 1 day per month of internship
-                        </small>
-                        <div class="invalid-feedback">Please select internship duration.</div>
+                        <input type="number" class="form-control" id="internship_months" name="internship_months" 
+                               placeholder="e.g., 3 or 6" min="1" max="12"
+                               value="<?= htmlspecialchars($internship_months ?? '') ?>">
+                        <small class="text-muted">Number of months for your internship program (e.g., 3 months = 3 days NRL)</small>
+                        <div class="invalid-feedback">Please enter internship duration (1-12 months).</div>
                     </div>
                     
                     <div class="mb-3">
@@ -369,8 +569,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="register-footer">
-                <p class="mb-0">
-                    &copy; <?= date('Y') ?> NES Solution & Network Sdn Bhd
+                <p class="mb-0" id="footerCompany">
+                    &copy; <?= date('Y') ?> <?= $companies[0]['name'] ?? 'NES Solution & Network Sdn Bhd' ?>
                 </p>
             </div>
         </div>
@@ -380,6 +580,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Select company function
+        function selectCompany(companyId, logo, name) {
+            // Update hidden input
+            document.getElementById('company_id').value = companyId;
+            
+            // Update header logo
+            document.getElementById('headerLogo').src = '../assets/logos/' + logo;
+            document.getElementById('headerCompanyName').textContent = name;
+            
+            // Update footer
+            document.getElementById('footerCompany').innerHTML = '&copy; <?= date('Y') ?> ' + name;
+            
+            // Update card selection
+            document.querySelectorAll('.company-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+        
         // Toggle password visibility
         function togglePassword(fieldId) {
             const password = document.getElementById(fieldId);
@@ -396,19 +615,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Toggle internship duration field
-        function toggleInternshipField() {
-            var role = document.getElementById('role').value;
+        // Toggle salary fields based on employment type
+        function toggleSalaryFields() {
+            var empType = document.getElementById('employment_type').value;
+            var basicSalary = document.getElementById('basic_salary');
+            var hourlyRate = document.getElementById('hourly_rate');
             var internshipField = document.getElementById('internship_field');
             var internshipMonths = document.getElementById('internship_months');
             
-            if (role === 'intern') {
+            // Reset required
+            basicSalary.required = false;
+            hourlyRate.required = false;
+            internshipMonths.required = false;
+            
+            // Hide all conditional fields first
+            internshipField.style.display = 'none';
+            
+            if (empType === 'part-time') {
+                hourlyRate.required = true;
+            } else if (empType === 'permanent' || empType === 'contract') {
+                basicSalary.required = true;
+            } else if (empType === 'intern') {
                 internshipField.style.display = 'block';
                 internshipMonths.required = true;
-            } else {
-                internshipField.style.display = 'none';
-                internshipMonths.required = false;
-                internshipMonths.value = '';
             }
         }
         
@@ -426,15 +655,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         confirmPassword.setCustomValidity('Passwords do not match');
                     } else {
                         confirmPassword.setCustomValidity('');
-                    }
-                    
-                    // Check internship months for intern
-                    var role = document.getElementById('role').value;
-                    var internshipMonths = document.getElementById('internship_months');
-                    if (role === 'intern' && !internshipMonths.value) {
-                        internshipMonths.setCustomValidity('Please select internship duration');
-                    } else {
-                        internshipMonths.setCustomValidity('');
                     }
                     
                     if (!form.checkValidity()) {

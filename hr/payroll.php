@@ -24,14 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
     try {
         $conn = getConnection();
         
-        // Get rates from payroll_rates table
+        // Get rates from payroll_rates table (Supabase schema)
         $stmt = $conn->prepare("SELECT rate_name, rate_value FROM payroll_rates WHERE company_id = ? AND is_active = true");
         $stmt->execute([$companyId]);
         $ratesData = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
         
         // Set rates from database (with defaults if not found)
-        $BASIC_STAFF = floatval($ratesData['BASIC_STAFF'] ?? 1700.00);
-        $BASIC_INTERN = floatval($ratesData['BASIC_INTERN'] ?? 800.00);
         $RATE_OT_NORMAL = floatval($ratesData['RATE_OT_NORMAL'] ?? 10.00);
         $RATE_OT_SUNDAY = floatval($ratesData['RATE_OT_SUNDAY'] ?? 12.50);
         $RATE_OT_PUBLIC = floatval($ratesData['RATE_OT_PUBLIC'] ?? 20.00);
@@ -40,172 +38,155 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
         $RATE_ATTENDANCE = floatval($ratesData['RATE_ATTENDANCE'] ?? 5.00);
         $RATE_LATE = floatval($ratesData['RATE_LATE'] ?? 1.00);
         
-        // Daily rates for part-time and intern
-        $PART_TIME_DAILY_RATE = 70.83;
-        $INTERN_DAILY_RATE = 33.33;
-        
-        // Get all active employees (all roles: staff, part_time, intern)
-        $stmt = $conn->prepare("SELECT * FROM users WHERE company_id = ? AND is_active = 1 AND role IN ('staff', 'part_time', 'intern')");
+        // Get all employees from profiles table (Supabase schema)
+        $stmt = $conn->prepare("SELECT * FROM profiles WHERE company_id = ?");
         $stmt->execute([$companyId]);
         $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $generated = 0;
         
         foreach ($employees as $emp) {
-            // Check if payroll already exists
+            // Check if payroll already exists for this month
             $stmt = $conn->prepare("SELECT id FROM payroll WHERE user_id = ? AND month = ? AND year = ?");
             $stmt->execute([$emp['id'], $selectedMonth, $selectedYear]);
             
             if (!$stmt->fetch()) {
-                // Get attendance for the month
+                // Get attendance summary for the month (Supabase attendance schema)
                 $stmt = $conn->prepare("
                     SELECT 
                         COUNT(*) as days_worked,
-                        SUM(CASE WHEN status = 'late' THEN late_minutes ELSE 0 END) as total_late_minutes,
-                        COALESCE(SUM(ot_hours), 0) as total_ot_hours,
-                        COALESCE(SUM(ot_sunday_hours), 0) as total_ot_sunday_hours,
-                        COALESCE(SUM(ot_public_hours), 0) as total_ot_public_hours,
-                        COALESCE(SUM(project_hours), 0) as total_project_hours,
-                        COALESCE(SUM(extra_shifts), 0) as total_extra_shifts
+                        COALESCE(SUM(overtime_hours), 0) as total_ot_hours,
+                        COALESCE(SUM(total_hours), 0) as regular_hours
                     FROM attendance 
-                    WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ? AND status IN ('present', 'late')
+                    WHERE user_id = ? 
+                    AND EXTRACT(MONTH FROM clock_in) = ? 
+                    AND EXTRACT(YEAR FROM clock_in) = ? 
+                    AND status IN ('active', 'completed')
                 ");
                 $stmt->execute([$emp['id'], $selectedMonth, $selectedYear]);
                 $attendance = $stmt->fetch();
                 
                 $daysWorked = $attendance['days_worked'] ?? 0;
-                $totalLateMinutes = $attendance['total_late_minutes'] ?? 0;
+                $regularHours = $attendance['regular_hours'] ?? 0;
                 $otHours = $attendance['total_ot_hours'] ?? 0;
-                $otSundayHours = $attendance['total_ot_sunday_hours'] ?? 0;
-                $otPublicHours = $attendance['total_ot_public_hours'] ?? 0;
-                $projectHours = $attendance['total_project_hours'] ?? 0;
-                $extraShifts = $attendance['total_extra_shifts'] ?? 0;
                 
-                // Calculate salary based on role
-                $basicSalary = 0;
-                $role = $emp['role'] ?? 'staff';
+                // Get employee's basic salary from profile
+                $basicSalary = $emp['basic_salary'] ?? 0;
+                $hourlyRate = $emp['hourly_rate'] ?? 0;
+                $employmentType = $emp['employment_type'] ?? 'permanent';
                 
-                switch ($role) {
-                    case 'part_time':
-                        // Part-time: RM 70.83 per day
-                        $basicSalary = $daysWorked * $PART_TIME_DAILY_RATE;
-                        break;
-                    case 'intern':
-                        // Intern: RM 33.33 per day
-                        $basicSalary = $daysWorked * $INTERN_DAILY_RATE;
-                        break;
-                    default: // staff (full-time)
-                        // Full-time: Monthly basic salary from profile or default
-                        $basicSalary = $emp['basic_salary'] ?? $BASIC_STAFF;
-                        break;
+                // Calculate salary based on employment type
+                $calculatedBasic = 0;
+                if ($employmentType === 'part-time' && $hourlyRate > 0) {
+                    $calculatedBasic = $regularHours * $hourlyRate;
+                } else {
+                    $calculatedBasic = $basicSalary;
                 }
                 
-                // Calculate allowances
-                $otNormalAllowance = $otHours * $RATE_OT_NORMAL;
-                $otSundayAllowance = $otSundayHours * $RATE_OT_SUNDAY;
-                $otPublicAllowance = $otPublicHours * $RATE_OT_PUBLIC;
-                $totalOtAllowance = $otNormalAllowance + $otSundayAllowance + $otPublicAllowance;
+                // Calculate OT allowances
+                $otNormal = $otHours * $RATE_OT_NORMAL;
+                $otSunday = 0; // Will need to calculate based on day of week
+                $otPublic = 0; // Will need public holiday data
                 
-                $projectAllowance = $projectHours * $RATE_PROJECT;
-                $shiftAllowance = $extraShifts * $RATE_SHIFT;
-                $attendanceBonus = $daysWorked * $RATE_ATTENDANCE;
+                // Gross pay calculation
+                $grossPay = $calculatedBasic + $otNormal + $otSunday + $otPublic;
                 
-                // Calculate deductions
-                $lateDeduction = $totalLateMinutes * $RATE_LATE;
-                
-                // Gross salary = Basic + All Allowances
-                $grossSalary = $basicSalary + $totalOtAllowance + $projectAllowance + $shiftAllowance + $attendanceBonus;
-                
-                // Calculate statutory deductions (for full-time staff only)
+                // Statutory deductions based on citizenship_status
                 $epfEmployee = 0;
                 $epfEmployer = 0;
                 $socsoEmployee = 0;
                 $socsoEmployer = 0;
                 $eisEmployee = 0;
                 $eisEmployer = 0;
+                $pcbTax = 0;
                 
-                // Only full-time staff have statutory deductions
-                if ($role === 'staff') {
-                    // EPF: Employee 11%, Employer 12%
-                    $epfEmployee = $grossSalary * 0.11;
-                    $epfEmployer = $grossSalary * 0.12;
+                $citizenship = $emp['citizenship_status'] ?? 'citizen';
+                
+                if ($employmentType !== 'intern') {
+                    // EPF: Employee 11%, Employer 12% (for citizens/PR)
+                    if ($citizenship === 'citizen' || $citizenship === 'permanent_resident') {
+                        $epfEmployee = $grossPay * 0.11;
+                        $epfEmployer = $grossPay * 0.12;
+                    }
                     
-                    // SOCSO: Based on salary range (simplified)
-                    $socsoEmployee = min($grossSalary * 0.005, 39.35);
-                    $socsoEmployer = min($grossSalary * 0.0175, 137.70);
+                    // SOCSO (capped)
+                    $socsoEmployee = min($grossPay * 0.005, 39.35);
+                    $socsoEmployer = min($grossPay * 0.0175, 137.70);
                     
                     // EIS: 0.2% each
-                    $eisEmployee = $grossSalary * 0.002;
-                    $eisEmployer = $grossSalary * 0.002;
+                    $eisEmployee = $grossPay * 0.002;
+                    $eisEmployer = $grossPay * 0.002;
                 }
                 
-                $totalDeductions = $epfEmployee + $socsoEmployee + $eisEmployee + $lateDeduction;
-                $netSalary = $grossSalary - $totalDeductions;
+                $netPay = $grossPay - $epfEmployee - $socsoEmployee - $eisEmployee - $pcbTax;
                 
-                // Insert payroll
+                // Generate UUID for payroll
+                $payrollUuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
+                
+                // Insert payroll record (Supabase payroll schema)
                 $stmt = $conn->prepare("
-                    INSERT INTO payroll (user_id, month, year, basic_salary, gross_salary,
-                        epf_employee, epf_employer, socso_employee, socso_employer,
-                        eis_employee, eis_employer, total_deductions, net_salary, 
-                        days_worked, ot_hours, ot_allowance, ot_sunday_hours, ot_sunday_allowance,
-                        ot_public_hours, ot_public_allowance, project_hours, project_allowance,
-                        extra_shifts, shift_allowance, attendance_bonus, late_minutes, late_deduction, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+                    INSERT INTO payroll (id, user_id, month, year, basic_salary, regular_hours, overtime_hours,
+                        ot_normal_hours, ot_normal, ot_sunday_hours, ot_sunday, ot_public_hours, ot_public,
+                        gross_pay, epf_employee, epf_employer, socso_employee, socso_employer,
+                        eis_employee, eis_employer, pcb_tax, net_pay, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
                 ");
                 $stmt->execute([
-                    $emp['id'], $selectedMonth, $selectedYear, $basicSalary, $grossSalary,
-                    $epfEmployee, $epfEmployer, $socsoEmployee, $socsoEmployer,
-                    $eisEmployee, $eisEmployer, $totalDeductions, $netSalary, 
-                    $daysWorked, $otHours, $otNormalAllowance, $otSundayHours, $otSundayAllowance,
-                    $otPublicHours, $otPublicAllowance, $projectHours, $projectAllowance,
-                    $extraShifts, $shiftAllowance, $attendanceBonus, $totalLateMinutes, $lateDeduction
+                    $payrollUuid, $emp['id'], $selectedMonth, $selectedYear, $calculatedBasic, $regularHours, $otHours,
+                    $otHours, $otNormal, 0, $otSunday, 0, $otPublic,
+                    $grossPay, $epfEmployee, $epfEmployer, $socsoEmployee, $socsoEmployer,
+                    $eisEmployee, $eisEmployer, $pcbTax, $netPay
                 ]);
                 
                 $generated++;
             }
         }
         
-        $message = "Payroll generated successfully for $generated employees.";
+        $message = "Payroll generated for $generated employee(s).";
         $messageType = 'success';
-        
     } catch (PDOException $e) {
-        error_log("Generate payroll error: " . $e->getMessage());
-        $message = 'Ralat sistem. Sila cuba lagi.';
+        error_log("Payroll generation error: " . $e->getMessage());
+        $message = 'System error: ' . $e->getMessage();
         $messageType = 'error';
     }
 }
 
 // Process status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $payrollId = intval($_POST['payroll_id']);
+    $payrollId = $_POST['payroll_id'];
     $newStatus = sanitize($_POST['new_status']);
     
     try {
         $conn = getConnection();
-        $paymentDate = $newStatus === 'paid' ? date('Y-m-d') : null;
         
-        $stmt = $conn->prepare("UPDATE payroll SET status = ?, payment_date = ? WHERE id = ?");
-        $stmt->execute([$newStatus, $paymentDate, $payrollId]);
+        $stmt = $conn->prepare("UPDATE payroll SET status = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$newStatus, $payrollId]);
         
-        $message = 'Status gaji berjaya dikemaskini.';
+        $message = 'Payroll status updated successfully.';
         $messageType = 'success';
     } catch (PDOException $e) {
         error_log("Update payroll status error: " . $e->getMessage());
-        $message = 'Ralat sistem.';
+        $message = 'System error.';
         $messageType = 'error';
     }
 }
 
-// Get payroll data
+// Get payroll data (Supabase schema)
 try {
     $conn = getConnection();
     
     $stmt = $conn->prepare("
-        SELECT p.*, u.full_name, u.employment_type
+        SELECT p.*, pr.full_name, pr.employment_type
         FROM payroll p
-        JOIN users u ON p.user_id = u.id
-        WHERE u.company_id = ? AND p.month = ? AND p.year = ?
-        ORDER BY u.full_name
+        JOIN profiles pr ON p.user_id = pr.id
+        WHERE pr.company_id = ? AND p.month = ? AND p.year = ?
+        ORDER BY pr.full_name
     ");
     $stmt->execute([$companyId, $selectedMonth, $selectedYear]);
     $payrollList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -221,12 +202,12 @@ try {
     ];
     
     foreach ($payrollList as $p) {
-        $totals['gross'] += $p['gross_salary'];
-        $totals['deductions'] += $p['total_deductions'];
-        $totals['net'] += $p['net_salary'];
-        $totals['epf_employer'] += $p['epf_employer'];
-        $totals['socso_employer'] += $p['socso_employer'];
-        $totals['eis_employer'] += $p['eis_employer'];
+        $totals['gross'] += $p['gross_pay'] ?? 0;
+        $totals['deductions'] += ($p['epf_employee'] ?? 0) + ($p['socso_employee'] ?? 0) + ($p['eis_employee'] ?? 0);
+        $totals['net'] += $p['net_pay'] ?? 0;
+        $totals['epf_employer'] += $p['epf_employer'] ?? 0;
+        $totals['socso_employer'] += $p['socso_employer'] ?? 0;
+        $totals['eis_employer'] += $p['eis_employer'] ?? 0;
     }
     
 } catch (PDOException $e) {
