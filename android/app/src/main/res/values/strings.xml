@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">MI-NES Payroll</string>
-    <string name="title_activity_main">MI-NES Payroll</string>
-    <string name="package_name">com.mines.payroll</string>
-    <string name="custom_url_scheme">com.mines.payroll</string>
-</resources>
