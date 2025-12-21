@@ -220,6 +220,11 @@ body {
     transition: all 0.25s ease;
     background: var(--surface);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 140px;
 }
 
 .company-card:hover {
@@ -235,11 +240,14 @@ body {
 }
 
 .company-card .company-logo {
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
     object-fit: contain;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     border-radius: 6px;
+    flex-shrink: 0;
+    background: white;
+    padding: 5px;
 }
 
 .company-card .company-name {
@@ -247,6 +255,8 @@ body {
     font-weight: 600;
     color: #2d3748;
     line-height: 1.3;
+    word-wrap: break-word;
+    max-width: 100%;
 }
 
 .company-card .check-badge {

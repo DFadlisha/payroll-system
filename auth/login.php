@@ -126,184 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <!-- Custom Auth CSS -->
     <link href="../assets/css/auth.css" rel="stylesheet">
-</head>
-<body>
-    <div class="login-container">
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #f97316;
-            --accent-teal: #14b8a6;
-            --accent-pink: #ec4899;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --surface: #ffffff;
-            --surface-alt: #f8fafc;
-            --border: #e5e7eb;
-        }
-        
-        body {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .login-container {
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-        }
-        
-        .login-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.28);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        
-        .login-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
-            padding: 30px;
-            text-align: center;
-            color: #fff;
-        }
-        
-        .login-header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-        
-        .login-header p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        
-        .login-body {
-            padding: 30px;
-        }
-        
-        .form-floating {
-            margin-bottom: 15px;
-        }
-        
-        .form-control {
-            border-radius: 8px;
-            border: 2px solid var(--border);
-            padding: 12px 15px;
-            height: auto;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            margin-top: 10px;
-        }
-        
-        .login-footer {
-            text-align: center;
-            padding: 20px;
-            background: var(--surface-alt);
-            font-size: 0.85rem;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #6c757d;
-            z-index: 10;
-        }
-        
-        .password-wrapper {
-            position: relative;
-        }
-        
-        .alert {
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        /* Company Selection */
-        .company-select-container {
-            margin-bottom: 20px;
-        }
-        
-        .company-cards {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .company-card {
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-            flex: 1;
-            min-width: 120px;
-            max-width: 150px;
-        }
-        
-        .company-card:hover {
-            border-color: var(--primary-color);
-            background: rgba(37, 99, 235, 0.05);
-        }
-        
-        .company-card.selected {
-            border-color: var(--primary-color);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(20, 184, 166, 0.12));
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
-        }
-        
-        .company-card img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            margin-bottom: 8px;
-        }
-        
-        .company-card .company-name {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .company-card .company-short {
-            font-size: 0.65rem;
-            color: #6c757d;
-        }
-        
-        /* Demo credentials box */
-        .demo-credentials {
-            background: #e7f3ff;
-            border: 1px solid #b6d4fe;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-        }
-        
-        .demo-credentials h6 {
-            color: #0d6efd;
-    <!-- Custom Auth CSS -->
-    <link href="../assets/css/auth.css" rel="stylesheet">
     
     <style>
         .header-logo {
@@ -311,6 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: 60px;
             object-fit: contain;
             margin-bottom: 10px;
+            background: white;
+            padding: 5px;
+            border-radius: 6px;
         }
         
         .demo-credentials {
@@ -369,9 +194,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                  onclick="selectCompany(this)">
                                 <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>" 
                                      alt="<?= htmlspecialchars($company['name']) ?>"
+                                     class="company-logo"
                                      onerror="this.src='../assets/logos/nes.jpg'">
-                                <div class="company-name"><?= htmlspecialchars(explode(' ', $company['name'])[0]) ?></div>
-                                <div class="company-short"><?= htmlspecialchars(substr($company['name'], 0, 25)) ?>...</div>
+                                <div class="company-name"><?= htmlspecialchars($company['name']) ?></div>
                             </div>
                         <?php endforeach; ?>
                     </div>
