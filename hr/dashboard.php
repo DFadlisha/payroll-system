@@ -8,9 +8,9 @@
  * ============================================
  */
 
-$pageTitle = __('nav.dashboard') . ' - ' . __('app_name');
 require_once '../includes/header.php';
 requireHR();
+$pageTitle = 'Dashboard - MI-NES Payroll System';
 
 // Dapatkan statistik (using Supabase schema - profiles table)
 try {

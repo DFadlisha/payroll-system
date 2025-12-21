@@ -124,7 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
-    <style>
+    <!-- Custom Auth CSS -->
+    <link href="../assets/css/auth.css" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
         :root {
             --primary-color: #2563eb;
             --secondary-color: #f97316;
@@ -298,6 +302,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .demo-credentials h6 {
             color: #0d6efd;
+    <!-- Custom Auth CSS -->
+    <link href="../assets/css/auth.css" rel="stylesheet">
+    
+    <style>
+        .header-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        
+        .demo-credentials {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .demo-credentials strong {
+            display: block;
             margin-bottom: 10px;
         }
         

@@ -8,9 +8,9 @@
  * ============================================
  */
 
-$pageTitle = __('nav.attendance') . ' - ' . __('app_name');
 require_once '../includes/header.php';
 requireHR();
+$pageTitle = 'Attendance - MI-NES Payroll System';
 
 $companyId = $_SESSION['company_id'];
 $selectedDate = $_GET['date'] ?? date('Y-m-d');

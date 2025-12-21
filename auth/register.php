@@ -162,223 +162,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
+    <!-- Custom Auth CSS -->
+    <link href="../assets/css/auth.css" rel="stylesheet">
+    
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #f97316;
-            --accent-teal: #14b8a6;
-            --accent-pink: #ec4899;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --surface: #ffffff;
-            --surface-alt: #f8fafc;
-            --border: #e5e7eb;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px 0;
-        }
-        
-        .register-container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-        }
-        
-        .register-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.28);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        
-        .register-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
-            padding: 30px;
-            text-align: center;
-            color: #fff;
-        }
-        
-        .register-header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-        
-        .register-header p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        
-        .register-body {
-            padding: 30px;
-        }
-        
-        .form-control {
-            border-radius: 8px;
-            border: 2px solid var(--border);
-            padding: 12px 15px;
-            height: auto;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
-        }
-        
-        .form-select {
-            border-radius: 8px;
-            border: 2px solid var(--border);
-            padding: 12px 15px;
-            height: auto;
-        }
-        
-        .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
-        }
-        
-        .btn-register {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            margin-top: 10px;
-        }
-        
-        .register-footer {
-            text-align: center;
-            padding: 20px;
-            background: var(--surface-alt);
-            font-size: 0.85rem;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #6c757d;
-            z-index: 10;
-        }
-        
-        .password-wrapper {
-            position: relative;
-        }
-        
-        .alert {
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .required {
-            color: #dc3545;
-        }
-        
-        .password-requirements {
-            font-size: 0.8rem;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-        
-        /* Company Selection */
-        .company-selection {
-            margin-bottom: 20px;
-        }
-        
-        .company-cards {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .company-card {
-            flex: 1;
-            min-width: 150px;
-            max-width: 180px;
-            border: 3px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: var(--surface);
-        }
-        
-        .company-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.15);
-        }
-        
-        .company-card.selected {
-            border-color: var(--primary-color);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(20, 184, 166, 0.12));
-            box-shadow: 0 5px 20px rgba(37, 99, 235, 0.22);
-        }
-        
-        .company-card .company-logo {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
-            margin-bottom: 10px;
-            border-radius: 8px;
-        }
-        
-        .company-card .company-name {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #333;
-            line-height: 1.3;
-        }
-        
-        .company-card .check-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: var(--primary-color);
-            color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-        }
-        
-        .company-card.selected .check-badge {
-            display: flex;
-        }
-        
-        .company-card {
-            position: relative;
-        }
-        
-        .section-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
         .header-logo {
             width: 50px;
             height: 50px;
@@ -451,20 +238,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Role Selection -->
                     <div class="mb-3">
                         <label for="role" class="form-label">
-                            <i class="bi bi-shield-check me-1"></i> Register As <span class="required">*</span>
+                            <i class="bi bi-shield-check me-1"></i> Account Type <span class="required">*</span>
                         </label>
                         <select class="form-select" id="role" name="role" required>
-                            <option value="staff" selected>
-                                👤 Staff Member
-                            </option>
-                            <option value="hr">
-                                ⚙️ HR Manager
-                            </option>
+                            <option value="staff" selected>Staff Member</option>
+                            <option value="hr">HR Manager</option>
                         </select>
                         <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> Select HR if you will manage employees, payroll, and attendance
+                            <i class="bi bi-info-circle"></i> HR managers have full access to manage employees and payroll
                         </small>
-                        <div class="invalid-feedback">Please select your role.</div>
+                        <div class="invalid-feedback">Please select an account type.</div>
                     </div>
                     
                     <div class="mb-3">
@@ -480,10 +263,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="mb-3">
                         <label for="email" class="form-label">
-                            <i class="bi bi-envelope me-1"></i> Email <span class="required">*</span>
+                            <i class="bi bi-envelope me-1"></i> Work Email <span class="required">*</span>
                         </label>
                         <input type="email" class="form-control" id="email" name="email" 
-                               placeholder="example@company.com" 
+                               placeholder="yourname@company.com" 
                                value="<?= htmlspecialchars($email ?? '') ?>"
                                required>
                         <div class="invalid-feedback">Please enter a valid email address.</div>
@@ -491,10 +274,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="mb-3">
                         <label for="phone" class="form-label">
-                            <i class="bi bi-telephone me-1"></i> Phone Number
+                            <i class="bi bi-telephone me-1"></i> Contact Number
                         </label>
                         <input type="tel" class="form-control" id="phone" name="phone" 
-                               placeholder="012-345 6789" 
+                               placeholder="+60 12-345 6789" 
                                value="<?= htmlspecialchars($phone ?? '') ?>">
                     </div>
                     
@@ -503,21 +286,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="bi bi-briefcase me-1"></i> Employment Type <span class="required">*</span>
                         </label>
                         <select class="form-select" id="employment_type" name="employment_type" required onchange="toggleSalaryFields()">
-                            <option value="" disabled <?= empty($employment_type ?? '') ? 'selected' : '' ?>>-- Select employment type --</option>
-                            <option value="permanent" <?= ($employment_type ?? '') === 'permanent' ? 'selected' : '' ?>>
-                                Permanent (Full-Time)
-                            </option>
-                            <option value="contract" <?= ($employment_type ?? '') === 'contract' ? 'selected' : '' ?>>
-                                Contract
-                            </option>
-                            <option value="part-time" <?= ($employment_type ?? '') === 'part-time' ? 'selected' : '' ?>>
-                                Part-Time
-                            </option>
-                            <option value="intern" <?= ($employment_type ?? '') === 'intern' ? 'selected' : '' ?>>
-                                Intern
-                            </option>
+                            <option value="" disabled <?= empty($employment_type ?? '') ? 'selected' : '' ?>>Select type</option>
+                            <option value="permanent" <?= ($employment_type ?? '') === 'permanent' ? 'selected' : '' ?>>Permanent</option>
+                            <option value="contract" <?= ($employment_type ?? '') === 'contract' ? 'selected' : '' ?>>Contract</option>
+                            <option value="part-time" <?= ($employment_type ?? '') === 'part-time' ? 'selected' : '' ?>>Part-Time</option>
+                            <option value="intern" <?= ($employment_type ?? '') === 'intern' ? 'selected' : '' ?>>Internship</option>
                         </select>
-                        <div class="invalid-feedback">Please select your employment type.</div>
+                        <div class="invalid-feedback">Please select employment type.</div>
                     </div>
                     
                     <!-- Salary Fields -->
@@ -582,12 +357,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     
                     <button type="submit" class="btn btn-success btn-register">
-                        <i class="bi bi-person-plus me-2"></i> Create Account
+                        <i class="bi bi-person-plus-fill me-2"></i> Create Account
                     </button>
                     
                     <div class="text-center mt-3">
-                        <span class="text-muted">Already have an account?</span>
-                        <a href="login.php" class="text-decoration-none"> Login here</a>
+                        <span class="text-muted">Already registered?</span>
+                        <a href="login.php" class="text-decoration-none fw-semibold"> Sign in</a>
                     </div>
                 </form>
                 <?php endif; ?>

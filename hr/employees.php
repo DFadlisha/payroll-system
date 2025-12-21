@@ -8,9 +8,9 @@
  * ============================================
  */
 
-$pageTitle = __('employees.title') . ' - ' . __('app_name');
 require_once '../includes/header.php';
 requireHR();
+$pageTitle = 'Employees - MI-NES Payroll System';
 
 $companyId = $_SESSION['company_id'];
 $action = $_GET['action'] ?? '';
@@ -355,7 +355,7 @@ try {
                         <div class="col-12">
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
-                                       <?= $editEmployee['is_active'] ? 'checked' : '' ?>>
+                                       <?= isset($editEmployee['is_active']) && $editEmployee['is_active'] ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="isActive">Aktif</label>
                             </div>
                         </div>
@@ -405,7 +405,11 @@ try {
                             </thead>
                             <tbody>
                                 <?php foreach ($employees as $emp): ?>
-                                    <tr class="<?= !$emp['is_active'] ? 'table-secondary' : '' ?>">
+                                    <?php 
+                                    // Default is_active to true if not set
+                                    $isActive = isset($emp['is_active']) ? $emp['is_active'] : true;
+                                    ?>
+                                    <tr class="<?= !$isActive ? 'table-secondary' : '' ?>">
                                         <td><strong><?= htmlspecialchars($emp['full_name']) ?></strong></td>
                                         <td><?= htmlspecialchars($emp['email']) ?></td>
                                         <td>
@@ -433,8 +437,8 @@ try {
                                         </td>
                                         <td><?= formatMoney($emp['basic_salary']) ?></td>
                                         <td>
-                                            <span class="badge <?= $emp['is_active'] ? 'bg-success' : 'bg-danger' ?>">
-                                                <?= $emp['is_active'] ? 'Aktif' : 'Tidak Aktif' ?>
+                                            <span class="badge <?= $isActive ? 'bg-success' : 'bg-danger' ?>">
+                                                <?= $isActive ? 'Aktif' : 'Tidak Aktif' ?>
                                             </span>
                                         </td>
                                         <td>
