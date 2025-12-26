@@ -79,11 +79,11 @@ $t = $translations[$lang];
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-color: #2563eb;   /* NES blue */
+            --primary-color: #FFD400;   /* yellow */
             --secondary-color: #f97316; /* NES orange */
             --accent-teal: #14b8a6;     /* Mentari teal */
             --accent-pink: #ec4899;     /* Mentari pink */
-            --text-dark: #1f2937;
+            --text-dark: #000000;
             --text-muted: #6b7280;
             --surface: #ffffff;
             --surface-alt: #f8fafc;

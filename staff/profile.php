@@ -21,48 +21,121 @@ $messageType = '';
 
 // Process profile update (Supabase profiles table - limited fields)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fullName = sanitize($_POST['full_name'] ?? '');
-    $epfNumber = sanitize($_POST['epf_number'] ?? '');
-    $socsoNumber = sanitize($_POST['socso_number'] ?? '');
+    $action = $_POST['action'] ?? 'update_profile';
     
-    try {
-        $conn = getConnection();
+    if ($action === 'update_profile') {
+        $fullName = sanitize($_POST['full_name'] ?? '');
+        $icNumber = sanitize($_POST['ic_number'] ?? '');
+        $phone = sanitize($_POST['phone'] ?? '');
+        $address = sanitize($_POST['address'] ?? '');
+        $bankName = sanitize($_POST['bank_name'] ?? '');
+        $bankAccount = sanitize($_POST['bank_account'] ?? '');
+        $dependents = intval($_POST['dependents'] ?? 0);
         
-        // Get current user data from profiles
-        $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ?");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        $errors = [];
-        
-        // Validate
-        if (empty($fullName)) {
-            $errors[] = 'Full name is required.';
-        }
-        
-        if (empty($errors)) {
-            // Update profile (profiles table has limited editable fields)
-            $stmt = $conn->prepare("
-                UPDATE profiles SET 
-                    full_name = ?, epf_number = ?, socso_number = ?, updated_at = NOW()
-                WHERE id = ?
-            ");
-            $stmt->execute([$fullName, $epfNumber, $socsoNumber, $userId]);
+        try {
+            $conn = getConnection();
             
-            // Update session
-            $_SESSION['full_name'] = $fullName;
+            $errors = [];
             
-            $message = 'Profil berjaya dikemaskini.';
-            $messageType = 'success';
-        } else {
-            $message = implode(' ', $errors);
+            // Validate
+            if (empty($fullName)) {
+                $errors[] = 'Nama penuh diperlukan.';
+            }
+            
+            // Validate dependents range
+            if ($dependents < 0 || $dependents > 10) {
+                $errors[] = 'Bilangan tanggungan mestilah antara 0 hingga 10.';
+            }
+            
+            if (empty($errors)) {
+                // Update profile with all fields including dependents
+                $stmt = $conn->prepare("
+                    UPDATE profiles SET 
+                        full_name = ?, 
+                        ic_number = ?, 
+                        phone = ?, 
+                        address = ?, 
+                        bank_name = ?, 
+                        bank_account = ?,
+                        dependents = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$fullName, $icNumber, $phone, $address, $bankName, $bankAccount, $dependents, $userId]);
+                
+                // Update session
+                $_SESSION['full_name'] = $fullName;
+                
+                $message = 'Profil berjaya dikemaskini.';
+                $messageType = 'success';
+            } else {
+                $message = implode(' ', $errors);
+                $messageType = 'error';
+            }
+            
+        } catch (PDOException $e) {
+            error_log("Profile update error: " . $e->getMessage());
+            $message = 'Ralat sistem. Sila cuba lagi.';
             $messageType = 'error';
         }
+    } elseif ($action === 'change_password') {
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
         
-    } catch (PDOException $e) {
-        error_log("Profile update error: " . $e->getMessage());
-        $message = 'Ralat sistem. Sila cuba lagi.';
-        $messageType = 'error';
+        try {
+            $conn = getConnection();
+            
+            // Get current password hash
+            $stmt = $conn->prepare("SELECT password FROM profiles WHERE id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $errors = [];
+            
+            // Validate
+            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+                $errors[] = 'All password fields are required.';
+            } elseif (!password_verify($currentPassword, $user['password'])) {
+                $errors[] = 'Current password is incorrect.';
+            } elseif (strlen($newPassword) < 6) {
+                $errors[] = 'New password must be at least 6 characters.';
+            } elseif ($newPassword !== $confirmPassword) {
+                $errors[] = 'New password and confirmation do not match.';
+            } elseif ($currentPassword === $newPassword) {
+                $errors[] = 'New password must be different from current password.';
+            }
+            
+            if (empty($errors)) {
+                // Hash new password
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                
+                // Update password
+                $stmt = $conn->prepare("
+                    UPDATE profiles SET 
+                        password = ?, updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$hashedPassword, $userId]);
+                
+                $message = 'Password successfully changed. Please login again with your new password.';
+                $messageType = 'success';
+                
+                // Log the user out for security (force re-login with new password)
+                // Uncomment if you want to force re-login:
+                // session_destroy();
+                // redirect('../auth/login.php?message=password_changed');
+                
+            } else {
+                $message = implode(' ', $errors);
+                $messageType = 'error';
+            }
+            
+        } catch (PDOException $e) {
+            error_log("Password change error: " . $e->getMessage());
+            $message = 'System error. Please try again.';
+            $messageType = 'error';
+        }
     }
 }
 
@@ -82,24 +155,10 @@ try {
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="fw-bold">Profil Saya</span>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?>
-            </div>
-            <div>
-                <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                <small class="text-muted">Staff</small>
-            </div>
-        </div>
-    </div>
+    <?php 
+    $navTitle = __('nav.profile');
+    include '../includes/top_navbar.php'; 
+    ?>
     
     <!-- Flash Messages -->
     <?php if ($message): ?>
@@ -150,6 +209,7 @@ try {
                 </div>
                 <div class="card-body">
                     <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="action" value="update_profile">
                         <!-- Personal Info -->
                         <h6 class="text-muted mb-3">Maklumat Peribadi</h6>
                         <div class="row g-3 mb-4">
@@ -181,6 +241,14 @@ try {
                                 <textarea name="address" class="form-control" rows="2"
                                           placeholder="Alamat penuh..."><?= htmlspecialchars($user['address'] ?? '') ?></textarea>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Bilangan Tanggungan (Untuk Pengiraan Cukai PCB)</label>
+                                <input type="number" name="dependents" class="form-control" 
+                                       value="<?= intval($user['dependents'] ?? 0) ?>"
+                                       min="0" max="10"
+                                       placeholder="0">
+                                <small class="text-muted">Jumlah tanggungan untuk pelepasan cukai LHDN (Max: 6)</small>
+                            </div>
                         </div>
                         
                         <!-- Bank Info -->
@@ -209,32 +277,43 @@ try {
                             </div>
                         </div>
                         
-                        <!-- Password Change -->
-                        <h6 class="text-muted mb-3">Tukar Password</h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label">Password Semasa</label>
-                                <input type="password" name="current_password" class="form-control">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Password Baru</label>
-                                <input type="password" name="new_password" class="form-control"
-                                       minlength="6">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Sahkan Password</label>
-                                <input type="password" name="confirm_password" class="form-control">
-                            </div>
-                            <div class="col-12">
-                                <small class="text-muted">Kosongkan jika tidak mahu tukar password.</small>
-                            </div>
-                        </div>
-                        
                         <hr>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-circle me-2"></i>Simpan Perubahan
                         </button>
                     </form>
+                    
+                    <!-- Password Change Form (Separate) -->
+                    <form method="POST" class="mt-4" onsubmit="return confirmPasswordChange()">
+                        <input type="hidden" name="action" value="change_password">
+                        <h6 class="text-muted mb-3">Tukar Password</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Password Semasa <span class="text-danger">*</span></label>
+                                <input type="password" name="current_password" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Password Baru <span class="text-danger">*</span></label>
+                                <input type="password" name="new_password" id="new_password" class="form-control"
+                                       minlength="6" required>
+                                <small class="text-muted">Minimum 6 characters</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sahkan Password <span class="text-danger">*</span></label>
+                                <input type="password" name="confirm_password" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-key me-2"></i>Tukar Password
+                        </button>
+                    </form>
+                    
+                    <script>
+                        function confirmPasswordChange() {
+                            return confirm('Are you sure you want to change your password? You may need to login again.');
+                        }
+                    </script>
                 </div>
             </div>
         </div>

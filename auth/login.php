@@ -238,6 +238,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </button>
                     
                     <div class="text-center mt-3">
+                        <a href="forgot_password.php" class="text-decoration-none small">
+                            <i class="bi bi-key me-1"></i><?= __('login_page.forgot_password') ?>
+                        </a>
+                    </div>
+                    
+                    <div class="text-center mt-2">
                         <span class="text-muted"><?= __('login_page.no_account') ?></span>
                         <a href="register.php" class="text-decoration-none"> <?= __('login_page.sign_up') ?></a>
                     </div>

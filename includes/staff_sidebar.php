@@ -9,8 +9,15 @@
 
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 ?>
+<!-- Sidebar Overlay for Mobile -->
+<div class="sidebar-overlay"></div>
+
 <!-- Sidebar -->
 <nav class="sidebar">
+    <button class="sidebar-close d-md-none" onclick="document.querySelector('.sidebar').classList.remove('show'); document.querySelector('.sidebar-overlay').classList.remove('show'); document.body.style.overflow = '';">
+        <i class="bi bi-x"></i>
+    </button>
+    
     <div class="sidebar-header">
         <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
         <small><?= __('app_subtitle') ?></small>

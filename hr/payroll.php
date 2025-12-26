@@ -83,11 +83,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     $calculatedBasic = $basicSalary;
                 }
                 
-                // Calculate OT allowances
-                $otNormal = $otHours * $RATE_OT_NORMAL;
-                $otSunday = 0; // Will need to calculate based on day of week
-                $otPublic = 0; // Will need public holiday data
+                // Calculate OT allowances with automatic day-type detection
+                // Get detailed attendance records for OT breakdown
+                $stmtOT = $conn->prepare("
+                    SELECT clock_in, overtime_hours
+                    FROM attendance 
+                    WHERE user_id = ? 
+                    AND EXTRACT(MONTH FROM clock_in) = ? 
+                    AND EXTRACT(YEAR FROM clock_in) = ? 
+                    AND overtime_hours > 0
+                    AND status IN ('active', 'completed')
+                ");
+                $stmtOT->execute([$emp['id'], $selectedMonth, $selectedYear]);
+                $otRecords = $stmtOT->fetchAll(PDO::FETCH_ASSOC);
                 
+                $otNormalHours = 0;
+                $otSundayHours = 0;
+                $otPublicHours = 0;
+
+                $otNormal = 0;
+                $otSunday = 0;
+                $otPublic = 0;
+
+                foreach ($otRecords as $otRecord) {
+                    $otDate = date('Y-m-d', strtotime($otRecord['clock_in']));
+                    $otHrs = floatval($otRecord['overtime_hours']);
+
+                    // Determine OT type based on date and accumulate hours + amount
+                    if (isPublicHoliday($otDate)) {
+                        $otPublicHours += $otHrs;
+                        $otPublic += $otHrs * $RATE_OT_PUBLIC;
+                    } elseif (isSunday($otDate)) {
+                        $otSundayHours += $otHrs;
+                        $otSunday += $otHrs * $RATE_OT_SUNDAY;
+                    } else {
+                        $otNormalHours += $otHrs;
+                        $otNormal += $otHrs * $RATE_OT_NORMAL;
+                    }
+                }
+
+                // Recalculate total OT hours (accurate breakdown sum)
+                $otHours = $otNormalHours + $otSundayHours + $otPublicHours;
+
                 // Gross pay calculation
                 $grossPay = $calculatedBasic + $otNormal + $otSunday + $otPublic;
                 
@@ -98,9 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $socsoEmployer = 0;
                 $eisEmployee = 0;
                 $eisEmployer = 0;
-                $pcbTax = 0;
                 
                 $citizenship = $emp['citizenship_status'] ?? 'citizen';
+                
+                // Calculate PCB (Monthly Tax Deduction) based on LHDN rates
+                $dependents = intval($emp['dependents'] ?? 0);
+                $pcbTax = calculatePCB($grossPay, $dependents);
                 
                 if ($employmentType !== 'intern') {
                     // EPF: Employee 11%, Employer 12% (for citizens/PR)
@@ -130,25 +170,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 );
                 
                 // Insert payroll record (Supabase payroll schema)
-                $stmt = $conn->prepare("
-                    INSERT INTO payroll (id, user_id, month, year, basic_salary, regular_hours, overtime_hours,
-                        ot_normal_hours, ot_normal, ot_sunday_hours, ot_sunday, ot_public_hours, ot_public,
-                        gross_pay, epf_employee, epf_employer, socso_employee, socso_employer,
-                        eis_employee, eis_employer, pcb_tax, net_pay, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
-                ");
+                $stmt = $conn->prepare(
+                    "INSERT INTO payroll (id, user_id, month, year, basic_salary, regular_hours, overtime_hours,"
+                    . " ot_normal_hours, ot_normal, ot_sunday_hours, ot_sunday, ot_public_hours, ot_public,"
+                    . " gross_pay, epf_employee, epf_employer, socso_employee, socso_employer,"
+                    . " eis_employee, eis_employer, pcb_tax, net_pay, status)"
+                    . " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')"
+                );
+
                 $stmt->execute([
-                    $payrollUuid, $emp['id'], $selectedMonth, $selectedYear, $calculatedBasic, $regularHours, $otHours,
-                    $otHours, $otNormal, 0, $otSunday, 0, $otPublic,
-                    $grossPay, $epfEmployee, $epfEmployer, $socsoEmployee, $socsoEmployer,
-                    $eisEmployee, $eisEmployer, $pcbTax, $netPay
+                    $payrollUuid,
+                    $emp['id'],
+                    $selectedMonth,
+                    $selectedYear,
+                    $calculatedBasic,
+                    $regularHours,
+                    $otHours,
+                    $otNormalHours,
+                    $otNormal,
+                    $otSundayHours,
+                    $otSunday,
+                    $otPublicHours,
+                    $otPublic,
+                    $grossPay,
+                    $epfEmployee,
+                    $epfEmployer,
+                    $socsoEmployee,
+                    $socsoEmployer,
+                    $eisEmployee,
+                    $eisEmployer,
+                    $pcbTax,
+                    $netPay
                 ]);
                 
                 $generated++;
+                
+                // Send email notification to employee
+                $appUrl = Environment::get('APP_URL', 'http://localhost');
+                $payslipUrl = $appUrl . '/staff/payslips.php?id=' . $payrollUuid;
+                
+                $monthName = getMonthName($selectedMonth);
+                $emailSubject = "Slip Gaji {$monthName} {$selectedYear} - MI-NES Payroll";
+                
+                $emailBody = "
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #0d6efd; color: white; padding: 20px; text-align: center; }
+                            .content { background: #f8f9fa; padding: 30px; border: 1px solid #dee2e6; }
+                            .amount-box { background: #d4edda; border: 2px solid #28a745; padding: 15px; 
+                                         text-align: center; margin: 20px 0; border-radius: 5px; }
+                            .amount { font-size: 24pt; font-weight: bold; color: #155724; }
+                            .button { display: inline-block; padding: 12px 30px; background: #0d6efd; color: white; 
+                                     text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                            .info-table { width: 100%; margin: 15px 0; }
+                            .info-table td { padding: 8px; border-bottom: 1px solid #dee2e6; }
+                            .footer { text-align: center; padding: 20px; color: #6c757d; font-size: 12px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='container'>
+                            <div class='header'>
+                                <h2>Slip Gaji Bulanan</h2>
+                            </div>
+                            <div class='content'>
+                                <p>Hi <strong>{$emp['full_name']}</strong>,</p>
+                                
+                                <p>Slip gaji anda untuk bulan <strong>{$monthName} {$selectedYear}</strong> telah disediakan.</p>
+                                
+                                <div class='amount-box'>
+                                    <div>Gaji Bersih (Net Pay)</div>
+                                    <div class='amount'>RM " . number_format($netPay, 2) . "</div>
+                                </div>
+                                
+                                <table class='info-table'>
+                                    <tr>
+                                        <td><strong>Gaji Pokok:</strong></td>
+                                        <td style='text-align: right;'>RM " . number_format($calculatedBasic, 2) . "</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Pendapatan Kasar:</strong></td>
+                                        <td style='text-align: right;'>RM " . number_format($grossPay, 2) . "</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Potongan:</strong></td>
+                                        <td style='text-align: right;'>RM " . number_format($epfEmployee + $socsoEmployee + $eisEmployee + $pcbTax, 2) . "</td>
+                                    </tr>
+                                    <tr style='background: #d4edda;'>
+                                        <td><strong>Gaji Bersih:</strong></td>
+                                        <td style='text-align: right;'><strong>RM " . number_format($netPay, 2) . "</strong></td>
+                                    </tr>
+                                </table>
+                                
+                                <div style='text-align: center;'>
+                                    <a href='{$payslipUrl}' class='button'>Lihat Slip Gaji</a>
+                                </div>
+                                
+                                <p style='margin-top: 20px;'>Atau salin pautan ini:</p>
+                                <p style='word-break: break-all; color: #0d6efd;'>{$payslipUrl}</p>
+                                
+                                <p style='margin-top: 20px; font-size: 10pt; color: #666;'>
+                                    <strong>Nota:</strong> Sila semak slip gaji anda dengan teliti. 
+                                    Jika ada sebarang pertanyaan, sila hubungi Jabatan HR.
+                                </p>
+                            </div>
+                            <div class='footer'>
+                                <p>Email ini dijana secara automatik. Sila jangan balas.</p>
+                                <p>&copy; " . date('Y') . " MI-NES Payroll System. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                ";
+                
+                sendEmail($emp['email'], $emailSubject, $emailBody);
             }
         }
         
-        $message = "Payroll generated for $generated employee(s).";
+        $message = "Payroll generated for $generated employee(s). Email notifications sent.";
         $messageType = 'success';
     } catch (PDOException $e) {
         error_log("Payroll generation error: " . $e->getMessage());

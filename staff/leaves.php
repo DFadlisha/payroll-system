@@ -5,8 +5,8 @@
  * ============================================
  * Page for leave applications.
  * - Staff: Annual, Medical, Emergency, Unpaid leave
- * - Intern: NRL (Need Replacement Leave) only
- *   NRL days = internship months (e.g., 3 months = 3 days)
+ * - Intern: Medical Leave and NRL (Need Replacement Leave)
+ *   NRL days = internship months (e.g., 3 months = 3 days); Medical default = 14 days
  * ============================================
  */
 
@@ -47,10 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_leave'])) {
     $startDate = sanitize($_POST['start_date'] ?? '');
     $endDate = sanitize($_POST['end_date'] ?? '');
     $reason = sanitize($_POST['reason'] ?? '');
-    
-    // Validate leave_type based on Supabase schema: annual, sick, emergency, unpaid
-    $validLeaveTypes = ['annual', 'sick', 'emergency', 'unpaid'];
-    
+
+    // Set valid leave types depending on employment type
+    if ($isIntern) {
+        // Interns: only Medical and NRL (Need Replacement Leave)
+        $validLeaveTypes = ['medical', 'nrl'];
+    } else {
+        // Staff/Part-time: Annual, Medical, Emergency, Unpaid, Other
+        $validLeaveTypes = ['annual', 'medical', 'emergency', 'unpaid', 'other'];
+    }
+
     if (empty($leaveType) || empty($startDate) || empty($endDate)) {
         $message = 'Please fill in all required fields.';
         $messageType = 'error';
@@ -116,17 +122,25 @@ try {
     $currentYear = date('Y');
     
     if ($isIntern) {
-        // Intern: NRL balance = internship months
+        // Intern: NRL balance = internship months, plus Medical leave entitlement
         $stmt = $conn->prepare("
-            SELECT COALESCE(SUM(days), 0) as nrl_used
+            SELECT 
+                COALESCE(SUM(CASE WHEN leave_type = 'nrl' AND status = 'approved' THEN days ELSE 0 END),0) as nrl_used,
+                COALESCE(SUM(CASE WHEN leave_type = 'medical' AND status = 'approved' THEN days ELSE 0 END),0) as medical_used
             FROM leaves 
-            WHERE user_id = ? AND leave_type = 'nrl' AND status = 'approved' AND EXTRACT(YEAR FROM start_date) = ?
+            WHERE user_id = ? AND EXTRACT(YEAR FROM start_date) = ?
         ");
         $stmt->execute([$userId, $currentYear]);
-        $nrlUsed = $stmt->fetch()['nrl_used'] ?? 0;
-        
+        $used = $stmt->fetch(PDO::FETCH_ASSOC);
+        $nrlUsed = $used['nrl_used'] ?? 0;
+        $medicalUsed = $used['medical_used'] ?? 0;
+
+        // Medical entitlement for interns: default to 14 days (same as staff)
+        $medicalTotal = 14;
+
         $leaveBalance = [
-            'nrl' => ['total' => $internshipMonths, 'used' => $nrlUsed]
+            'nrl' => ['total' => $internshipMonths, 'used' => $nrlUsed],
+            'medical' => ['total' => $medicalTotal, 'used' => $medicalUsed]
         ];
     } else {
         // Staff/Part-time: Annual & Medical leave
@@ -150,7 +164,11 @@ try {
     error_log("Leave fetch error: " . $e->getMessage());
     $leaves = [];
     if ($isIntern) {
-        $leaveBalance = ['nrl' => ['total' => $internshipMonths, 'used' => 0]];
+        // Fallback include both nrl and medical with defaults
+        $leaveBalance = [
+            'nrl' => ['total' => $internshipMonths, 'used' => 0],
+            'medical' => ['total' => 14, 'used' => 0]
+        ];
     } else {
         $leaveBalance = [
             'annual' => ['total' => 14, 'used' => 0],
@@ -160,67 +178,14 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small>Payroll System</small>
-    </div>
-    
-    <ul class="sidebar-menu">
-        <li>
-            <a href="dashboard.php">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="attendance.php">
-                <i class="bi bi-calendar-check"></i> Kehadiran
-            </a>
-        </li>
-        <li>
-            <a href="leaves.php" class="active">
-                <i class="bi bi-calendar-x"></i> Cuti
-            </a>
-        </li>
-        <li>
-            <a href="payslips.php">
-                <i class="bi bi-receipt"></i> Slip Gaji
-            </a>
-        </li>
-        <li>
-            <a href="profile.php">
-                <i class="bi bi-person"></i> Profil
-            </a>
-        </li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php">
-                <i class="bi bi-box-arrow-left"></i> Log Keluar
-            </a>
-        </li>
-    </ul>
-</nav>
+<?php include '../includes/staff_sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="fw-bold">Permohonan Cuti</span>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?>
-            </div>
-            <div>
-                <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                <small class="text-muted">Staff</small>
-            </div>
-        </div>
-    </div>
+    <?php 
+    $navTitle = __('nav.leaves');
+    include '../includes/top_navbar.php'; 
+    ?>
     
     <!-- Flash Messages -->
     <?php if ($message): ?>
@@ -233,22 +198,22 @@ try {
     <!-- Page Header -->
     <div class="page-header d-flex justify-content-between align-items-center">
         <div>
-            <h1><i class="bi bi-calendar-x me-2"></i>Permohonan Cuti</h1>
+            <h1><i class="bi bi-calendar-x me-2"></i><?= __('leaves.title') ?></h1>
         </div>
         <?php if ($action !== 'new'): ?>
             <a href="?action=new" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-2"></i>Mohon Cuti
+                <i class="bi bi-plus-circle me-2"></i><?= __('leaves.apply') ?>
             </a>
         <?php else: ?>
             <a href="leaves.php" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-2"></i>Kembali
+                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
             </a>
         <?php endif; ?>
     </div>
     
     <!-- Leave Balance Cards -->
     <?php if ($isIntern): ?>
-        <!-- Intern: NRL Balance Only -->
+        <!-- Intern: show NRL and Medical balances -->
         <div class="row g-4 mb-4">
             <div class="col-md-6">
                 <div class="card border-info">
@@ -257,7 +222,7 @@ try {
                             <div>
                                 <h6 class="text-muted mb-1">NRL (Need Replacement Leave)</h6>
                                 <h3 class="mb-0">
-                                    <?= $leaveBalance['nrl']['total'] - $leaveBalance['nrl']['used'] ?> 
+                                    <?= ($leaveBalance['nrl']['total'] - $leaveBalance['nrl']['used']) ?> 
                                     <small class="text-muted fs-6">/ <?= $leaveBalance['nrl']['total'] ?> days</small>
                                 </h3>
                             </div>
@@ -274,11 +239,25 @@ try {
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card bg-light">
+                <div class="card">
                     <div class="card-body">
-                        <h6 class="text-muted mb-2"><i class="bi bi-info-circle me-1"></i>NRL Information</h6>
-                        <p class="mb-1">Your internship duration: <strong><?= $internshipMonths ?> months</strong></p>
-                        <p class="mb-0 small text-muted">NRL entitlement = 1 day per month of internship</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Medical Leave</h6>
+                                <h3 class="mb-0">
+                                    <?= ($leaveBalance['medical']['total'] - $leaveBalance['medical']['used']) ?> 
+                                    <small class="text-muted fs-6">/ <?= $leaveBalance['medical']['total'] ?> days</small>
+                                </h3>
+                            </div>
+                            <div class="text-danger">
+                                <i class="bi bi-heart-pulse" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 8px;">
+                            <?php $medicalPercent = $leaveBalance['medical']['total'] > 0 ? ($leaveBalance['medical']['used'] / $leaveBalance['medical']['total']) * 100 : 0; ?>
+                            <div class="progress-bar bg-danger" style="width: <?= $medicalPercent ?>%"></div>
+                        </div>
+                        <small class="text-muted">Used: <?= $leaveBalance['medical']['used'] ?> days</small>
                     </div>
                 </div>
             </div>
@@ -347,13 +326,15 @@ try {
                         <div class="col-md-6">
                             <label class="form-label">Leave Type <span class="text-danger">*</span></label>
                             <?php if ($isIntern): ?>
-                                <!-- Intern: NRL only -->
+                                <!-- Intern: NRL and Medical -->
                                 <select name="leave_type" class="form-select" required>
-                                    <option value="">-- Select Leave Type --</option>
-                                    <option value="nrl">NRL (Need Replacement Leave)</option>
+                                    <option value="">-- <?= __('select') ?> --</option>
+                                    <option value="nrl"><?= __('leaves.nrl') ?></option>
+                                    <option value="medical"><?= __('leaves.medical') ?></option>
                                 </select>
-                                <small class="text-muted">
-                                    Balance: <?= $leaveBalance['nrl']['total'] - $leaveBalance['nrl']['used'] ?> days remaining
+                                <small class="text-muted d-block">
+                                    <?= __('leaves.balance') ?>: <?= ($leaveBalance['nrl']['total'] - $leaveBalance['nrl']['used']) ?> <?= __('leaves.days') ?> (NRL)<br>
+                                    <?= __('leaves.balance') ?>: <?= ($leaveBalance['medical']['total'] - $leaveBalance['medical']['used']) ?> <?= __('leaves.days') ?> (<?= __('leaves.medical') ?>)
                                 </small>
                             <?php else: ?>
                                 <!-- Staff/Part-time: Multiple leave types -->
@@ -404,25 +385,25 @@ try {
         <!-- Leave History -->
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-clock-history me-2"></i>Sejarah Permohonan
+                <i class="bi bi-clock-history me-2"></i><?= __('leaves.my_leaves') ?>
             </div>
             <div class="card-body">
                 <?php if (empty($leaves)): ?>
                     <p class="text-muted text-center py-4">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                        Tiada permohonan cuti.
+                        <?= __('no_data') ?>
                     </p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Tarikh Mohon</th>
-                                    <th>Jenis</th>
-                                    <th>Tempoh</th>
-                                    <th>Hari</th>
-                                    <th>Sebab</th>
-                                    <th>Status</th>
+                                    <th><?= __('date') ?></th>
+                                    <th><?= __('leaves.leave_type') ?></th>
+                                    <th><?= __('leaves.start_date') ?>/<?= __('leaves.end_date') ?></th>
+                                    <th><?= __('leaves.days') ?></th>
+                                    <th><?= __('leaves.reason') ?></th>
+                                    <th><?= __('status') ?></th>
                                 </tr>
                             </thead>
                             <tbody>

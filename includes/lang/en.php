@@ -74,6 +74,7 @@ return [
         'password' => 'Password',
         'remember' => 'Remember me',
         'forgot' => 'Forgot password?',
+        'forgot_password' => 'Forgot password?',
         'no_account' => "Don't have an account?",
         'sign_up' => 'Sign up here',
         'btn_login' => 'Login',

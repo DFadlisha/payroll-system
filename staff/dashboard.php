@@ -79,67 +79,14 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small>Payroll System</small>
-    </div>
-    
-    <ul class="sidebar-menu">
-        <li>
-            <a href="dashboard.php" class="<?= $currentPage === 'dashboard' ? 'active' : '' ?>">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="attendance.php" class="<?= $currentPage === 'attendance' ? 'active' : '' ?>">
-                <i class="bi bi-calendar-check"></i> Attendance
-            </a>
-        </li>
-        <li>
-            <a href="leaves.php" class="<?= $currentPage === 'leaves' ? 'active' : '' ?>">
-                <i class="bi bi-calendar-x"></i> Leaves
-            </a>
-        </li>
-        <li>
-            <a href="payslips.php" class="<?= $currentPage === 'payslips' ? 'active' : '' ?>">
-                <i class="bi bi-receipt"></i> Payslips
-            </a>
-        </li>
-        <li>
-            <a href="profile.php" class="<?= $currentPage === 'profile' ? 'active' : '' ?>">
-                <i class="bi bi-person"></i> Profile
-            </a>
-        </li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php">
-                <i class="bi bi-box-arrow-left"></i> Logout
-            </a>
-        </li>
-    </ul>
-</nav>
+<?php include '../includes/staff_sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="fw-bold">Dashboard</span>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?>
-            </div>
-            <div>
-                <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                <small class="text-muted">Staff</small>
-            </div>
-        </div>
-    </div>
+    <?php 
+    $navTitle = __('nav.dashboard');
+    include '../includes/top_navbar.php'; 
+    ?>
     
     <!-- Flash Messages -->
     <?php displayFlashMessage(); ?>
@@ -177,14 +124,14 @@ try {
                     <?php if (!$todayAttendance): ?>
                         <form method="POST" action="attendance.php" class="d-inline">
                             <input type="hidden" name="action" value="clock_in">
-                            <button type="submit" class="btn btn-success btn-lg">
+                            <button type="submit" class="btn btn-success btn-lg clock-btn">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>Clock In
                             </button>
                         </form>
                     <?php elseif (!$todayAttendance['clock_out']): ?>
                         <form method="POST" action="attendance.php" class="d-inline">
                             <input type="hidden" name="action" value="clock_out">
-                            <button type="submit" class="btn btn-danger btn-lg">
+                            <button type="submit" class="btn btn-danger btn-lg clock-btn">
                                 <i class="bi bi-box-arrow-left me-2"></i>Clock Out
                             </button>
                         </form>

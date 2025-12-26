@@ -5,11 +5,11 @@
  * ============================================ */
 
 :root {
-    --primary-color: #2563eb;
+    --primary-color: #FFD400; /* yellow */
     --secondary-color: #f97316;
-    --accent-teal: #14b8a6;
+    --accent-teal: #14b8a6;   /* teal */
     --accent-pink: #ec4899;
-    --text-dark: #1f2937;
+    --text-dark: #000000;     /* black */
     --text-muted: #6b7280;
     --surface: #ffffff;
     --surface-alt: #f8fafc;
@@ -110,7 +110,7 @@ body {
 
 .form-control:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.15);
 }
 
 .form-select {
@@ -122,7 +122,7 @@ body {
 
 .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.15);
 }
 
 .form-label {
@@ -161,7 +161,7 @@ body {
 .btn-login:hover,
 .btn-register:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 8px 20px rgba(20, 184, 166, 0.35);
     color: white;
 }
 
@@ -230,13 +230,13 @@ body {
 .company-card:hover {
     border-color: var(--primary-color);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
 }
 
 .company-card.selected {
     border-color: var(--primary-color);
-    background: rgba(37, 99, 235, 0.04);
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.18);
+    background: rgba(20, 184, 166, 0.04);
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.18);
 }
 
 .company-card .company-logo {
@@ -273,7 +273,7 @@ body {
     justify-content: center;
     font-size: 0.7rem;
     display: none;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
 }
 
 .company-card.selected .check-badge {

@@ -22,6 +22,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         <li><a href="attendance.php" <?= $currentPage === 'attendance' ? 'class="active"' : '' ?>><i class="bi bi-calendar-check"></i> <?= __('nav.attendance') ?></a></li>
         <li><a href="leaves.php" <?= $currentPage === 'leaves' ? 'class="active"' : '' ?>><i class="bi bi-calendar-x"></i> <?= __('nav.leaves') ?></a></li>
         <li><a href="payroll.php" <?= $currentPage === 'payroll' ? 'class="active"' : '' ?>><i class="bi bi-cash-stack"></i> <?= __('nav.payroll') ?></a></li>
+        <li><a href="holidays.php" <?= $currentPage === 'holidays' ? 'class="active"' : '' ?>><i class="bi bi-calendar-event"></i> Public Holidays</a></li>
         <li><a href="reports.php" <?= $currentPage === 'reports' ? 'class="active"' : '' ?>><i class="bi bi-file-earmark-bar-graph"></i> <?= __('nav.reports') ?></a></li>
         <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
             <a href="../auth/logout.php"><i class="bi bi-box-arrow-left"></i> <?= __('logout') ?></a>

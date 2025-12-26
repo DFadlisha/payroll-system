@@ -210,9 +210,9 @@ try {
                                             <td>
                                                 <?php
                                                 $statusBadge = [
-                                                    'present' => ['Hadir', 'bg-success'],
-                                                    'late' => ['Lewat', 'bg-warning'],
-                                                    'absent' => ['Tidak Hadir', 'bg-danger'],
+                                                    'present' => ['Present', 'bg-success'],
+                                                    'late' => ['Late', 'bg-warning'],
+                                                    'absent' => ['Absent', 'bg-danger'],
                                                 ];
                                                 $badge = $statusBadge[$att['status']] ?? ['N/A', 'bg-secondary'];
                                                 ?>
@@ -232,14 +232,14 @@ try {
         <div class="col-lg-5">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-calendar-x me-2"></i>Permohonan Cuti</span>
-                    <a href="leaves.php" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                    <span><i class="bi bi-calendar-x me-2"></i>Leave Requests</span>
+                    <a href="leaves.php" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <?php if (empty($recentLeaves)): ?>
                         <p class="text-muted text-center py-4">
                             <i class="bi bi-check-circle" style="font-size: 3rem;"></i><br>
-                            Tiada permohonan cuti menunggu.
+                            No pending leave requests.
                         </p>
                     <?php else: ?>
                         <?php foreach ($recentLeaves as $leave): ?>
@@ -252,7 +252,7 @@ try {
                                     </small>
                                 </div>
                                 <a href="leaves.php?action=view&id=<?= $leave['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    Semak
+                                    Review
                                 </a>
                             </div>
                         <?php endforeach; ?>

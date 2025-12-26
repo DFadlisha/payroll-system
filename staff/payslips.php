@@ -51,48 +51,22 @@ try {
 ?>
 
 <?php include '../includes/staff_sidebar.php'; ?>
-        <li>
-            <a href="profile.php">
-                <i class="bi bi-person"></i> Profil
-            </a>
-        </li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php">
-                <i class="bi bi-box-arrow-left"></i> Log Keluar
-            </a>
-        </li>
-    </ul>
-</nav>
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="fw-bold">Slip Gaji</span>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar">
-                <?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?>
-            </div>
-            <div>
-                <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                <small class="text-muted">Staff</small>
-            </div>
-        </div>
-    </div>
+    <?php 
+    $navTitle = __('nav.payslips');
+    include '../includes/top_navbar.php'; 
+    ?>
     
     <!-- Page Header -->
     <div class="page-header d-flex justify-content-between align-items-center">
         <div>
-            <h1><i class="bi bi-receipt me-2"></i>Slip Gaji</h1>
+            <h1><i class="bi bi-receipt me-2"></i><?= __('nav.payslips') ?></h1>
         </div>
         <?php if ($viewId): ?>
             <a href="payslips.php" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-2"></i>Kembali
+                <i class="bi bi-arrow-left me-2"></i><?= __('back') ?>
             </a>
         <?php endif; ?>
     </div>
@@ -154,24 +128,24 @@ try {
                             <div class="card-body">
                                 <table class="table table-borderless table-sm mb-0">
                                     <tr>
-                                        <td>Gaji Pokok</td>
+                                        <td><?= __('payroll.basic_salary') ?></td>
                                         <td class="text-end"><?= formatMoney($currentPayslip['basic_salary']) ?></td>
                                     </tr>
                                     <?php if ($currentPayslip['overtime_pay'] > 0): ?>
                                     <tr>
-                                        <td>Overtime (<?= $currentPayslip['overtime_hours'] ?> jam)</td>
+                                        <td>Overtime (<?= $currentPayslip['overtime_hours'] ?> <?= __('hours') ?? 'hours' ?>)</td>
                                         <td class="text-end"><?= formatMoney($currentPayslip['overtime_pay']) ?></td>
                                     </tr>
                                     <?php endif; ?>
                                     <?php if ($currentPayslip['allowances'] > 0): ?>
                                     <tr>
-                                        <td>Elaun</td>
+                                        <td><?= __('payroll.allowances') ?></td>
                                         <td class="text-end"><?= formatMoney($currentPayslip['allowances']) ?></td>
                                     </tr>
                                     <?php endif; ?>
                                     <?php if ($currentPayslip['bonus'] > 0): ?>
                                     <tr>
-                                        <td>Bonus</td>
+                                        <td><?= __('payroll.attendance_bonus') ?></td>
                                         <td class="text-end"><?= formatMoney($currentPayslip['bonus']) ?></td>
                                     </tr>
                                     <?php endif; ?>
@@ -255,9 +229,13 @@ try {
                 
                 <!-- Print Button -->
                 <div class="mt-4 text-center d-print-none">
-                    <button onclick="window.print()" class="btn btn-outline-primary">
+                    <button onclick="window.print()" class="btn btn-outline-primary me-2">
                         <i class="bi bi-printer me-2"></i>Cetak Slip
                     </button>
+                    <a href="../includes/generate_payslip_pdf.php?id=<?= $currentPayslip['id'] ?>" 
+                       class="btn btn-danger" target="_blank">
+                        <i class="bi bi-file-pdf me-2"></i>Muat Turun PDF
+                    </a>
                 </div>
             </div>
         </div>
@@ -297,8 +275,12 @@ try {
                                         <td class="text-danger"><?= formatMoney($payslip['total_deductions']) ?></td>
                                         <td><strong><?= formatMoney($payslip['net_salary']) ?></strong></td>
                                         <td>
-                                            <a href="?id=<?= $payslip['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> Lihat
+                                            <a href="?id=<?= $payslip['id'] ?>" class="btn btn-sm btn-outline-primary" title="Lihat">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="../includes/generate_payslip_pdf.php?id=<?= $payslip['id'] ?>" 
+                                               class="btn btn-sm btn-outline-danger" target="_blank" title="Muat Turun PDF">
+                                                <i class="bi bi-file-pdf"></i>
                                             </a>
                                         </td>
                                     </tr>

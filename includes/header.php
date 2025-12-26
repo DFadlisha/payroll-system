@@ -32,10 +32,15 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
+    <!-- Staff Mobile CSS -->
+    <?php if ($currentFolder === 'staff'): ?>
+    <link href="../assets/css/staff-mobile.css" rel="stylesheet">
+    <?php endif; ?>
+    
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #0d6efd;
+            --primary-color: #FFD400; /* yellow */
             --sidebar-width: 250px;
         }
         
@@ -245,7 +250,7 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
         .form-control:focus,
         .form-select:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+            box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.15);
         }
         
         /* Buttons */
@@ -276,7 +281,78 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
         .loading.show {
             display: flex;
         }
+        
+        /* Mobile Sidebar Overlay */
+        .sidebar-overlay {
+            display: none;
+        }
     </style>
+    
+    <!-- Mobile Menu Script -->
+    <script>
+        // Mobile menu toggle functionality
+        function initMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            const toggleBtn = document.querySelector('.mobile-toggle');
+            
+            if (!sidebar) return;
+            
+            // Create overlay if it doesn't exist
+            if (!overlay) {
+                const newOverlay = document.createElement('div');
+                newOverlay.className = 'sidebar-overlay';
+                document.body.appendChild(newOverlay);
+            }
+            
+            // Toggle sidebar
+            function toggleSidebar() {
+                const sidebarEl = document.querySelector('.sidebar');
+                const overlayEl = document.querySelector('.sidebar-overlay');
+                
+                if (sidebarEl && overlayEl) {
+                    sidebarEl.classList.toggle('show');
+                    overlayEl.classList.toggle('show');
+                    document.body.style.overflow = sidebarEl.classList.contains('show') ? 'hidden' : '';
+                }
+            }
+            
+            // Close sidebar
+            function closeSidebar() {
+                const sidebarEl = document.querySelector('.sidebar');
+                const overlayEl = document.querySelector('.sidebar-overlay');
+                
+                if (sidebarEl && overlayEl) {
+                    sidebarEl.classList.remove('show');
+                    overlayEl.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            // Event listeners
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleSidebar);
+            }
+            
+            const overlayEl = document.querySelector('.sidebar-overlay');
+            if (overlayEl) {
+                overlayEl.addEventListener('click', closeSidebar);
+            }
+            
+            // Close sidebar when clicking on a menu link (mobile)
+            const menuLinks = document.querySelectorAll('.sidebar-menu a');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initMobileMenu);
+    </script>
 </head>
 <body>
     <!-- Loading Spinner -->
