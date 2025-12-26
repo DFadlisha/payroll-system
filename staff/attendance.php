@@ -8,7 +8,7 @@
  * ============================================
  */
 
-$pageTitle = 'Kehadiran - MI-NES Payroll';
+$pageTitle = 'Attendance - MI-NES Payroll';
 require_once '../includes/header.php';
 requireLogin();
 
@@ -27,34 +27,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $latitude = $_POST['latitude'] ?? null;
     $longitude = $_POST['longitude'] ?? null;
     $address = $_POST['address'] ?? null;
-    
+
     try {
         $conn = getConnection();
-        
+
         if ($action === 'clock_in') {
             // Check if already clocked in today (active status)
             $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active'");
             $stmt->execute([$userId, $today]);
-            
+
             if ($stmt->fetch()) {
                 $message = 'You have already clocked in today.';
                 $messageType = 'warning';
             } else {
                 // Generate UUID for attendance
-                $attendanceUuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                $attendanceUuid = sprintf(
+                    '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
                     mt_rand(0, 0xffff),
                     mt_rand(0, 0x0fff) | 0x4000,
                     mt_rand(0, 0x3fff) | 0x8000,
-                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff)
                 );
-                
+
                 $stmt = $conn->prepare("
                     INSERT INTO attendance (id, user_id, clock_in, status, clock_in_latitude, clock_in_longitude, clock_in_address) 
                     VALUES (?, ?, NOW(), 'active', ?, ?, ?)
                 ");
                 $stmt->execute([$attendanceUuid, $userId, $latitude, $longitude, $address]);
-                
+
                 $message = 'Clock in successful at ' . date('h:i A');
                 $messageType = 'success';
             }
@@ -66,17 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$userId, $today]);
             $activeRecord = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($activeRecord) {
                 // Calculate total hours
                 $clockIn = new DateTime($activeRecord['clock_in']);
                 $clockOut = new DateTime();
                 $interval = $clockIn->diff($clockOut);
                 $totalHours = $interval->h + ($interval->i / 60);
-                
+
                 // Calculate overtime (over 8 hours)
                 $overtimeHours = max(0, $totalHours - 8);
-                
+
                 $stmt = $conn->prepare("
                     UPDATE attendance SET 
                         clock_out = NOW(), 
@@ -89,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE id = ?
                 ");
                 $stmt->execute([$totalHours, $overtimeHours, $latitude, $longitude, $address, $activeRecord['id']]);
-                
+
                 $message = 'Clock out successful at ' . date('h:i A') . '. Total hours: ' . number_format($totalHours, 2);
                 $messageType = 'success';
             } else {
@@ -107,11 +111,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get today's attendance (Supabase schema)
 try {
     $conn = getConnection();
-    
+
     $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? ORDER BY clock_in DESC LIMIT 1");
     $stmt->execute([$userId, $today]);
     $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     // Get attendance history (current month)
     $currentMonth = date('n');
     $currentYear = date('Y');
@@ -122,7 +126,7 @@ try {
     ");
     $stmt->execute([$userId, $currentMonth, $currentYear]);
     $attendanceHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Calculate statistics
     $stats = [
         'present' => 0,
@@ -132,11 +136,13 @@ try {
         'active' => 0,
         'total_hours' => 0
     ];
-    
+
     foreach ($attendanceHistory as $record) {
-        if ($record['status'] === 'completed') $stats['completed']++;
-        elseif ($record['status'] === 'active') $stats['active']++;
-        
+        if ($record['status'] === 'completed')
+            $stats['completed']++;
+        elseif ($record['status'] === 'active')
+            $stats['active']++;
+
         // Determine if present or late based on clock-in time
         if ($record['clock_in']) {
             $clockInTime = date('H:i:s', strtotime($record['clock_in']));
@@ -146,19 +152,19 @@ try {
                 $stats['late']++;
             }
         }
-        
+
         if ($record['clock_in'] && $record['clock_out']) {
             $in = strtotime($record['clock_in']);
             $out = strtotime($record['clock_out']);
             $stats['total_hours'] += ($out - $in) / 3600;
         }
     }
-    
+
     // Calculate absent days (working days - present days)
     $totalWorkingDays = date('j'); // Current day of month
     $totalAttended = $stats['present'] + $stats['late'];
     $stats['absent'] = max(0, $totalWorkingDays - $totalAttended);
-    
+
 } catch (PDOException $e) {
     error_log("Attendance fetch error: " . $e->getMessage());
     $todayAttendance = null;
@@ -171,11 +177,11 @@ try {
 
 <!-- Main Content -->
 <div class="main-content">
-    <?php 
+    <?php
     $navTitle = __('nav.attendance');
-    include '../includes/top_navbar.php'; 
+    include '../includes/top_navbar.php';
     ?>
-    
+
     <!-- Flash Messages -->
     <?php if ($message): ?>
         <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
@@ -183,19 +189,19 @@ try {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-    
+
     <!-- Page Header -->
     <div class="page-header">
         <h1><i class="bi bi-calendar-check me-2"></i><?= __('nav.attendance') ?></h1>
         <p class="text-muted mb-0"><?= getDayName($today) ?>, <?= formatDate($today) ?></p>
     </div>
-    
+
     <!-- Clock In/Out Card -->
     <div class="card mb-4">
         <div class="card-body text-center py-5">
             <h2 class="display-4 mb-3" id="currentTime"><?= date('h:i:s A') ?></h2>
             <p class="text-muted mb-4"><?= getDayName($today) ?>, <?= formatDate($today) ?></p>
-            
+
             <?php if (!$todayAttendance): ?>
                 <form method="POST" class="d-inline">
                     <input type="hidden" name="action" value="clock_in">
@@ -225,7 +231,7 @@ try {
                 </div>
                 <h4>Completed for today!</h4>
                 <p class="text-muted">
-                    In: <?= formatTime($todayAttendance['clock_in']) ?> | 
+                    In: <?= formatTime($todayAttendance['clock_in']) ?> |
                     Out: <?= formatTime($todayAttendance['clock_out']) ?>
                 </p>
                 <?php
@@ -237,10 +243,10 @@ try {
             <?php endif; ?>
         </div>
     </div>
-    
+
     <!-- Stats Row -->
     <div class="row g-4 mb-4">
-                <div class="col-md-3">
+        <div class="col-md-3">
             <div class="stats-card success">
                 <h2><?= $stats['present'] ?></h2>
                 <p>On-time</p>
@@ -265,11 +271,12 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Attendance History -->
     <div class="card">
         <div class="card-header">
-            <i class="bi bi-clock-history me-2"></i>Attendance Records - <?= getMonthName($currentMonth) ?> <?= $currentYear ?>
+            <i class="bi bi-clock-history me-2"></i>Attendance Records - <?= getMonthName($currentMonth) ?>
+            <?= $currentYear ?>
         </div>
         <div class="card-body">
             <?php if (empty($attendanceHistory)): ?>
@@ -291,7 +298,7 @@ try {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($attendanceHistory as $record): 
+                            <?php foreach ($attendanceHistory as $record):
                                 $hours = '-';
                                 if ($record['clock_in'] && $record['clock_out']) {
                                     $in = strtotime($record['clock_in']);
@@ -304,7 +311,7 @@ try {
                                     'absent' => ['Absent', 'bg-danger'],
                                 ];
                                 $badge = $statusBadge[$record['status']] ?? ['N/A', 'bg-secondary'];
-                            ?>
+                                ?>
                                 <tr>
                                     <td><?= formatDate($record['date']) ?></td>
                                     <td><?= getDayName($record['date']) ?></td>
@@ -323,13 +330,13 @@ try {
 </div>
 
 <script>
-// Update clock every second
-function updateClock() {
-    const now = new Date();
-    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-    document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', options);
-}
-setInterval(updateClock, 1000);
+    // Update clock every second
+    function updateClock() {
+        const now = new Date();
+        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', options);
+    }
+    setInterval(updateClock, 1000);
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

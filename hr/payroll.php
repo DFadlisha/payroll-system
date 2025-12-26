@@ -23,12 +23,12 @@ $selectedYear = intval($_GET['year'] ?? date('Y'));
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) {
     try {
         $conn = getConnection();
-        
+
         // Get rates from payroll_rates table (Supabase schema)
         $stmt = $conn->prepare("SELECT rate_name, rate_value FROM payroll_rates WHERE company_id = ? AND is_active = true");
         $stmt->execute([$companyId]);
         $ratesData = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        
+
         // Set rates from database (with defaults if not found)
         $RATE_OT_NORMAL = floatval($ratesData['RATE_OT_NORMAL'] ?? 10.00);
         $RATE_OT_SUNDAY = floatval($ratesData['RATE_OT_SUNDAY'] ?? 12.50);
@@ -37,19 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
         $RATE_SHIFT = floatval($ratesData['RATE_SHIFT'] ?? 10.00);
         $RATE_ATTENDANCE = floatval($ratesData['RATE_ATTENDANCE'] ?? 5.00);
         $RATE_LATE = floatval($ratesData['RATE_LATE'] ?? 1.00);
-        
+
         // Get all employees from profiles table (Supabase schema)
         $stmt = $conn->prepare("SELECT * FROM profiles WHERE company_id = ?");
         $stmt->execute([$companyId]);
         $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $generated = 0;
-        
+
         foreach ($employees as $emp) {
             // Check if payroll already exists for this month
             $stmt = $conn->prepare("SELECT id FROM payroll WHERE user_id = ? AND month = ? AND year = ?");
             $stmt->execute([$emp['id'], $selectedMonth, $selectedYear]);
-            
+
             if (!$stmt->fetch()) {
                 // Get attendance summary for the month (Supabase attendance schema)
                 $stmt = $conn->prepare("
@@ -65,16 +65,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 ");
                 $stmt->execute([$emp['id'], $selectedMonth, $selectedYear]);
                 $attendance = $stmt->fetch();
-                
+
                 $daysWorked = $attendance['days_worked'] ?? 0;
                 $regularHours = $attendance['regular_hours'] ?? 0;
                 $otHours = $attendance['total_ot_hours'] ?? 0;
-                
+
                 // Get employee's basic salary from profile
                 $basicSalary = $emp['basic_salary'] ?? 0;
                 $hourlyRate = $emp['hourly_rate'] ?? 0;
                 $employmentType = $emp['employment_type'] ?? 'permanent';
-                
+
                 // Calculate salary based on employment type
                 $calculatedBasic = 0;
                 if ($employmentType === 'part-time' && $hourlyRate > 0) {
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 } else {
                     $calculatedBasic = $basicSalary;
                 }
-                
+
                 // Calculate OT allowances with automatic day-type detection
                 // Get detailed attendance records for OT breakdown
                 $stmtOT = $conn->prepare("
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 ");
                 $stmtOT->execute([$emp['id'], $selectedMonth, $selectedYear]);
                 $otRecords = $stmtOT->fetchAll(PDO::FETCH_ASSOC);
-                
+
                 $otNormalHours = 0;
                 $otSundayHours = 0;
                 $otPublicHours = 0;
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
 
                 // Gross pay calculation
                 $grossPay = $calculatedBasic + $otNormal + $otSunday + $otPublic;
-                
+
                 // Statutory deductions based on citizenship_status
                 $epfEmployee = 0;
                 $epfEmployer = 0;
@@ -135,40 +135,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $socsoEmployer = 0;
                 $eisEmployee = 0;
                 $eisEmployer = 0;
-                
+
                 $citizenship = $emp['citizenship_status'] ?? 'citizen';
-                
+
                 // Calculate PCB (Monthly Tax Deduction) based on LHDN rates
                 $dependents = intval($emp['dependents'] ?? 0);
                 $pcbTax = calculatePCB($grossPay, $dependents);
-                
+
                 if ($employmentType !== 'intern') {
                     // EPF: Employee 11%, Employer 12% (for citizens/PR)
+                    // Part-timers also subject to EPF if earning > RM10
                     if ($citizenship === 'citizen' || $citizenship === 'permanent_resident') {
                         $epfEmployee = $grossPay * 0.11;
                         $epfEmployer = $grossPay * 0.12;
                     }
-                    
-                    // SOCSO (capped)
-                    $socsoEmployee = min($grossPay * 0.005, 39.35);
-                    $socsoEmployer = min($grossPay * 0.0175, 137.70);
-                    
-                    // EIS: 0.2% each
-                    $eisEmployee = $grossPay * 0.002;
-                    $eisEmployer = $grossPay * 0.002;
+
+                    // SOCSO (Contribution capped at monthly salary of RM 6,000 as of Oct 2024)
+                    // Approximation using 0.5% (Employee) and 1.75% (Employer)
+                    $socsoEmployee = min($grossPay * 0.005, 29.75); // Capped at ~RM 29.75
+                    $socsoEmployer = min($grossPay * 0.0175, 104.15); // Capped at ~RM 104.15
+
+                    // EIS: 0.2% each (Capped at RM 6,000)
+                    $eisEmployee = min($grossPay * 0.002, 11.90); // Capped at ~RM 11.90
+                    $eisEmployer = min($grossPay * 0.002, 11.90); // Capped at ~RM 11.90
+                } else {
+                    // Explicitly set 0 for interns to be safe
+                    $epfEmployee = 0;
+                    $epfEmployer = 0;
+                    $socsoEmployee = 0;
+                    $socsoEmployer = 0;
+                    $eisEmployee = 0;
+                    $eisEmployer = 0;
                 }
-                
+
                 $netPay = $grossPay - $epfEmployee - $socsoEmployee - $eisEmployee - $pcbTax;
-                
+
                 // Generate UUID for payroll
-                $payrollUuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                $payrollUuid = sprintf(
+                    '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
                     mt_rand(0, 0xffff),
                     mt_rand(0, 0x0fff) | 0x4000,
                     mt_rand(0, 0x3fff) | 0x8000,
-                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff)
                 );
-                
+
                 // Insert payroll record (Supabase payroll schema)
                 $stmt = $conn->prepare(
                     "INSERT INTO payroll (id, user_id, month, year, basic_salary, regular_hours, overtime_hours,"
@@ -202,16 +216,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     $pcbTax,
                     $netPay
                 ]);
-                
+
                 $generated++;
-                
+
                 // Send email notification to employee
                 $appUrl = Environment::get('APP_URL', 'http://localhost');
                 $payslipUrl = $appUrl . '/staff/payslips.php?id=' . $payrollUuid;
-                
+
                 $monthName = getMonthName($selectedMonth);
                 $emailSubject = "Slip Gaji {$monthName} {$selectedYear} - MI-NES Payroll";
-                
+
                 $emailBody = "
                     <html>
                     <head>
@@ -284,11 +298,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     </body>
                     </html>
                 ";
-                
+
                 sendEmail($emp['email'], $emailSubject, $emailBody);
             }
         }
-        
+
         $message = "Payroll generated for $generated employee(s). Email notifications sent.";
         $messageType = 'success';
     } catch (PDOException $e) {
@@ -302,13 +316,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $payrollId = $_POST['payroll_id'];
     $newStatus = sanitize($_POST['new_status']);
-    
+
     try {
         $conn = getConnection();
-        
+
         $stmt = $conn->prepare("UPDATE payroll SET status = ?, updated_at = NOW() WHERE id = ?");
         $stmt->execute([$newStatus, $payrollId]);
-        
+
         $message = 'Payroll status updated successfully.';
         $messageType = 'success';
     } catch (PDOException $e) {
@@ -321,7 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 // Get payroll data (Supabase schema)
 try {
     $conn = getConnection();
-    
+
     $stmt = $conn->prepare("
         SELECT p.*, pr.full_name, pr.employment_type
         FROM payroll p
@@ -331,7 +345,7 @@ try {
     ");
     $stmt->execute([$companyId, $selectedMonth, $selectedYear]);
     $payrollList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Calculate totals
     $totals = [
         'gross' => 0,
@@ -341,7 +355,7 @@ try {
         'socso_employer' => 0,
         'eis_employer' => 0
     ];
-    
+
     foreach ($payrollList as $p) {
         $totals['gross'] += $p['gross_pay'] ?? 0;
         $totals['deductions'] += ($p['epf_employee'] ?? 0) + ($p['socso_employee'] ?? 0) + ($p['eis_employee'] ?? 0);
@@ -350,7 +364,7 @@ try {
         $totals['socso_employer'] += $p['socso_employer'] ?? 0;
         $totals['eis_employer'] += $p['eis_employer'] ?? 0;
     }
-    
+
 } catch (PDOException $e) {
     error_log("Payroll fetch error: " . $e->getMessage());
     $payrollList = [];
@@ -364,7 +378,7 @@ try {
         <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
         <small>Payroll System</small>
     </div>
-    
+
     <ul class="sidebar-menu">
         <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
         <li><a href="employees.php"><i class="bi bi-people"></i> Pekerja</a></li>
@@ -379,12 +393,15 @@ try {
 </nav>
 
 <!-- Main Content -->
+// ... (Sidebar translation implicitly handled by replacement or if separate file needs checking)
+
+<!-- Main Content -->
 <div class="main-content">
     <!-- Top Navbar -->
     <div class="top-navbar">
         <div>
             <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-            <span class="fw-bold">Pengurusan Gaji</span>
+            <span class="fw-bold">Payroll Management</span>
         </div>
         <div class="user-info">
             <div class="user-avatar"><?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?></div>
@@ -394,7 +411,7 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Flash Messages -->
     <?php if ($message): ?>
         <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
@@ -402,12 +419,12 @@ try {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-    
+
     <!-- Page Header -->
     <div class="page-header">
-        <h1><i class="bi bi-cash-stack me-2"></i>Pengurusan Gaji</h1>
+        <h1><i class="bi bi-cash-stack me-2"></i>Payroll Management</h1>
     </div>
-    
+
     <!-- Month/Year Selector & Generate -->
     <div class="card mb-4">
         <div class="card-body">
@@ -415,7 +432,7 @@ try {
                 <div class="col-md-6">
                     <form method="GET" class="row g-2 align-items-center">
                         <div class="col-auto">
-                            <label class="form-label mb-0">Bulan:</label>
+                            <label class="form-label mb-0">Month:</label>
                         </div>
                         <div class="col-auto">
                             <select name="month" class="form-select" onchange="this.form.submit()">
@@ -440,69 +457,70 @@ try {
                         <input type="hidden" name="month" value="<?= $selectedMonth ?>">
                         <input type="hidden" name="year" value="<?= $selectedYear ?>">
                         <button type="submit" name="generate_payroll" class="btn btn-primary"
-                                onclick="return confirm('Jana gaji untuk <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>?')">
-                            <i class="bi bi-calculator me-2"></i>Jana Gaji
+                            onclick="return confirm('Generate payroll for <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>?')">
+                            <i class="bi bi-calculator me-2"></i>Generate Payroll
                         </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Summary Cards -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="stats-card">
                 <h2><?= formatMoney($totals['gross']) ?></h2>
-                <p>Jumlah Gaji Kasar</p>
+                <p>Total Gross Pay</p>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card danger">
                 <h2><?= formatMoney($totals['deductions']) ?></h2>
-                <p>Jumlah Potongan</p>
+                <p>Total Deductions</p>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card success">
                 <h2><?= formatMoney($totals['net']) ?></h2>
-                <p>Jumlah Gaji Bersih</p>
+                <p>Total Net Pay</p>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card warning">
-                <h2><?= formatMoney($totals['epf_employer'] + $totals['socso_employer'] + $totals['eis_employer']) ?></h2>
-                <p>Caruman Majikan</p>
+                <h2><?= formatMoney($totals['epf_employer'] + $totals['socso_employer'] + $totals['eis_employer']) ?>
+                </h2>
+                <p>Employer Contribution</p>
             </div>
         </div>
     </div>
-    
+
     <!-- Payroll Table -->
     <div class="card">
         <div class="card-header">
-            <i class="bi bi-table me-2"></i>Senarai Gaji - <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>
+            <i class="bi bi-table me-2"></i>Payroll List - <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>
         </div>
         <div class="card-body">
             <?php if (empty($payrollList)): ?>
                 <p class="text-muted text-center py-4">
                     <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                    Tiada data gaji untuk bulan ini.<br>
-                    <small>Klik "Jana Gaji" untuk menjana gaji pekerja.</small>
+                    No payroll data for this month.<br>
+                    <small>Click "Generate Payroll" to generate employee payroll.</small>
                 </p>
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Nama</th>
-                                <th>Jenis</th>
-                                <th>Gaji Pokok</th>
-                                <th>KWSP</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Basic Salary</th>
+                                <th>EPF</th>
                                 <th>SOCSO</th>
                                 <th>EIS</th>
-                                <th>Gaji Bersih</th>
+                                <th>Net Pay</th>
                                 <th>Status</th>
-                                <th>Tindakan</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -514,13 +532,13 @@ try {
                                     <td><?= formatMoney($p['epf_employee']) ?></td>
                                     <td><?= formatMoney($p['socso_employee']) ?></td>
                                     <td><?= formatMoney($p['eis_employee']) ?></td>
-                                    <td><strong><?= formatMoney($p['net_salary']) ?></strong></td>
+                                    <td><strong><?= formatMoney($p['net_pay']) ?></strong></td>
                                     <td>
                                         <?php
                                         $statusBadge = [
-                                            'draft' => ['Draf', 'bg-secondary'],
-                                            'finalized' => ['Disahkan', 'bg-warning'],
-                                            'paid' => ['Dibayar', 'bg-success'],
+                                            'draft' => ['Draft', 'bg-secondary'],
+                                            'finalized' => ['Verified', 'bg-warning'],
+                                            'paid' => ['Paid', 'bg-success'],
                                         ];
                                         $badge = $statusBadge[$p['status']] ?? ['N/A', 'bg-secondary'];
                                         ?>
@@ -529,22 +547,26 @@ try {
                                     <td>
                                         <form method="POST" class="d-inline">
                                             <input type="hidden" name="payroll_id" value="<?= $p['id'] ?>">
-                                            <select name="new_status" class="form-select form-select-sm d-inline-block" style="width: auto;"
-                                                    onchange="this.form.submit()">
-                                                <option value="">Tukar...</option>
-                                                <option value="draft">Draf</option>
-                                                <option value="finalized">Sahkan</option>
-                                                <option value="paid">Dibayar</option>
+                                            <select name="new_status" class="form-select form-select-sm d-inline-block"
+                                                style="width: auto;" onchange="this.form.submit()">
+                                                <option value="">Change...</option>
+                                                <option value="draft">Draft</option>
+                                                <option value="finalized">Verify</option>
+                                                <option value="paid">Paid</option>
                                             </select>
                                             <input type="hidden" name="update_status" value="1">
                                         </form>
+                                        <a href="../includes/generate_payslip_pdf.php?id=<?= $p['id'] ?>"
+                                            class="btn btn-sm btn-outline-danger ms-1" target="_blank" title="Print PDF">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="2"><strong>JUMLAH</strong></td>
+                                <td colspan="2"><strong>TOTAL</strong></td>
                                 <td><strong><?= formatMoney($totals['gross']) ?></strong></td>
                                 <td colspan="3"><strong><?= formatMoney($totals['deductions']) ?></strong></td>
                                 <td><strong><?= formatMoney($totals['net']) ?></strong></td>

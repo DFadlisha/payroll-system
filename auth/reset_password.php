@@ -3,230 +3,114 @@
  * ============================================
  * RESET PASSWORD PAGE
  * ============================================
- * Halaman untuk menetapkan password baru melalui token.
+ * Users set a new password here using the token.
  * ============================================
  */
 
-$pageTitle = 'Reset Password - MI-NES Payroll';
-require_once '../includes/header.php';
+require_once '../config/database.php';
+require_once '../includes/functions.php';
+require_once '../includes/language.php';
 
-// Redirect if already logged in
-if (isLoggedIn()) {
-    if (isHR()) {
-        redirect('../hr/dashboard.php');
-    } else {
-        redirect('../staff/dashboard.php');
-    }
-}
-
+$token = $_GET['token'] ?? '';
 $message = '';
 $messageType = '';
-$token = $_GET['token'] ?? '';
-$resetSuccess = false;
+$validToken = false;
 
-// Validate token on page load
-$resetData = false;
-if (!empty($token)) {
+if (empty($token)) {
+    $message = "Invalid or missing token.";
+    $messageType = 'danger';
+} else {
+    // Validate token
     $resetData = validatePasswordResetToken($token);
     
-    if (!$resetData) {
-        $message = 'Token reset password tidak sah atau telah tamat tempoh. Sila minta token baru.';
-        $messageType = 'error';
+    if ($resetData) {
+        $validToken = true;
+    } else {
+        $message = "This password reset token is invalid or has expired.";
+        $messageType = 'danger';
     }
 }
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = sanitize($_POST['token'] ?? '');
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
+    $password = $_POST['password'] ?? '';
+    $confirmDetails = $_POST['confirm_password'] ?? '';
     
-    $errors = [];
-    
-    if (empty($token)) {
-        $errors[] = 'Token tidak sah.';
-    }
-    
-    if (empty($newPassword)) {
-        $errors[] = 'Sila masukkan password baru.';
-    } elseif (strlen($newPassword) < 6) {
-        $errors[] = 'Password mestilah sekurang-kurangnya 6 aksara.';
-    }
-    
-    if ($newPassword !== $confirmPassword) {
-        $errors[] = 'Password tidak sepadan.';
-    }
-    
-    if (empty($errors)) {
-        $result = resetPasswordWithToken($token, $newPassword);
-        
-        if ($result) {
-            $resetSuccess = true;
-            $message = 'Password berjaya ditetapkan semula. Anda boleh log masuk sekarang.';
-            $messageType = 'success';
-        } else {
-            $message = 'Token tidak sah atau telah tamat tempoh. Sila minta token baru.';
-            $messageType = 'error';
-        }
+    if (strlen($password) < 6) {
+        $message = "Password must be at least 6 characters long.";
+        $messageType = 'danger';
+    } elseif ($password !== $confirmDetails) {
+        $message = "Passwords do not match.";
+        $messageType = 'danger';
     } else {
-        $message = implode('<br>', $errors);
-        $messageType = 'error';
+        if (resetPasswordWithToken($token, $password)) {
+            $message = "Password has been reset successfully. You can now login.";
+            $messageType = 'success';
+            $validToken = false; // Disable form
+            // Redirect after short delay
+            header("refresh:2;url=login.php");
+        } else {
+            $message = "Failed to reset password. Please try again.";
+            $messageType = 'danger';
+        }
     }
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="<?= getCurrentLang() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $pageTitle ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../assets/css/auth.css">
+    <title>Reset Password - <?= __('app_name') ?></title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom Auth CSS -->
+    <link href="../assets/css/auth.css" rel="stylesheet">
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="text-center mb-4">
-                <?php if ($resetSuccess): ?>
-                    <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                    <h2 class="mt-3">Password Berjaya Ditukar!</h2>
-                <?php else: ?>
-                    <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
-                    <h2 class="mt-3">Tetapkan Password Baru</h2>
-                    <?php if ($resetData): ?>
-                        <p class="text-muted">Hi <strong><?= htmlspecialchars($resetData['full_name']) ?></strong>, 
-                        sila masukkan password baru anda.</p>
-                    <?php endif; ?>
-                <?php endif; ?>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <img src="../assets/logos/nes.jpg" alt="Logo" style="width: 80px; height: 80px; object-fit: contain; background: #fff; border-radius: 10px; padding: 5px;">
+                <h1>Reset Password</h1>
+                <p>Create a new password</p>
             </div>
-
-            <?php if ($message): ?>
-                <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
-                    <?= $message ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($resetSuccess): ?>
-                <!-- Success State -->
-                <div class="text-center">
-                    <p class="mb-4">Password anda telah berjaya dikemaskini. Anda boleh log masuk menggunakan password baru.</p>
-                    <a href="login.php" class="btn btn-primary w-100">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Pergi ke Log Masuk
-                    </a>
-                </div>
-            <?php elseif ($resetData): ?>
-                <!-- Reset Form -->
-                <form method="POST" class="needs-validation" novalidate>
-                    <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+            
+            <div class="login-body">
+                <?php if ($message): ?>
+                    <div class="alert alert-<?= $messageType ?>">
+                        <?= htmlspecialchars($message) ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($validToken): ?>
+                <form method="POST" action="">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
                     
                     <div class="mb-3">
-                        <label for="new_password" class="form-label">Password Baru <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" class="form-control" id="new_password" name="new_password" 
-                                   placeholder="Masukkan password baru" minlength="6" required autofocus>
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('new_password')">
-                                <i class="bi bi-eye" id="new_password_icon"></i>
-                            </button>
-                        </div>
-                        <small class="text-muted">Minimum 6 aksara</small>
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Sahkan Password <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
-                                   placeholder="Sahkan password baru" required>
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm_password')">
-                                <i class="bi bi-eye" id="confirm_password_icon"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="alert alert-info small mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Tips password selamat:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Gunakan kombinasi huruf besar dan kecil</li>
-                                <li>Sertakan nombor dan simbol</li>
-                                <li>Elakkan maklumat peribadi mudah diteka</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-check-circle me-2"></i>Tetapkan Password Baru
+                    
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <i class="bi bi-check-circle me-2"></i> Reset Password
                     </button>
+                    
                 </form>
-            <?php else: ?>
-                <!-- Invalid/Expired Token -->
-                <div class="text-center">
-                    <p class="text-muted mb-4">Token reset password tidak sah atau telah tamat tempoh.</p>
-                    <a href="forgot_password.php" class="btn btn-primary w-100">
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>Minta Token Baru
-                    </a>
-                </div>
-            <?php endif; ?>
-
-            <div class="text-center mt-4">
-                <a href="login.php" class="text-decoration-none">
-                    <i class="bi bi-arrow-left me-2"></i>Kembali ke Log Masuk
-                </a>
+                <?php else: ?>
+                    <div class="text-center">
+                        <a href="login.php" class="btn btn-primary">Back to Login</a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle password visibility
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const icon = document.getElementById(fieldId + '_icon');
-            
-            if (field.type === 'password') {
-                field.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                field.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
-        }
-
-        // Bootstrap form validation
-        (function () {
-            'use strict'
-            var forms = document.querySelectorAll('.needs-validation')
-            Array.prototype.slice.call(forms).forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-                    form.classList.add('was-validated')
-                }, false)
-            })
-        })()
-
-        // Password match validation
-        const newPassword = document.getElementById('new_password');
-        const confirmPassword = document.getElementById('confirm_password');
-        
-        if (confirmPassword) {
-            confirmPassword.addEventListener('input', function() {
-                if (newPassword.value !== confirmPassword.value) {
-                    confirmPassword.setCustomValidity('Password tidak sepadan');
-                } else {
-                    confirmPassword.setCustomValidity('');
-                }
-            });
-        }
-    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

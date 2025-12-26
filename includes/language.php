@@ -3,7 +3,7 @@
  * ============================================
  * LANGUAGE SYSTEM
  * ============================================
- * Multi-language support for English & Malay
+ * Multi-language support (English only enforced)
  * ============================================
  */
 
@@ -12,39 +12,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Handle language switch
-if (isset($_GET['lang'])) {
-    $lang = $_GET['lang'];
-    if (in_array($lang, ['en', 'ms'])) {
-        $_SESSION['lang'] = $lang;
-    }
-    // Redirect to remove lang parameter from URL
-    $redirect = strtok($_SERVER['REQUEST_URI'], '?');
-    if (!empty($_SERVER['QUERY_STRING'])) {
-        parse_str($_SERVER['QUERY_STRING'], $params);
-        unset($params['lang']);
-        if (!empty($params)) {
-            $redirect .= '?' . http_build_query($params);
-        }
-    }
-    header("Location: $redirect");
-    exit;
-}
-
-// Set default language to English if not set or not in the allowed list
-if (!isset($_SESSION['lang']) || !in_array($_SESSION['lang'], ['en', 'ms'])) {
-    $_SESSION['lang'] = 'en'; // Always default to English
-}
-
-// Load language file
-$langCode = $_SESSION['lang'];
-$langFile = __DIR__ . "/lang/{$langCode}.php";
-
-if (file_exists($langFile)) {
-    $GLOBALS['translations'] = require $langFile;
-} else {
-    $GLOBALS['translations'] = require __DIR__ . '/lang/en.php';
-}
+// FORCE ENGLISH
+$_SESSION['lang'] = 'en';
+$GLOBALS['translations'] = require __DIR__ . '/lang/en.php';
 
 /**
  * Get translation by key
@@ -52,10 +22,11 @@ if (file_exists($langFile)) {
  * @param array $params Optional parameters for string replacement
  * @return string Translated string
  */
-function __($key, $params = []) {
+function __($key, $params = [])
+{
     $keys = explode('.', $key);
     $value = $GLOBALS['translations'];
-    
+
     foreach ($keys as $k) {
         if (isset($value[$k])) {
             $value = $value[$k];
@@ -63,46 +34,31 @@ function __($key, $params = []) {
             return $key; // Return key if translation not found
         }
     }
-    
+
     // Replace parameters
     if (!empty($params) && is_string($value)) {
         foreach ($params as $param => $replacement) {
             $value = str_replace(":{$param}", $replacement, $value);
         }
     }
-    
+
     return $value;
 }
 
 /**
  * Get current language code
- * @return string Language code (en/ms)
+ * @return string Always 'en'
  */
-function getCurrentLang() {
-    return $_SESSION['lang'] ?? 'en';
+function getCurrentLang()
+{
+    return 'en';
 }
 
 /**
- * Get language switcher HTML
- * @return string HTML for language switcher
+ * Get language switcher HTML (Disabled)
+ * @return string Empty string
  */
-function getLanguageSwitcher() {
-    $currentLang = getCurrentLang();
-    $currentPage = $_SERVER['REQUEST_URI'];
-    $separator = strpos($currentPage, '?') !== false ? '&' : '?';
-    
-    $html = '<div class="dropdown">
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-globe me-1"></i>' . ($currentLang === 'en' ? 'EN' : 'BM') . '
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">';
-    
-    $html .= '<li><a class="dropdown-item ' . ($currentLang === 'en' ? 'active' : '') . '" href="?lang=en">
-        <span class="me-2">🇬🇧</span> English</a></li>';
-    $html .= '<li><a class="dropdown-item ' . ($currentLang === 'ms' ? 'active' : '') . '" href="?lang=ms">
-        <span class="me-2">🇲🇾</span> Bahasa Melayu</a></li>';
-    
-    $html .= '</ul></div>';
-    
-    return $html;
+function getLanguageSwitcher()
+{
+    return '';
 }

@@ -22,17 +22,17 @@ $today = date('Y-m-d');
 
 try {
     $conn = getConnection();
-    
+
     // Dapatkan maklumat profil dari profiles table (Supabase schema)
     $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     // Semak kehadiran hari ini (Supabase attendance uses clock_in timestamp)
     $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ?");
     $stmt->execute([$userId, $today]);
     $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     // Statistik kehadiran bulan ini
     $currentMonth = date('n');
     $currentYear = date('Y');
@@ -48,7 +48,7 @@ try {
     ");
     $stmt->execute([$userId, $currentMonth, $currentYear]);
     $attendanceStats = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     // Permohonan cuti terkini
     $stmt = $conn->prepare("
         SELECT * FROM leaves 
@@ -58,7 +58,7 @@ try {
     ");
     $stmt->execute([$userId]);
     $recentLeaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Gaji bulan lepas (atau terbaru)
     $stmt = $conn->prepare("
         SELECT * FROM payroll 
@@ -68,7 +68,7 @@ try {
     ");
     $stmt->execute([$userId]);
     $latestPayslip = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
 } catch (PDOException $e) {
     error_log("Staff Dashboard error: " . $e->getMessage());
     $user = null;
@@ -83,14 +83,14 @@ try {
 
 <!-- Main Content -->
 <div class="main-content">
-    <?php 
+    <?php
     $navTitle = __('nav.dashboard');
-    include '../includes/top_navbar.php'; 
+    include '../includes/top_navbar.php';
     ?>
-    
+
     <!-- Flash Messages -->
     <?php displayFlashMessage(); ?>
-    
+
     <!-- Page Header -->
     <div class="page-header">
         <h1>Welcome Back!</h1>
@@ -99,7 +99,7 @@ try {
             <?= getDayName($today) ?>, <?= formatDate($today) ?>
         </p>
     </div>
-    
+
     <!-- Clock In/Out Card -->
     <div class="card mb-4">
         <div class="card-body">
@@ -144,58 +144,24 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card success">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $attendanceStats['present'] ?? 0 ?></h2>
-                        <p>Days Present</p>
-                    </div>
-                    <i class="bi bi-calendar-check" style="font-size: 2rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card warning">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $attendanceStats['late'] ?? 0 ?></h2>
-                        <p>Days Late</p>
-                    </div>
-                    <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card danger">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $attendanceStats['absent'] ?? 0 ?></h2>
-                        <p>Days Absent</p>
-                    </div>
-                    <i class="bi bi-calendar-x" style="font-size: 2rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $latestPayslip ? formatMoney($latestPayslip['net_salary']) : '-' ?></h2>
-                        <p>Latest Salary</p>
-                    </div>
-                    <i class="bi bi-cash-stack" style="font-size: 2rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <!-- Dynamic Dashboard Content Based on Role -->
+    <?php
+    $role = $user['role'];
+    $type = $user['employment_type'];
+
+    if ($role === 'intern' || $type === 'intern') {
+        include 'views/intern/dashboard.php';
+    } elseif ($role === 'leader' || $type === 'leader') {
+        include 'views/leader/dashboard.php';
+    } elseif ($role === 'part_time' || $type === 'part_time') {
+        include 'views/part_time/dashboard.php';
+    } else {
+        include 'views/permanent/dashboard.php';
+    }
+    ?>
+
     <!-- Content Row -->
     <div class="row g-4">
         <!-- Recent Leaves -->
@@ -212,9 +178,9 @@ try {
                             No leave requests.
                         </p>
                     <?php else: ?>
-                        <?php foreach ($recentLeaves as $leave): 
+                        <?php foreach ($recentLeaves as $leave):
                             $badge = getLeaveStatusBadge($leave['status']);
-                        ?>
+                            ?>
                             <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                                 <div>
                                     <div class="fw-bold"><?= getLeaveTypeName($leave['leave_type']) ?></div>
@@ -230,7 +196,7 @@ try {
                 </div>
             </div>
         </div>
-        
+
         <!-- Quick Actions -->
         <div class="col-lg-6">
             <div class="card">

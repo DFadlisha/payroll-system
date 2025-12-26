@@ -17,8 +17,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Language selection
-$lang = $_GET['lang'] ?? 'en';
-$_SESSION['lang'] = $lang;
+$lang = 'en';
 
 $translations = [
     'en' => [
@@ -42,28 +41,6 @@ $translations = [
         'register_btn' => 'Create New Account',
         'companies' => 'Our Companies',
         'powered_by' => 'Powered by'
-    ],
-    'ms' => [
-        'welcome' => 'Selamat Datang ke Sistem Gaji MI-NES',
-        'subtitle' => 'Penyelesaian Pengurusan Gaji Moden',
-        'description' => 'Sistem gaji komprehensif untuk NES Solution & Network Sdn Bhd dan Mentari Infiniti Sdn Bhd.',
-        'features_title' => 'Ciri-ciri Utama',
-        'feature1' => 'Pengurusan Pekerja',
-        'feature1_desc' => 'Urus profil pekerja, kontrak, dan jenis pekerjaan',
-        'feature2' => 'Jejak Kehadiran',
-        'feature2_desc' => 'Clock in/out masa nyata dengan jejak lokasi dan pengiraan lebih masa',
-        'feature3' => 'Pengurusan Cuti',
-        'feature3_desc' => 'Permohonan cuti tahunan, sakit, kecemasan, dan tanpa gaji dengan aliran kelulusan',
-        'feature4' => 'Pemprosesan Gaji',
-        'feature4_desc' => 'Pengiraan gaji automatik dengan potongan KWSP, PERKESO, SIP, dan PCB',
-        'feature5' => 'Laporan & Analisis',
-        'feature5_desc' => 'Laporan komprehensif untuk gaji, kehadiran, dan statistik cuti',
-        'feature6' => 'Sokongan Multi-Syarikat',
-        'feature6_desc' => 'Sokongan untuk pelbagai syarikat dengan konfigurasi berasingan',
-        'login_btn' => 'Log Masuk ke Akaun Anda',
-        'register_btn' => 'Cipta Akaun Baru',
-        'companies' => 'Syarikat Kami',
-        'powered_by' => 'Dikuasakan oleh'
     ]
 ];
 
@@ -71,6 +48,7 @@ $t = $translations[$lang];
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -79,49 +57,53 @@ $t = $translations[$lang];
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-color: #FFD400;   /* yellow */
-            --secondary-color: #f97316; /* NES orange */
-            --accent-teal: #14b8a6;     /* Mentari teal */
-            --accent-pink: #ec4899;     /* Mentari pink */
+            --primary-color: #FFD400;
+            /* yellow */
+            --secondary-color: #f97316;
+            /* NES orange */
+            --accent-teal: #14b8a6;
+            /* Mentari teal */
+            --accent-pink: #ec4899;
+            /* Mentari pink */
             --text-dark: #000000;
             --text-muted: #6b7280;
             --surface: #ffffff;
             --surface-alt: #f8fafc;
             --border: #e5e7eb;
         }
-        
+
         body {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         .hero-section {
             padding: 80px 0;
             color: white;
             text-align: center;
         }
-        
+
         .hero-title {
             font-size: 3.5rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
-        
+
         .hero-subtitle {
             font-size: 1.5rem;
             margin-bottom: 2rem;
             opacity: 0.95;
         }
-        
+
         .hero-description {
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto 3rem;
             opacity: 0.9;
         }
-        
+
         .cta-buttons .btn {
             padding: 15px 40px;
             font-size: 1.1rem;
@@ -129,114 +111,91 @@ $t = $translations[$lang];
             border-radius: 50px;
             transition: all 0.3s;
         }
-        
+
         .btn-light:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
-        
+
         .btn-outline-light:hover {
             background: white;
             color: var(--primary-color);
             transform: translateY(-3px);
         }
-        
+
         .features-section {
             background: white;
             padding: 80px 0;
         }
-        
+
         .feature-card {
             padding: 30px;
             border-radius: 15px;
             background: var(--surface);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             transition: all 0.3s;
             height: 100%;
             border: 1px solid var(--border);
         }
-        
+
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
-        
+
         .feature-icon {
             font-size: 3rem;
             color: var(--primary-color);
             margin-bottom: 1rem;
         }
-        
+
         .feature-title {
             font-size: 1.3rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: #1f2937;
         }
-        
+
         .feature-desc {
             color: #6b7280;
             font-size: 0.95rem;
         }
-        
+
         .companies-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 60px 0;
             color: white;
         }
-        
+
         .company-logo {
             background: white;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             transition: all 0.3s;
             height: 150px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .company-logo:hover {
             transform: scale(1.05);
         }
-        
+
         .company-logo img {
             max-width: 100%;
             max-height: 100px;
             object-fit: contain;
         }
-        
-        .lang-switcher {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        
-        .lang-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            text-decoration: none;
-            margin: 0 5px;
-            transition: all 0.3s;
-        }
-        
-        .lang-btn:hover, .lang-btn.active {
-            background: white;
-            color: var(--primary-color);
-        }
-        
+
         .section-title {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 3rem;
             text-align: center;
         }
-        
+
         footer {
             background: #1f2937;
             color: white;
@@ -245,12 +204,8 @@ $t = $translations[$lang];
         }
     </style>
 </head>
+
 <body>
-    <!-- Language Switcher -->
-    <div class="lang-switcher">
-        <a href="?lang=en" class="lang-btn <?= $lang === 'en' ? 'active' : '' ?>">EN</a>
-        <a href="?lang=ms" class="lang-btn <?= $lang === 'ms' ? 'active' : '' ?>">MS</a>
-    </div>
 
     <!-- Hero Section -->
     <section class="hero-section">
@@ -258,7 +213,7 @@ $t = $translations[$lang];
             <h1 class="hero-title"><?= $t['welcome'] ?></h1>
             <p class="hero-subtitle"><?= $t['subtitle'] ?></p>
             <p class="hero-description"><?= $t['description'] ?></p>
-            
+
             <div class="cta-buttons">
                 <a href="auth/login.php" class="btn btn-light btn-lg">
                     <i class="bi bi-box-arrow-in-right me-2"></i><?= $t['login_btn'] ?>
@@ -274,7 +229,7 @@ $t = $translations[$lang];
     <section class="features-section">
         <div class="container">
             <h2 class="section-title" style="color: #1f2937;"><?= $t['features_title'] ?></h2>
-            
+
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="feature-card">
@@ -285,7 +240,7 @@ $t = $translations[$lang];
                         <p class="feature-desc"><?= $t['feature1_desc'] ?></p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -295,7 +250,7 @@ $t = $translations[$lang];
                         <p class="feature-desc"><?= $t['feature2_desc'] ?></p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -305,7 +260,7 @@ $t = $translations[$lang];
                         <p class="feature-desc"><?= $t['feature3_desc'] ?></p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -315,7 +270,7 @@ $t = $translations[$lang];
                         <p class="feature-desc"><?= $t['feature4_desc'] ?></p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -325,7 +280,7 @@ $t = $translations[$lang];
                         <p class="feature-desc"><?= $t['feature5_desc'] ?></p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -343,7 +298,7 @@ $t = $translations[$lang];
     <section class="companies-section">
         <div class="container">
             <h2 class="section-title"><?= $t['companies'] ?></h2>
-            
+
             <div class="row g-4 justify-content-center">
                 <div class="col-md-5">
                     <div class="company-logo">
@@ -351,7 +306,7 @@ $t = $translations[$lang];
                     </div>
                     <h5 class="text-center mt-3">NES Solution & Network Sdn Bhd</h5>
                 </div>
-                
+
                 <div class="col-md-5">
                     <div class="company-logo">
                         <img src="assets/logos/mentari.png" alt="Mentari Infiniti Sdn Bhd">
@@ -365,10 +320,12 @@ $t = $translations[$lang];
     <!-- Footer -->
     <footer>
         <div class="container">
-            <p class="mb-0">&copy; 2025 MI-NES Payroll System. <?= $t['powered_by'] ?> NES Solution & Network Sdn Bhd</p>
+            <p class="mb-0">&copy; 2025 MI-NES Payroll System. <?= $t['powered_by'] ?> NES Solution & Network Sdn Bhd
+            </p>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
