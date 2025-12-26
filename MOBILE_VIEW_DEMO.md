@@ -26,75 +26,11 @@ Mobile View (< 768px):
 │ ☰  Dashboard    👤     │  ← Fixed top bar
 ├────────────────────────┤
 │                        │
-│  Welcome Back!         │
-│  📅 Thursday, Dec 26   │
-│                        │
-│ ┌────────────────────┐ │
-│ │ Clock In/Out       │ │
-│ │ [CLOCK IN] (Full)  │ │  ← Full-width button
-│ └────────────────────┘ │
-│                        │
-│ ┌──────┐ ┌──────┐     │
-│ │ Days │ │Hours │     │  ← Responsive cards
-│ │  20  │ │ 160  │     │
-│ └──────┘ └──────┘     │
-│                        │
-│ [Recent Activity...]   │
-│                        │
-└────────────────────────┘
+This file was moved to the `docs/` folder during repository tidy-up.
 
-Tap ☰ to open menu:
+See: [docs/MOBILE_VIEW_DEMO.md](docs/MOBILE_VIEW_DEMO.md)
 
-┌────────────────────────┐
-│  MI-NES           [×]  │  ← Close button
-│  Payroll System        │
-│  ───────────────────   │
-│  • Dashboard (Active)  │
-│  • Attendance          │  ← Touch-optimized
-│  • Leaves              │
-│  • Payslips            │
-│  • Profile             │
-│  ───────────────────   │
-│  • Logout              │
-└────────────────────────┘
-  (Dark overlay behind)
-
-    ✅ Sidebar slides in from left
-    ✅ Easy to tap menu items
-    ✅ Auto-closes after selection
-    ✅ All content accessible
-```
-
-## Key Improvements
-
-### 1. Navigation 🧭
-```
-BEFORE: Fixed sidebar (blocks content)
-AFTER:  Off-canvas menu (☰ icon)
-```
-
-### 2. Touch Targets 👆
-```
-BEFORE: Small buttons (hard to tap)
-AFTER:  Large buttons (44px+ minimum)
-```
-
-### 3. Forms 📝
-```
-BEFORE: Side-by-side fields
-AFTER:  Stacked vertically
-```
-
-### 4. Tables 📊
-```
-BEFORE: Overflow, unreadable
-AFTER:  Horizontal scroll + compact view
-```
-
-### 5. Cards 🎴
-```
-BEFORE: 3-column grid
-AFTER:  Single column, full width
+The original content has been preserved in `docs/` to keep history.
 ```
 
 ## Screen Size Breakpoints

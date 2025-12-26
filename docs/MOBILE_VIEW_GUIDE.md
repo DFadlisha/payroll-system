@@ -1,3 +1,4 @@
+```markdown
 # Staff Mobile View - Implementation Guide
 
 ## Overview
@@ -34,9 +35,26 @@ The staff section of the MI-NES Payroll System has been optimized for mobile dev
 
 ## Breakpoints
 
-This file was moved to the `docs/` folder during repository tidy-up.
+### Mobile (< 768px)
+- Sidebar transforms to off-canvas navigation
+- Single column layout
+- Full-width buttons and forms
+- Reduced padding and margins
 
-See: [docs/MOBILE_VIEW_GUIDE.md](docs/MOBILE_VIEW_GUIDE.md)
+### Small Mobile (< 576px)
+- Even more compact spacing
+- Simplified user info display
+- Smaller font sizes for stats
+- Optimized table layouts
 
-The original content has been preserved in `docs/` to keep history.
+### Landscape Mode
+- Special handling for landscape orientation
+- Adjusted navigation bar height
 
+## Files Modified
+
+### 1. **assets/css/staff-mobile.css** (NEW)
+
+### 3. **includes/staff_sidebar.php**
+
+```
