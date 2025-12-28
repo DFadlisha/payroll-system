@@ -3,8 +3,7 @@
  * ============================================
  * HR EMPLOYEES MANAGEMENT PAGE
  * ============================================
- * Halaman untuk urus pekerja.
- * Tambah, edit, padam pekerja.
+ * Manage employees: Add, Edit, Delete.
  * ============================================
  */
 
@@ -80,8 +79,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fullName = sanitize($_POST['full_name'] ?? '');
         $role = sanitize($_POST['role'] ?? 'staff');
         $employmentType = sanitize($_POST['employment_type'] ?? 'permanent');
-        $basicSalary = floatval($_POST['basic_salary'] ?? 0);
-        $hourlyRate = floatval($_POST['hourly_rate'] ?? 0);
+        // Logic to handle basic_salary vs hourly_rate
+        $inputAmount = floatval($_POST['basic_salary'] ?? 0);
+
+        // Reset both first
+        $basicSalary = 0;
+        $hourlyRate = 0;
+
+        if ($employmentType === 'part-time') {
+            $hourlyRate = $inputAmount;
+        } else {
+            $basicSalary = $inputAmount;
+        }
+
         $epfNumber = sanitize($_POST['epf_number'] ?? '');
         $socsoNumber = sanitize($_POST['socso_number'] ?? '');
         $citizenshipStatus = sanitize($_POST['citizenship_status'] ?? 'citizen');
@@ -110,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = $_POST['employee_id'];
 
         try {
-            // Delete profile (or you could add a status column if you want soft delete)
+            // Delete profile
             $stmt = $conn->prepare("DELETE FROM profiles WHERE id = ? AND company_id = ?");
             $stmt->execute([$id, $companyId]);
 
@@ -152,45 +162,14 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small><?= __('app_subtitle') ?></small>
-    </div>
-
-    <ul class="sidebar-menu">
-        <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> <?= __('nav.dashboard') ?></a></li>
-        <li><a href="employees.php" class="active"><i class="bi bi-people"></i> <?= __('nav.employees') ?></a></li>
-        <li><a href="attendance.php"><i class="bi bi-calendar-check"></i> <?= __('nav.attendance') ?></a></li>
-        <li><a href="leaves.php"><i class="bi bi-calendar-x"></i> <?= __('nav.leaves') ?></a></li>
-        <li><a href="payroll.php"><i class="bi bi-cash-stack"></i> <?= __('nav.payroll') ?></a></li>
-        <li><a href="reports.php"><i class="bi bi-file-earmark-bar-graph"></i> <?= __('nav.reports') ?></a></li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php"><i class="bi bi-box-arrow-left"></i> <?= __('logout') ?></a>
-        </li>
-    </ul>
-</nav>
+<?php include '../includes/hr_sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-            <span class="fw-bold"><?= __('employees.title') ?></span>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <?= getLanguageSwitcher() ?>
-            <div class="user-info">
-                <div class="user-avatar"><?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?></div>
-                <div>
-                    <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                    <small class="text-muted"><?= __('roles.hr') ?></small>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php
+    $navTitle = 'Employees';
+    include '../includes/top_navbar.php';
+    ?>
 
     <!-- Flash Messages -->
     <?php if ($message): ?>
@@ -200,31 +179,35 @@ try {
         </div>
     <?php endif; ?>
 
-    // ... (Top of file remains same)
-
-    // Flash messages (Already handled in English in logic, just ensuring HTML parts are English)
-
-    // ...
-
-    <!-- Page Header -->
-    <div class="page-header d-flex justify-content-between align-items-center">
-        <h1><i class="bi bi-people me-2"></i>Employee List</h1>
-        <?php if ($action !== 'add' && !$editId): ?>
-            <a href="?action=add" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-2"></i>Add Employee
-            </a>
-        <?php else: ?>
-            <a href="employees.php" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-2"></i>Back
-            </a>
-        <?php endif; ?>
+    <!-- Welcome Header & Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <p class="text-muted mb-1">Human Resources</p>
+            <h2 class="fw-bold">Employee Management</h2>
+            <div class="d-flex align-items-center mt-2 text-muted">
+                <i class="bi bi-info-circle me-2"></i> Manage your company's employees.
+            </div>
+        </div>
+        <div>
+            <?php if ($action !== 'add' && !$editId): ?>
+                <a href="?action=add" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-plus-circle me-2"></i>Add Employee
+                </a>
+            <?php else: ?>
+                <a href="employees.php" class="btn btn-outline-secondary rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </a>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php if ($action === 'add'): ?>
         <!-- Add Employee Form -->
-        <div class="card">
-            <div class="card-header"><i class="bi bi-person-plus me-2"></i>Add New Employee</div>
-            <div class="card-body">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2 text-primary"></i>Add New Employee</h5>
+            </div>
+            <div class="card-body p-4">
                 <form method="POST" class="needs-validation" novalidate>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -237,7 +220,7 @@ try {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Role</label>
-                            <select name="role" class="form-select" id="addRole">
+                            <select name="role" class="form-select bg-light border-0" id="addRole">
                                 <option value="staff">Staff</option>
                                 <option value="leader">Leader</option>
                                 <option value="part_time">Part-Time</option>
@@ -245,12 +228,12 @@ try {
                                 <option value="hr">HR Admin</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4" style="display: none;">
                             <label class="form-label">Employment Type</label>
-                            <select name="employment_type" class="form-select">
-                                <option value="full_time">Full-Time</option>
+                            <select name="employment_type" class="form-select bg-light border-0" id="addEmploymentType">
+                                <option value="permanent">Full-Time</option>
                                 <option value="leader">Leader</option>
-                                <option value="part_time">Part-Time</option>
+                                <option value="part-time">Part-Time</option>
                                 <option value="intern">Intern</option>
                             </select>
                         </div>
@@ -273,7 +256,7 @@ try {
                         </div>
                         <div class="col-md-6" id="addInternMonthsContainer" style="display: none;">
                             <label class="form-label">Internship Duration (Months)</label>
-                            <select name="internship_months" class="form-select">
+                            <select name="internship_months" class="form-select bg-light border-0">
                                 <option value="0">-- Select --</option>
                                 <?php for ($i = 1; $i <= 12; $i++): ?>
                                     <option value="<?= $i ?>"><?= $i ?> months</option>
@@ -283,14 +266,14 @@ try {
                         <div class="col-12">
                             <label class="form-label">Password</label>
                             <input type="text" name="password" class="form-control" value="password123">
-                            <small class="text-muted">Default password. Employee can change after login.</small>
+                            <small class="text-muted">Default password. Employee can change this after login.</small>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 mt-4">
                             <hr>
-                            <button type="submit" name="add_employee" class="btn btn-primary">
-                                <i class="bi bi-check-circle me-2"></i>Save
+                            <button type="submit" name="add_employee" class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-check-circle me-2"></i>Save Employee
                             </button>
-                            <a href="employees.php" class="btn btn-outline-secondary ms-2">Cancel</a>
+                            <a href="employees.php" class="btn btn-outline-secondary rounded-pill px-4 ms-2">Cancel</a>
                         </div>
                     </div>
                 </form>
@@ -299,9 +282,11 @@ try {
 
     <?php elseif ($editEmployee): ?>
         <!-- Edit Employee Form -->
-        <div class="card">
-            <div class="card-header"><i class="bi bi-pencil me-2"></i>Update Employee</div>
-            <div class="card-body">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pencil me-2 text-primary"></i>Update Employee Details</h5>
+            </div>
+            <div class="card-body p-4">
                 <form method="POST" class="needs-validation" novalidate>
                     <input type="hidden" name="employee_id" value="<?= $editEmployee['id'] ?>">
                     <div class="row g-3">
@@ -312,35 +297,32 @@ try {
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control" value="<?= htmlspecialchars($editEmployee['email']) ?>"
-                                disabled>
+                            <input type="email" class="form-control bg-light"
+                                value="<?= htmlspecialchars($editEmployee['email']) ?>" disabled>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Role <span class="text-info"><i class="bi bi-info-circle"
-                                        title="HR can change intern to Staff/Leader"></i></span></label>
-                            <select name="role" class="form-select" id="editRole">
+                            <label class="form-label">Role <span class="text-info"
+                                    title="HR can change intern to Staff/Leader"><i
+                                        class="bi bi-info-circle"></i></span></label>
+                            <select name="role" class="form-select bg-light border-0" id="editRole">
                                 <option value="staff" <?= $editEmployee['role'] === 'staff' ? 'selected' : '' ?>>Staff
                                     (Full-Time)</option>
-                                <option value="leader" <?= $editEmployee['role'] === 'leader' ? 'selected' : '' ?>>
-                                    Leader</option>
+                                <option value="leader" <?= $editEmployee['role'] === 'leader' ? 'selected' : '' ?>>Leader
+                                </option>
                                 <option value="part_time" <?= $editEmployee['role'] === 'part_time' ? 'selected' : '' ?>>
                                     Part-Time</option>
                                 <option value="intern" <?= $editEmployee['role'] === 'intern' ? 'selected' : '' ?>>Intern
                                 </option>
                                 <option value="hr" <?= $editEmployee['role'] === 'hr' ? 'selected' : '' ?>>HR Admin</option>
                             </select>
-                            <?php if ($editEmployee['role'] === 'intern'): ?>
-                                <small class="text-success"><i class="bi bi-arrow-up"></i> Can promote to
-                                    Staff/Leader</small>
-                            <?php endif; ?>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4" style="display: none;">
                             <label class="form-label">Employment Type</label>
-                            <select name="employment_type" class="form-select">
-                                <option value="full_time" <?= $editEmployee['employment_type'] === 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                            <select name="employment_type" class="form-select bg-light border-0" id="editEmploymentType">
+                                <option value="permanent" <?= $editEmployee['employment_type'] === 'permanent' ? 'selected' : '' ?>>Full-Time</option>
                                 <option value="leader" <?= $editEmployee['employment_type'] === 'leader' ? 'selected' : '' ?>>
                                     Leader</option>
-                                <option value="part_time" <?= $editEmployee['employment_type'] === 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                                <option value="part-time" <?= $editEmployee['employment_type'] === 'part-time' ? 'selected' : '' ?>>Part-Time</option>
                                 <option value="intern" <?= $editEmployee['employment_type'] === 'intern' ? 'selected' : '' ?>>
                                     Intern</option>
                             </select>
@@ -366,14 +348,10 @@ try {
                             <input type="text" name="epf_number" class="form-control"
                                 value="<?= htmlspecialchars($editEmployee['epf_number'] ?? '') ?>"
                                 placeholder="Ex: 12345678">
-                            <?php if (in_array($editEmployee['role'], ['staff', 'leader']) && empty($editEmployee['epf_number'])): ?>
-                                <small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Please enter EPF
-                                    No.</small>
-                            <?php endif; ?>
                         </div>
                         <div class="col-md-6" id="editInternMonthsContainer" <?= $editEmployee['role'] !== 'intern' ? 'style="display:none;"' : '' ?>>
                             <label class="form-label">Internship Duration (Months)</label>
-                            <select name="internship_months" class="form-select">
+                            <select name="internship_months" class="form-select bg-light border-0">
                                 <option value="0">-- Select --</option>
                                 <?php for ($i = 1; $i <= 12; $i++): ?>
                                     <option value="<?= $i ?>" <?= ($editEmployee['internship_months'] ?? 0) == $i ? 'selected' : '' ?>><?= $i ?> months</option>
@@ -384,15 +362,15 @@ try {
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
                                     <?= isset($editEmployee['is_active']) && $editEmployee['is_active'] ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="isActive">Active</label>
+                                <label class="form-check-label" for="isActive">Active Employee</label>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 mt-4">
                             <hr>
-                            <button type="submit" name="update_employee" class="btn btn-primary">
-                                <i class="bi bi-check-circle me-2"></i>Update
+                            <button type="submit" name="update_employee" class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-check-circle me-2"></i>Update Details
                             </button>
-                            <a href="employees.php" class="btn btn-outline-secondary ms-2">Cancel</a>
+                            <a href="employees.php" class="btn btn-outline-secondary rounded-pill px-4 ms-2">Cancel</a>
                         </div>
                     </div>
                 </form>
@@ -401,43 +379,53 @@ try {
 
     <?php else: ?>
         <!-- Employees List -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-people me-2"></i>Employee List (<?= count($employees) ?>)</span>
-                <div class="form-check">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-people me-2"></i>Employee List
+                    (<?= count($employees) ?>)</h5>
+                <div class="form-check form-switch">
                     <input type="checkbox" class="form-check-input" id="showInactive" <?= isset($_GET['show_inactive']) ? 'checked' : '' ?>
                         onchange="location.href='employees.php' + (this.checked ? '?show_inactive=1' : '')">
-                    <label class="form-check-label" for="showInactive">Show Inactive</label>
+                    <label class="form-check-label text-muted" for="showInactive">Show Inactive</label>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <?php if (empty($employees)): ?>
-                    <p class="text-muted text-center py-4">
-                        <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                        No employees in the list.
-                    </p>
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                        <p class="text-muted">No employees found.<br>
+                            <small>Click "Add Employee" to create a new profile.</small>
+                        </p>
+                    </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="ps-4">Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>EPF No.</th>
                                     <th>Basic Salary</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($employees as $emp): ?>
                                     <?php
-                                    // Default is_active to true if not set
                                     $isActive = isset($emp['is_active']) ? $emp['is_active'] : true;
                                     ?>
-                                    <tr class="<?= !$isActive ? 'table-secondary' : '' ?>">
-                                        <td><strong><?= htmlspecialchars($emp['full_name']) ?></strong></td>
+                                    <tr class="<?= !$isActive ? 'table-secondary opacity-50' : '' ?>">
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                    style="width: 32px; height: 32px; font-size: 14px;">
+                                                    <?= strtoupper(substr($emp['full_name'], 0, 1)) ?>
+                                                </div>
+                                                <span class="fw-bold"><?= htmlspecialchars($emp['full_name']) ?></span>
+                                            </div>
+                                        </td>
                                         <td><?= htmlspecialchars($emp['email']) ?></td>
                                         <td>
                                             <?php
@@ -450,15 +438,16 @@ try {
                                             ];
                                             $badge = $roleBadges[$emp['role']] ?? ['Staff', 'bg-secondary'];
                                             ?>
-                                            <span class="badge <?= $badge[1] ?>"><?= $badge[0] ?></span>
+                                            <span class="badge <?= $badge[1] ?> rounded-pill"><?= $badge[0] ?></span>
                                         </td>
                                         <td>
                                             <?php if (in_array($emp['role'], ['staff', 'leader', 'part_time', 'hr'])): ?>
                                                 <?php if (!empty($emp['epf_number'])): ?>
-                                                    <span class="text-success"><i class="bi bi-check-circle"></i>
+                                                    <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>
                                                         <?= htmlspecialchars($emp['epf_number']) ?></span>
                                                 <?php else: ?>
-                                                    <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> None</span>
+                                                    <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                        Missing</span>
                                                 <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
@@ -466,20 +455,22 @@ try {
                                         </td>
                                         <td><?= formatMoney($emp['basic_salary']) ?></td>
                                         <td>
-                                            <span class="badge <?= $isActive ? 'bg-success' : 'bg-danger' ?>">
+                                            <span class="badge <?= $isActive ? 'bg-success' : 'bg-danger' ?> rounded-pill">
                                                 <?= $isActive ? 'Active' : 'Inactive' ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <a href="?id=<?= $emp['id'] ?>" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <td class="pe-4">
+                                            <a href="?id=<?= $emp['id'] ?>" class="btn btn-sm btn-outline-primary rounded-circle"
+                                                title="Edit" style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <?php if ($emp['id'] !== $_SESSION['user_id']): ?>
-                                                <form method="POST" class="d-inline"
-                                                    onsubmit="return confirm('Are you sure you want to delete this employee?')">
+                                                <form method="POST" class="d-inline">
                                                     <input type="hidden" name="employee_id" value="<?= $emp['id'] ?>">
-                                                    <button type="submit" name="delete_employee" class="btn btn-sm btn-outline-danger"
-                                                        title="Delete">
+                                                    <input type="hidden" name="delete_employee" value="1">
+                                                    <button type="button" onclick="confirmDelete(this.form)"
+                                                        class="btn btn-sm btn-outline-danger rounded-circle ms-1" title="Delete"
+                                                        style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
@@ -496,12 +487,22 @@ try {
     <?php endif; ?>
 </div>
 
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-    // Toggle EPF and Internship fields based on role selection
     function toggleRoleFields(roleSelect, prefix) {
         const role = roleSelect.value;
         const epfContainer = document.getElementById(prefix + 'EpfContainer');
         const internContainer = document.getElementById(prefix + 'InternMonthsContainer');
+        const employmentTypeSelect = document.getElementById(prefix + 'EmploymentType');
+
+        if (employmentTypeSelect) {
+            if (role === 'staff' || role === 'hr') employmentTypeSelect.value = 'permanent';
+            else if (role === 'leader') employmentTypeSelect.value = 'leader';
+            else if (role === 'part_time') employmentTypeSelect.value = 'part-time';
+            else if (role === 'intern') employmentTypeSelect.value = 'intern';
+        }
 
         if (role === 'intern') {
             if (epfContainer) epfContainer.style.display = 'none';
@@ -512,20 +513,34 @@ try {
         }
     }
 
-    // Add form role change handler
     const addRoleSelect = document.getElementById('addRole');
     if (addRoleSelect) {
-        addRoleSelect.addEventListener('change', function () {
-            toggleRoleFields(this, 'add');
-        });
+        addRoleSelect.addEventListener('change', function () { toggleRoleFields(this, 'add'); });
         toggleRoleFields(addRoleSelect, 'add');
     }
 
-    // Edit form role change handler
     const editRoleSelect = document.getElementById('editRole');
     if (editRoleSelect) {
-        editRoleSelect.addEventListener('change', function () {
-            toggleRoleFields(this, 'edit');
+        editRoleSelect.addEventListener('change', function () { toggleRoleFields(this, 'edit'); });
+        // Initial state set by PHP logic in style attribute, but consistent JS check is good.
+    }
+
+    function confirmDelete(form) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            borderRadius: '15px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit the form
+                form.submit();
+            }
         });
     }
 </script>

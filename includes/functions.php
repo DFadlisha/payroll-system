@@ -582,7 +582,7 @@ function sendEmail($to, $subject, $htmlBody, $plainBody = '')
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
 
-            $result = mail($to, $subject, $htmlBody, $headers);
+            $result = @mail($to, $subject, $htmlBody, $headers);
 
             if (!$result) {
                 error_log("Email send failed (PHP mail): {$to} - {$subject}");
@@ -598,7 +598,7 @@ function sendEmail($to, $subject, $htmlBody, $plainBody = '')
         $headers .= "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
 
-        $result = mail($to, $subject, $htmlBody, $headers);
+        $result = @mail($to, $subject, $htmlBody, $headers);
 
         if ($result) {
             error_log("Email sent successfully: {$to} - {$subject}");
@@ -800,10 +800,61 @@ function getMalaysiaHolidays($year = null, $force = false)
         }
     }
 
-    // Write cache (best-effort)
-    @file_put_contents($cacheFile, json_encode($result));
+    // Save to cache
+    file_put_contents($cacheFile, json_encode($result));
 
     return $result;
 }
 
+/**
+ * Calculate time elapsed string (e.g. "2 hours ago")
+ * @param string $datetime Date time string
+ * @param bool $full Full format
+ * @return string
+ */
+function time_elapsed_string($datetime, $full = false)
+{
+    if ($datetime == 'now')
+        return 'just now';
+
+    $now = new DateTime;
+    $ago = new DateTime($datetime);
+    $diff = $now->diff($ago);
+
+    $weeks = floor($diff->d / 7);
+    $days = $diff->d - ($weeks * 7);
+
+    // Map keys to values
+    $map = [
+        'y' => $diff->y,
+        'm' => $diff->m,
+        'w' => $weeks,
+        'd' => $days,
+        'h' => $diff->h,
+        'i' => $diff->i,
+        's' => $diff->s,
+    ];
+
+    $string = array(
+        'y' => 'year',
+        'm' => 'month',
+        'w' => 'week',
+        'd' => 'day',
+        'h' => 'hour',
+        'i' => 'minute',
+        's' => 'second',
+    );
+
+    foreach ($string as $k => &$v) {
+        if ($map[$k]) {
+            $v = $map[$k] . ' ' . $v . ($map[$k] > 1 ? 's' : '');
+        } else {
+            unset($string[$k]);
+        }
+    }
+
+    if (!$full)
+        $string = array_slice($string, 0, 1);
+    return $string ? implode(', ', $string) . ' ago' : 'just now';
+}
 ?>

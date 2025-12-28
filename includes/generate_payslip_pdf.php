@@ -29,7 +29,7 @@ try {
     $stmt = $conn->prepare("
         SELECT p.*, 
                pr.full_name, pr.ic_number, pr.epf_number, pr.socso_number, 
-               pr.tax_number, pr.bank_name, pr.bank_account, pr.employment_type,
+               pr.tax_number, pr.bank_name, pr.bank_account_number, pr.employment_type,
                c.name as company_name, c.address as company_address
         FROM payroll p
         JOIN profiles pr ON p.user_id = pr.id
@@ -128,7 +128,7 @@ try {
 
     $pdf->SetXY($col2_x, $pdf->GetY());
     $pdf->Cell(30, 6, 'Acct No:', 0, 0);
-    $pdf->Cell(50, 6, $payslip['bank_account'] ?? '-', 0, 1);
+    $pdf->Cell(50, 6, $payslip['bank_account_number'] ?? '-', 0, 1);
 
     $pdf->SetXY($col2_x, $pdf->GetY());
     $pdf->Cell(30, 6, 'Branch:', 0, 0);

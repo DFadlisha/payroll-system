@@ -49,10 +49,9 @@ try {
     });
 } catch (PDOException $e) {
     // If companies table doesn't exist or error, use default
-    $companies = [
-        ['id' => 'nes-001', 'name' => 'NES Solution & Network Sdn Bhd', 'logo_url' => 'nes.jpg'],
-        ['id' => 'mi-001', 'name' => 'Mentari Infiniti Network Sdn Bhd', 'logo_url' => 'mentari.png']
-    ];
+    // If companies table doesn't exist or error, log it
+    error_log("Failed to fetch companies: " . $e->getMessage());
+    $companies = [];
 }
 
 // Debug helper: show companies when ?debug=1 is passed

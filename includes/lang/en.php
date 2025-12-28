@@ -39,7 +39,7 @@ return [
     'time' => 'Time',
     'month' => 'Month',
     'year' => 'Year',
-    
+
     // Navigation
     'nav' => [
         'dashboard' => 'Dashboard',
@@ -50,8 +50,9 @@ return [
         'reports' => 'Reports',
         'profile' => 'Profile',
         'payslips' => 'Payslips',
+        'public_holidays' => 'Public Holidays',
     ],
-    
+
     // Roles
     'roles' => [
         'hr' => 'HR Admin',
@@ -59,14 +60,14 @@ return [
         'part_time' => 'Part-Time',
         'intern' => 'Intern',
     ],
-    
+
     // Employment Types
     'employment' => [
         'full_time' => 'Full-Time',
         'part_time' => 'Part-Time',
         'intern' => 'Intern',
     ],
-    
+
     // Login Page
     'login_page' => [
         'title' => 'Login to Your Account',
@@ -82,7 +83,7 @@ return [
         'account_inactive' => 'Your account is inactive. Please contact HR.',
         'select_company' => 'Select Company',
     ],
-    
+
     // Register Page
     'register_page' => [
         'title' => 'Create Account',
@@ -103,7 +104,7 @@ return [
         'email_exists' => 'Email already exists.',
         'register_success' => 'Registration successful! Please login.',
     ],
-    
+
     // Dashboard
     'dashboard' => [
         'title' => 'Dashboard',
@@ -117,7 +118,7 @@ return [
         'attendance_overview' => 'Attendance Overview',
         'leave_requests' => 'Leave Requests',
     ],
-    
+
     // Employees
     'employees' => [
         'title' => 'Employee Management',
@@ -143,7 +144,7 @@ return [
         'can_promote' => 'Can promote to Staff/Part-Time',
         'internship_period' => 'Internship Period',
     ],
-    
+
     // Attendance
     'attendance' => [
         'title' => 'Attendance Management',
@@ -170,7 +171,7 @@ return [
         'rate_shift' => 'Extra Shift',
         'rate_late' => 'Late Deduct',
     ],
-    
+
     // Leaves
     'leaves' => [
         'title' => 'Leave Management',
@@ -197,7 +198,7 @@ return [
         'no_balance' => 'Insufficient leave balance.',
         'entitled' => 'Entitled',
     ],
-    
+
     // Payroll
     'payroll' => [
         'title' => 'Payroll Management',
@@ -223,7 +224,7 @@ return [
         'view_payslip' => 'View Payslip',
         'download_payslip' => 'Download Payslip',
     ],
-    
+
     // Reports
     'reports' => [
         'title' => 'Reports',
@@ -238,7 +239,7 @@ return [
         'to' => 'To',
         'generate_report' => 'Generate Report',
     ],
-    
+
     // Profile
     'profile' => [
         'title' => 'My Profile',
@@ -253,7 +254,7 @@ return [
         'password_changed' => 'Password changed successfully.',
         'wrong_password' => 'Current password is incorrect.',
     ],
-    
+
     // Days
     'days' => [
         'sunday' => 'Sunday',
@@ -264,7 +265,7 @@ return [
         'friday' => 'Friday',
         'saturday' => 'Saturday',
     ],
-    
+
     // Months
     'months' => [
         1 => 'January',
@@ -280,7 +281,7 @@ return [
         11 => 'November',
         12 => 'December',
     ],
-    
+
     // Errors
     'errors' => [
         'system_error' => 'System error. Please try again.',

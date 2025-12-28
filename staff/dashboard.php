@@ -49,6 +49,26 @@ try {
     $stmt->execute([$userId, $currentMonth, $currentYear]);
     $attendanceStats = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Calculate derived stats
+    if ($attendanceStats) {
+        $attendanceStats['attendance_percentage'] = ($attendanceStats['total_days'] > 0)
+            ? round(($attendanceStats['present'] / $attendanceStats['total_days']) * 100)
+            : 0;
+        // Absent logic: this requires specific 'absent' records or working days calculation. 
+        // For now, simple fallback or 0.
+        $attendanceStats['absent'] = 0;
+    } else {
+        $attendanceStats = [
+            'total_days' => 0,
+            'present' => 0,
+            'active' => 0,
+            'total_hours' => 0,
+            'overtime_hours' => 0,
+            'attendance_percentage' => 0,
+            'absent' => 0
+        ];
+    }
+
     // Permohonan cuti terkini
     $stmt = $conn->prepare("
         SELECT * FROM leaves 

@@ -12,17 +12,17 @@ require_once '../includes/header.php';
 requireHR();
 $pageTitle = 'Dashboard - MI-NES Payroll System';
 
-// Dapatkan statistik (using Supabase schema - profiles table)
+// Get Statistics (using Supabase schema)
 try {
     $conn = getConnection();
     $companyId = $_SESSION['company_id'];
-    
-    // Jumlah pekerja (profiles)
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM profiles WHERE company_id = ?");
+
+    // 1. Total Employees
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM profiles WHERE company_id = ? AND is_active = TRUE");
     $stmt->execute([$companyId]);
     $totalEmployees = $stmt->fetch()['total'];
-    
-    // Kehadiran hari ini (attendance with timestamp)
+
+    // 2. Attendance Today
     $today = date('Y-m-d');
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total 
@@ -32,8 +32,8 @@ try {
     ");
     $stmt->execute([$companyId, $today]);
     $todayAttendance = $stmt->fetch()['total'];
-    
-    // Permohonan cuti menunggu kelulusan
+
+    // 3. Pending Leave Requests
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total 
         FROM leaves l 
@@ -42,8 +42,8 @@ try {
     ");
     $stmt->execute([$companyId]);
     $pendingLeaves = $stmt->fetch()['total'];
-    
-    // Gaji bulan ini belum dibayar
+
+    // 4. Pending Payroll (Current Month)
     $currentMonth = date('n');
     $currentYear = date('Y');
     $stmt = $conn->prepare("
@@ -54,22 +54,22 @@ try {
     ");
     $stmt->execute([$companyId, $currentMonth, $currentYear]);
     $unpaidPayroll = $stmt->fetch()['total'];
-    
-    // Senarai kehadiran hari ini
+
+    // 5. Recent Attendance List
     $stmt = $conn->prepare("
-        SELECT p.full_name, a.clock_in, a.clock_out, a.status
+        SELECT p.full_name, p.role, a.clock_in, a.clock_out, a.status, a.clock_in_photo
         FROM attendance a 
         JOIN profiles p ON a.user_id = p.id 
         WHERE p.company_id = ? AND DATE(a.clock_in) = ?
         ORDER BY a.clock_in DESC
-        LIMIT 10
+        LIMIT 5
     ");
     $stmt->execute([$companyId, $today]);
     $todayAttendanceList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Senarai permohonan cuti terbaru
+
+    // 6. Recent Pending Leaves
     $stmt = $conn->prepare("
-        SELECT l.*, p.full_name 
+        SELECT l.*, p.full_name, p.role 
         FROM leaves l 
         JOIN profiles p ON l.user_id = p.id 
         WHERE p.company_id = ? AND l.status = 'pending'
@@ -78,7 +78,7 @@ try {
     ");
     $stmt->execute([$companyId]);
     $recentLeaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
     $totalEmployees = $todayAttendance = $pendingLeaves = $unpaidPayroll = 0;
@@ -91,132 +91,129 @@ try {
 <!-- Main Content -->
 <div class="main-content">
     <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="fw-bold"><?= __('nav.dashboard') ?></span>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <?= getLanguageSwitcher() ?>
-            <div class="user-info">
-                <div class="user-avatar">
-                    <?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?>
-                </div>
-                <div>
-                    <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                    <small class="text-muted"><?= __('roles.hr') ?></small>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <?php
+    $navTitle = __('nav.dashboard');
+    include '../includes/top_navbar.php';
+    ?>
+
     <!-- Flash Messages -->
     <?php displayFlashMessage(); ?>
-    
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1><?= __('dashboard.welcome_back') ?>, <?= htmlspecialchars($_SESSION['full_name']) ?>!</h1>
-        <p class="text-muted mb-0">
-            <i class="bi bi-calendar me-1"></i>
-            <?= getDayName(date('Y-m-d')) ?>, <?= formatDate(date('Y-m-d')) ?>
-        </p>
-    </div>
-    
-    <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $totalEmployees ?></h2>
-                        <p><?= __('dashboard.total_employees') ?></p>
-                    </div>
-                    <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card success">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $todayAttendance ?></h2>
-                        <p><?= __('dashboard.present_today') ?></p>
-                    </div>
-                    <i class="bi bi-calendar-check" style="font-size: 2.5rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card warning">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $pendingLeaves ?></h2>
-                        <p><?= __('dashboard.pending_leaves') ?></p>
-                    </div>
-                    <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.7;"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card danger">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><?= $unpaidPayroll ?></h2>
-                        <p><?= __('dashboard.monthly_payroll') ?></p>
-                    </div>
-                    <i class="bi bi-cash" style="font-size: 2.5rem; opacity: 0.7;"></i>
-                </div>
-            </div>
+
+    <!-- Welcome Header -->
+    <div class="mb-4">
+        <p class="text-muted mb-1">Overview</p>
+        <h2 class="fw-bold">HR Management</h2>
+        <div class="d-flex align-items-center mt-2 text-muted">
+            <i class="bi bi-calendar3 me-2"></i> <?= date('l, d F Y') ?>
         </div>
     </div>
-    
-    <!-- Content Row -->
+
+    <!-- Stats Cards (Pastel Design) -->
+    <div class="row g-4 mb-5">
+        <!-- Total Employees (Purple) -->
+        <div class="col-md-6 col-lg-3">
+            <div class="stats-card purple">
+                <div class="stats-icon">
+                    <i class="bi bi-people-fill text-dark"></i>
+                </div>
+                <div>
+                    <p>Total Employees</p>
+                    <h2><?= $totalEmployees ?></h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Present Today (Green) -->
+        <div class="col-md-6 col-lg-3">
+            <div class="stats-card green">
+                <div class="stats-icon">
+                    <i class="bi bi-check-circle-fill text-dark"></i>
+                </div>
+                <div>
+                    <p>Present Today</p>
+                    <h2><?= $todayAttendance ?></h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Leaves (Orange) -->
+        <div class="col-md-6 col-lg-3">
+            <div class="stats-card orange">
+                <div class="stats-icon">
+                    <i class="bi bi-exclamation-circle-fill text-dark"></i>
+                </div>
+                <div>
+                    <p>Leave Requests</p>
+                    <h2><?= $pendingLeaves ?></h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Pending (Blue) -->
+        <div class="col-md-6 col-lg-3">
+            <div class="stats-card blue">
+                <div class="stats-icon">
+                    <i class="bi bi-cash-stack text-dark"></i>
+                </div>
+                <div>
+                    <p>Pending Payroll</p>
+                    <h2><?= $unpaidPayroll ?></h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Split -->
     <div class="row g-4">
-        <!-- Today's Attendance -->
-        <div class="col-lg-7">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-calendar-check me-2"></i><?= __('dashboard.attendance_overview') ?></span>
-                    <a href="attendance.php" class="btn btn-sm btn-outline-primary"><?= __('all') ?></a>
+        <!-- Recent Attendance -->
+        <div class="col-lg-8">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Live Attendance</h5>
+                    <a href="attendance.php" class="btn btn-sm btn-light text-primary rounded-pill px-3">View All</a>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <?php if (empty($todayAttendanceList)): ?>
-                        <p class="text-muted text-center py-4">
-                            <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                            <?= __('no_data') ?>
-                        </p>
+                        <div class="text-center py-5">
+                            <i class="bi bi-cup-hot text-muted" style="font-size: 2rem;"></i>
+                            <p class="text-muted mt-2">No attendance records today yet.</p>
+                        </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
                                     <tr>
-                                        <th><?= __('employees.name') ?></th>
-                                        <th><?= __('attendance.clock_in') ?></th>
-                                        <th><?= __('attendance.clock_out') ?></th>
+                                        <th class="ps-4">Employee</th>
+                                        <th>Clock In</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($todayAttendanceList as $att): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($att['full_name']) ?></td>
-                                            <td><?= formatTime($att['clock_in']) ?></td>
-                                            <td><?= formatTime($att['clock_out']) ?></td>
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="user-avatar-sm me-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                        style="width: 35px; height: 35px; font-size: 0.8rem;">
+                                                        <?= strtoupper(substr($att['full_name'], 0, 1)) ?>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark">
+                                                            <?= htmlspecialchars($att['full_name']) ?></div>
+                                                        <small class="text-muted"
+                                                            style="font-size: 0.75rem;"><?= ucwords(str_replace('_', ' ', $att['role'])) ?></small>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td>
-                                                <?php
-                                                $statusBadge = [
-                                                    'present' => ['Present', 'bg-success'],
-                                                    'late' => ['Late', 'bg-warning'],
-                                                    'absent' => ['Absent', 'bg-danger'],
-                                                ];
-                                                $badge = $statusBadge[$att['status']] ?? ['N/A', 'bg-secondary'];
-                                                ?>
-                                                <span class="badge <?= $badge[1] ?>"><?= $badge[0] ?></span>
+                                                <div class="fw-bold"><?= formatTime($att['clock_in']) ?></div>
+                                                <?php if ($att['clock_in_photo']): ?>
+                                                    <small class="text-success"><i class="bi bi-camera"></i> Verified</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge rounded-pill bg-success bg-opacity-10 text-success px-3">Present</span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -227,35 +224,48 @@ try {
                 </div>
             </div>
         </div>
-        
-        <!-- Pending Leaves -->
-        <div class="col-lg-5">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-calendar-x me-2"></i>Leave Requests</span>
-                    <a href="leaves.php" class="btn btn-sm btn-outline-primary">View All</a>
+
+        <!-- Pending Leaves Side Panel -->
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-envelope-paper me-2 text-warning"></i>Requests</h5>
+                    <span class="badge bg-warning text-dark pill"><?= count($recentLeaves) ?> New</span>
                 </div>
                 <div class="card-body">
                     <?php if (empty($recentLeaves)): ?>
-                        <p class="text-muted text-center py-4">
-                            <i class="bi bi-check-circle" style="font-size: 3rem;"></i><br>
-                            No pending leave requests.
-                        </p>
+                        <div class="text-center py-5">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="text-muted mt-2">All caught up!</p>
+                        </div>
                     <?php else: ?>
                         <?php foreach ($recentLeaves as $leave): ?>
-                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                                <div>
-                                    <div class="fw-bold"><?= htmlspecialchars($leave['full_name']) ?></div>
-                                    <small class="text-muted">
-                                        <?= getLeaveTypeName($leave['leave_type']) ?> • 
-                                        <?= formatDate($leave['start_date']) ?> - <?= formatDate($leave['end_date']) ?>
+                            <div class="p-3 mb-3 bg-light rounded-3 border-start border-4 border-warning">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-bold text-dark"><?= htmlspecialchars($leave['full_name']) ?></span>
+                                    <small class="text-muted"><?= time_elapsed_string($leave['created_at']) ?></small>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-white text-dark border">
+                                        <?= getLeaveTypeName($leave['leave_type']) ?>
+                                    </span>
+                                    <small class="ms-2 text-muted">
+                                        <?= $leave['total_days'] ?> days
                                     </small>
                                 </div>
-                                <a href="leaves.php?action=view&id=<?= $leave['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    Review
-                                </a>
+                                <div class="d-grid">
+                                    <a href="leaves.php?id=<?= $leave['id'] ?>"
+                                        class="btn btn-sm btn-white border text-primary bg-white">
+                                        Action Request
+                                    </a>
+                                </div>
                             </div>
                         <?php endforeach; ?>
+
+                        <div class="text-center mt-3">
+                            <a href="leaves.php" class="text-decoration-none text-muted small">View all requests <i
+                                    class="bi bi-arrow-right"></i></a>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>

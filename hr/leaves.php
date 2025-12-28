@@ -3,11 +3,11 @@
  * ============================================
  * HR LEAVES MANAGEMENT PAGE
  * ============================================
- * Halaman untuk urus permohonan cuti pekerja.
+ * Manage employee leave requests.
  * ============================================
  */
 
-$pageTitle = 'Pengurusan Cuti - MI-NES Payroll';
+$pageTitle = 'Leave Management - MI-NES Payroll';
 require_once '../includes/header.php';
 requireHR();
 
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE id = ?
                 ");
                 $stmt->execute([$_SESSION['user_id'], $leaveId]);
-                $message = 'Leave request approved.';
+                $message = 'Leave request approved successfully.';
                 $messageType = 'success';
 
                 // Send Email
@@ -85,7 +85,7 @@ try {
     $conn = getConnection();
 
     $sql = "
-        SELECT l.*, p.full_name, p.employment_type
+        SELECT l.*, p.full_name, p.employment_type, p.role
         FROM leaves l
         JOIN profiles p ON l.user_id = p.id
         WHERE p.company_id = ?
@@ -125,45 +125,14 @@ try {
 }
 ?>
 
-<!-- Sidebar -->
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="bi bi-building me-2"></i>MI-NES</h3>
-        <small>Payroll System</small>
-    </div>
-
-    <ul class="sidebar-menu">
-        <li><a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-        <li><a href="employees.php"><i class="bi bi-people"></i> Pekerja</a></li>
-        <li><a href="attendance.php"><i class="bi bi-calendar-check"></i> Kehadiran</a></li>
-        <li><a href="leaves.php" class="active"><i class="bi bi-calendar-x"></i> Cuti</a></li>
-        <li><a href="payroll.php"><i class="bi bi-cash-stack"></i> Gaji</a></li>
-        <li><a href="reports.php"><i class="bi bi-file-earmark-bar-graph"></i> Laporan</a></li>
-        <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
-            <a href="../auth/logout.php"><i class="bi bi-box-arrow-left"></i> Log Keluar</a>
-        </li>
-    </ul>
-</nav>
-
-<!-- Main Content -->
-// ... (Sidebar translation implicitly handled)
+<?php include '../includes/hr_sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="main-content">
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div>
-            <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-            <span class="fw-bold">Leave Management</span>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar"><?= strtoupper(substr($_SESSION['full_name'], 0, 1)) ?></div>
-            <div>
-                <div class="fw-bold"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-                <small class="text-muted">HR Admin</small>
-            </div>
-        </div>
-    </div>
+    <?php
+    $navTitle = 'Leave Management';
+    include '../includes/top_navbar.php';
+    ?>
 
     <!-- Flash Messages -->
     <?php if ($message): ?>
@@ -173,57 +142,67 @@ try {
         </div>
     <?php endif; ?>
 
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1><i class="bi bi-calendar-x me-2"></i>Leave Management</h1>
+    <!-- Welcome Header -->
+    <div class="mb-4">
+        <p class="text-muted mb-1">Human Resources</p>
+        <h2 class="fw-bold">Leave Management</h2>
+        <div class="d-flex align-items-center mt-2 text-muted">
+            <i class="bi bi-info-circle me-2"></i> Manage employee time off requests efficiently.
+        </div>
     </div>
 
     <!-- Status Filter -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="btn-group" role="group">
+    <div class="card mb-4 border-0 shadow-sm rounded-4">
+        <div class="card-body p-2">
+            <div class="nav nav-pills nav-fill gap-2 p-1 bg-light rounded-3" role="tablist">
                 <a href="?status=pending"
-                    class="btn <?= $status === 'pending' ? 'btn-primary' : 'btn-outline-primary' ?>">
-                    Pending <span class="badge bg-light text-dark"><?= $counts['pending'] ?? 0 ?></span>
+                    class="nav-link rounded-3 <?= $status === 'pending' ? 'active shadow-sm' : '' ?>">
+                    Pending <span
+                        class="badge bg-white text-primary rounded-pill ms-2"><?= $counts['pending'] ?? 0 ?></span>
                 </a>
                 <a href="?status=approved"
-                    class="btn <?= $status === 'approved' ? 'btn-success' : 'btn-outline-success' ?>">
-                    Approved <span class="badge bg-light text-dark"><?= $counts['approved'] ?? 0 ?></span>
+                    class="nav-link rounded-3 <?= $status === 'approved' ? 'active bg-success shadow-sm' : '' ?>">
+                    Approved <span
+                        class="badge bg-white text-success rounded-pill ms-2"><?= $counts['approved'] ?? 0 ?></span>
                 </a>
                 <a href="?status=rejected"
-                    class="btn <?= $status === 'rejected' ? 'btn-danger' : 'btn-outline-danger' ?>">
-                    Rejected <span class="badge bg-light text-dark"><?= $counts['rejected'] ?? 0 ?></span>
+                    class="nav-link rounded-3 <?= $status === 'rejected' ? 'active bg-danger shadow-sm' : '' ?>">
+                    Rejected <span
+                        class="badge bg-white text-danger rounded-pill ms-2"><?= $counts['rejected'] ?? 0 ?></span>
                 </a>
-                <a href="?status=all" class="btn <?= $status === 'all' ? 'btn-secondary' : 'btn-outline-secondary' ?>">
-                    All
+                <a href="?status=all"
+                    class="nav-link rounded-3 <?= $status === 'all' ? 'active bg-secondary shadow-sm' : '' ?>">
+                    View All
                 </a>
             </div>
         </div>
     </div>
 
     <!-- Leaves Table -->
-    <div class="card">
-        <div class="card-header">
-            <i class="bi bi-table me-2"></i>Leave Requests List
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-card-list me-2 text-primary"></i>Requests List</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <?php if (empty($leaves)): ?>
-                <p class="text-muted text-center py-4">
-                    <i class="bi bi-inbox" style="font-size: 3rem;"></i><br>
-                    No leave requests.
-                </p>
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 3.5rem; opacity: 0.3;"></i>
+                    </div>
+                    <h5 class="fw-bold text-muted">No requests found</h5>
+                    <p class="text-muted small">There are no leave requests with this status currently.</p>
+                </div>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
                             <tr>
-                                <th>Employee</th>
+                                <th class="ps-4">Employee</th>
                                 <th>Leave Type</th>
                                 <th>Duration</th>
-                                <th>Days</th>
                                 <th>Reason</th>
                                 <th>Status</th>
-                                <th>Actions</th>
+                                <th class="text-end pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -231,70 +210,99 @@ try {
                                 $badge = getLeaveStatusBadge($leave['status']);
                                 ?>
                                 <tr>
-                                    <td>
-                                        <strong><?= htmlspecialchars($leave['full_name']) ?></strong><br>
-                                        <small
-                                            class="text-muted"><?= getEmploymentTypeName($leave['employment_type']) ?></small>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar-sm me-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                style="width: 40px; height: 40px;">
+                                                <?= strtoupper(substr($leave['full_name'], 0, 1)) ?>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark"><?= htmlspecialchars($leave['full_name']) ?>
+                                                </div>
+                                                <small
+                                                    class="text-muted"><?= ucwords(str_replace('_', ' ', $leave['role'] ?? 'Staff')) ?>
+                                                    • <?= getEmploymentTypeName($leave['employment_type']) ?></small>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td><?= getLeaveTypeName($leave['leave_type']) ?></td>
                                     <td>
-                                        <?= formatDate($leave['start_date']) ?><br>
-                                        <small>to <?= formatDate($leave['end_date']) ?></small>
+                                        <span class="badge bg-light text-dark border">
+                                            <?= getLeaveTypeName($leave['leave_type']) ?>
+                                        </span>
                                     </td>
-                                    <td><?= $leave['total_days'] ?></td>
-                                    <td><?= htmlspecialchars($leave['reason'] ?: '-') ?></td>
                                     <td>
-                                        <span class="badge <?= $badge['class'] ?>"><?= $badge['name'] ?></span>
+                                        <div class="fw-bold"><?= $leave['total_days'] ?> Days</div>
+                                        <small class="text-muted"><?= formatDate($leave['start_date']) ?> -
+                                            <?= formatDate($leave['end_date']) ?></small>
+                                    </td>
+                                    <td>
+                                        <p class="mb-0 text-truncate" style="max-width: 200px;"
+                                            title="<?= htmlspecialchars($leave['reason']) ?>">
+                                            <?= htmlspecialchars($leave['reason'] ?: 'No reason provided') ?>
+                                        </p>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge <?= $badge['class'] ?> rounded-pill px-3 py-2"><?= $badge['name'] ?></span>
                                         <?php if ($leave['status'] === 'rejected' && $leave['rejection_reason']): ?>
-                                            <br><small
-                                                class="text-danger"><?= htmlspecialchars($leave['rejection_reason']) ?></small>
+                                            <div class="mt-1 small text-danger">
+                                                <i
+                                                    class="bi bi-info-circle me-1"></i><?= htmlspecialchars($leave['rejection_reason']) ?>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-end pe-4">
                                         <?php if ($leave['status'] === 'pending'): ?>
-                                            <form method="POST" class="d-inline">
-                                                <input type="hidden" name="leave_id" value="<?= $leave['id'] ?>">
-                                                <input type="hidden" name="action" value="approve">
-                                                <button type="submit" class="btn btn-sm btn-success"
-                                                    onclick="return confirm('Approve this leave request?')">
-                                                    <i class="bi bi-check"></i>
+                                            <div class="btn-group shadow-sm">
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="leave_id" value="<?= $leave['id'] ?>">
+                                                    <input type="hidden" name="action" value="approve">
+                                                    <button type="submit" class="btn btn-sm btn-success" data-bs-toggle="tooltip"
+                                                        title="Approve" onclick="return confirm('Approve this leave request?')">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                                    data-bs-target="#rejectModal<?= $leave['id'] ?>" title="Reject">
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
-                                            </form>
-                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                                                data-bs-target="#rejectModal<?= $leave['id'] ?>">
-                                                <i class="bi bi-x"></i>
-                                            </button>
+                                            </div>
 
                                             <!-- Reject Modal -->
                                             <div class="modal fade" id="rejectModal<?= $leave['id'] ?>" tabindex="-1">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content border-0 shadow">
                                                         <form method="POST">
-                                                            <div class="modal-header">
+                                                            <div class="modal-header bg-danger text-white">
                                                                 <h5 class="modal-title">Reject Request</h5>
-                                                                <button type="button" class="btn-close"
+                                                                <button type="button" class="btn-close btn-close-white"
                                                                     data-bs-dismiss="modal"></button>
                                                             </div>
-                                                            <div class="modal-body">
+                                                            <div class="modal-body text-start">
                                                                 <input type="hidden" name="leave_id" value="<?= $leave['id'] ?>">
                                                                 <input type="hidden" name="action" value="reject">
                                                                 <div class="mb-3">
-                                                                    <label class="form-label">Rejection Reason</label>
+                                                                    <label class="form-label fw-bold">Reason for Rejection</label>
                                                                     <textarea name="rejection_reason" class="form-control" rows="3"
-                                                                        placeholder="State reason for rejection..."></textarea>
+                                                                        placeholder="Please explain why this request is being rejected..."
+                                                                        required></textarea>
                                                                 </div>
                                                             </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary"
+                                                            <div class="modal-footer bg-light">
+                                                                <button type="button"
+                                                                    class="btn btn-link text-muted text-decoration-none"
                                                                     data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-danger">Reject</button>
+                                                                <button type="submit" class="btn btn-danger px-4">Confirm
+                                                                    Rejection</button>
                                                             </div>
                                                         </form>
                                                     </div>
                                                 </div>
                                             </div>
                                         <?php else: ?>
-                                            <span class="text-muted">-</span>
+                                            <button class="btn btn-sm btn-light text-muted" disabled>
+                                                <?= $leave['status'] === 'approved' ? 'Approved' : 'Rejected' ?>
+                                            </button>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
