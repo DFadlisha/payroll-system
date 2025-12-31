@@ -11,6 +11,7 @@ $pageTitle = 'Payroll Management - MI-NES Payroll';
 require_once '../includes/header.php';
 requireHR();
 require_once __DIR__ . '/../includes/contributions.php';
+require_once '../includes/mailer.php';
 
 $companyId = $_SESSION['company_id'];
 $message = '';
@@ -39,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
         $RATE_ATTENDANCE = floatval($ratesData['RATE_ATTENDANCE'] ?? 5.00);
         $RATE_LATE = floatval($ratesData['RATE_LATE'] ?? 1.00);
 
-        // Get all employees from profiles table (Supabase schema)
-        $stmt = $conn->prepare("SELECT * FROM profiles WHERE company_id = ?");
+        // Get all active employees from profiles table (Supabase schema)
+        $stmt = $conn->prepare("SELECT * FROM profiles WHERE company_id = ? AND is_active = true");
         $stmt->execute([$companyId]);
         $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -314,87 +315,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
 
                 $generated++;
 
-                // Send email notification to employee
-                $appUrl = Environment::get('APP_URL', 'http://localhost');
-                $payslipUrl = $appUrl . '/staff/payslips.php?id=' . $payrollUuid;
-
-                $monthName = getMonthName($selectedMonth);
-                $emailSubject = "Slip Gaji {$monthName} {$selectedYear} - MI-NES Payroll";
-
-                $emailBody = "
-                    <html>
-                    <head>
-                        <style>
-                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                            .header { background: #0d6efd; color: white; padding: 20px; text-align: center; }
-                            .content { background: #f8f9fa; padding: 30px; border: 1px solid #dee2e6; }
-                            .amount-box { background: #d4edda; border: 2px solid #28a745; padding: 15px; 
-                                         text-align: center; margin: 20px 0; border-radius: 5px; }
-                            .amount { font-size: 24pt; font-weight: bold; color: #155724; }
-                            .button { display: inline-block; padding: 12px 30px; background: #0d6efd; color: white; 
-                                     text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                            .info-table { width: 100%; margin: 15px 0; }
-                            .info-table td { padding: 8px; border-bottom: 1px solid #dee2e6; }
-                            .footer { text-align: center; padding: 20px; color: #6c757d; font-size: 12px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class='container'>
-                            <div class='header'>
-                                <h2>Slip Gaji Bulanan</h2>
-                            </div>
-                            <div class='content'>
-                                <p>Hi <strong>{$emp['full_name']}</strong>,</p>
-                                
-                                <p>Slip gaji anda untuk bulan <strong>{$monthName} {$selectedYear}</strong> telah disediakan.</p>
-                                
-                                <div class='amount-box'>
-                                    <div>Gaji Bersih (Net Pay)</div>
-                                    <div class='amount'>RM " . number_format($netPay, 2) . "</div>
-                                </div>
-                                
-                                <table class='info-table'>
-                                    <tr>
-                                        <td><strong>Gaji Pokok:</strong></td>
-                                        <td style='text-align: right;'>RM " . number_format($calculatedBasic, 2) . "</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Pendapatan Kasar:</strong></td>
-                                        <td style='text-align: right;'>RM " . number_format($grossPay, 2) . "</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Potongan:</strong></td>
-                                        <td style='text-align: right;'>RM " . number_format($epfEmployee + $socsoEmployee + $eisEmployee + $pcbTax, 2) . "</td>
-                                    </tr>
-                                    <tr style='background: #d4edda;'>
-                                        <td><strong>Gaji Bersih:</strong></td>
-                                        <td style='text-align: right;'><strong>RM " . number_format($netPay, 2) . "</strong></td>
-                                    </tr>
-                                </table>
-                                
-                                <div style='text-align: center;'>
-                                    <a href='{$payslipUrl}' class='button'>Lihat Slip Gaji</a>
-                                </div>
-                                
-                                <p style='margin-top: 20px;'>Atau salin pautan ini:</p>
-                                <p style='word-break: break-all; color: #0d6efd;'>{$payslipUrl}</p>
-                                
-                                <p style='margin-top: 20px; font-size: 10pt; color: #666;'>
-                                    <strong>Nota:</strong> Sila semak slip gaji anda dengan teliti. 
-                                    Jika ada sebarang pertanyaan, sila hubungi Jabatan HR.
-                                </p>
-                            </div>
-                            <div class='footer'>
-                                <p>Email ini dijana secara automatik. Sila jangan balas.</p>
-                                <p>&copy; " . date('Y') . " MI-NES Payroll System. All rights reserved.</p>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                ";
-
-                sendEmail($emp['email'], $emailSubject, $emailBody);
+                // Send email notification (Uses Mailer Class)
+                $mailer = new Mailer();
+                // Note: We might want to send this only when Finalized/Paid, usually Draft is silent.
+                // But existing logic sent it immediately. We'll stick to existing logic for now.
+                $mailer->sendPayslipNotification(
+                    $emp['email'],
+                    $emp['full_name'],
+                    $selectedMonth,
+                    $selectedYear,
+                    $netPay
+                );
             }
         }
 
@@ -415,8 +346,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     try {
         $conn = getConnection();
 
+        // Update status
+        $stmt = $conn->prepare("UPDATE payroll SET status = ?, updated_at = NOW() WHERE id = ? RETURNING user_id, net_pay");
+        // Returning clause might fail on MySQL, better fetch first if not Postgres.
+        // Since we are using Supabase (Postgres), RETURNING works.
+        // But to be safe and matching existing pattern:
         $stmt = $conn->prepare("UPDATE payroll SET status = ?, updated_at = NOW() WHERE id = ?");
         $stmt->execute([$newStatus, $payrollId]);
+
+        // If status is PAID, send notification
+        if ($newStatus === 'paid') {
+            // Fetch user info
+            $stmt = $conn->prepare("SELECT p.net_pay, p.month, p.year, u.email, u.full_name 
+                                  FROM payroll p 
+                                  JOIN profiles u ON p.user_id = u.id 
+                                  WHERE p.id = ?");
+            $stmt->execute([$payrollId]);
+            $payInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($payInfo) {
+                $mailer = new Mailer();
+                $mailer->sendPayslipNotification(
+                    $payInfo['email'],
+                    $payInfo['full_name'],
+                    $payInfo['month'],
+                    $payInfo['year'],
+                    $payInfo['net_pay']
+                );
+            }
+        }
 
         $message = 'Payroll status updated successfully.';
         $messageType = 'success';
@@ -508,7 +466,9 @@ try {
                             <label class="form-label mb-0 fw-bold">Month:</label>
                         </div>
                         <div class="col-auto">
-                            <select name="month" class="form-select border-0 bg-light" onchange="this.form.submit()">
+                            <select name="month" class="form-select border-0 bg-light shadow-sm cursor-pointer"
+                                style="padding-right: 3rem; background-position: right 1rem center;"
+                                onchange="this.form.submit()">
                                 <?php for ($m = 1; $m <= 12; $m++): ?>
                                     <option value="<?= $m ?>" <?= $m == $selectedMonth ? 'selected' : '' ?>>
                                         <?= getMonthName($m) ?>
@@ -517,7 +477,9 @@ try {
                             </select>
                         </div>
                         <div class="col-auto">
-                            <select name="year" class="form-select border-0 bg-light" onchange="this.form.submit()">
+                            <select name="year" class="form-select border-0 bg-light shadow-sm cursor-pointer"
+                                style="padding-right: 3rem; background-position: right 1rem center;"
+                                onchange="this.form.submit()">
                                 <?php for ($y = date('Y'); $y >= date('Y') - 2; $y--): ?>
                                     <option value="<?= $y ?>" <?= $y == $selectedYear ? 'selected' : '' ?>><?= $y ?></option>
                                 <?php endfor; ?>

@@ -14,8 +14,8 @@ $pageTitle = 'Employees - MI-NES Payroll System';
 $companyId = $_SESSION['company_id'];
 $action = $_GET['action'] ?? '';
 $editId = $_GET['id'] ?? null;
-$message = '';
-$messageType = '';
+$message = $_GET['msg'] ?? '';
+$messageType = isset($_GET['msg']) ? 'success' : ''; // Default to success for import msg
 
 // Process form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -115,16 +115,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Delete employee
+    // Delete employee (Soft Delete)
     if (isset($_POST['delete_employee'])) {
         $id = $_POST['employee_id'];
 
         try {
-            // Delete profile
-            $stmt = $conn->prepare("DELETE FROM profiles WHERE id = ? AND company_id = ?");
+            // Soft delete: Set is_active to FALSE
+            $stmt = $conn->prepare("UPDATE profiles SET is_active = FALSE, updated_at = NOW() WHERE id = ? AND company_id = ?");
             $stmt->execute([$id, $companyId]);
 
-            $message = 'Employee deleted successfully.';
+            $message = 'Employee deactivated successfully (Soft Delete).';
             $messageType = 'success';
         } catch (PDOException $e) {
             error_log("Delete employee error: " . $e->getMessage());
@@ -138,11 +138,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     $conn = getConnection();
 
+    $showInactive = isset($_GET['show_inactive']) && $_GET['show_inactive'] == '1';
+
     $sql = "SELECT p.*, c.name as company_name 
             FROM profiles p 
             LEFT JOIN companies c ON p.company_id = c.id 
-            WHERE p.company_id = ?
-            ORDER BY p.full_name ASC";
+            WHERE p.company_id = ?";
+
+    if (!$showInactive) {
+        $sql .= " AND p.is_active = TRUE";
+    }
+
+    $sql .= " ORDER BY p.is_active DESC, p.full_name ASC";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute([$companyId]);
@@ -190,9 +197,15 @@ try {
         </div>
         <div>
             <?php if ($action !== 'add' && !$editId): ?>
-                <a href="?action=add" class="btn btn-primary rounded-pill px-4">
-                    <i class="bi bi-plus-circle me-2"></i>Add Employee
-                </a>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-success rounded-pill px-4" data-bs-toggle="modal"
+                        data-bs-target="#importModal">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Import CSV
+                    </button>
+                    <a href="?action=add" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-plus-circle me-2"></i>Add Employee
+                    </a>
+                </div>
             <?php else: ?>
                 <a href="employees.php" class="btn btn-outline-secondary rounded-pill px-4">
                     <i class="bi bi-arrow-left me-2"></i>Back to List
@@ -469,7 +482,7 @@ try {
                                                     <input type="hidden" name="employee_id" value="<?= $emp['id'] ?>">
                                                     <input type="hidden" name="delete_employee" value="1">
                                                     <button type="button" onclick="confirmDelete(this.form)"
-                                                        class="btn btn-sm btn-outline-danger rounded-circle ms-1" title="Delete"
+                                                        class="btn btn-sm btn-outline-danger rounded-circle ms-1" title="Deactivate"
                                                         style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
@@ -489,6 +502,52 @@ try {
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Import Employees</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-2"></i>Please upload a <strong>CSV</strong> file.<br>
+                    <strong>Format:</strong> Full Name, Email, Role, IC Number, Phone, Basic Salary
+                </div>
+                <form action="import_employees.php" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select CSV File</label>
+                        <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success rounded-pill">Upload & Import</button>
+                    </div>
+                </form>
+                <div class="mt-3 text-center">
+                    <a href="#" class="text-decoration-none small fw-bold text-success" onclick="downloadTemplate()">
+                        <i class="bi bi-download me-1"></i>Download Template (CSV)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function downloadTemplate() {
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + "Full Name,Email,Role,IC Number,Phone,Basic Salary\n"
+            + "John Doe,john@example.com,staff,900101101234,0123456789,2000.00";
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "employee_import_template.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
 
 <script>
     function toggleRoleFields(roleSelect, prefix) {
@@ -527,13 +586,13 @@ try {
 
     function confirmDelete(form) {
         Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone!",
+            title: 'Deactivate Employee?',
+            text: "This will disable the account but preserve history.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonText: 'Yes, deactivate!',
             cancelButtonText: 'Cancel',
             borderRadius: '15px'
         }).then((result) => {

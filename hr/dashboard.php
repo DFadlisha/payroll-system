@@ -114,7 +114,7 @@ try {
         <div class="col-md-6 col-lg-3">
             <div class="stats-card purple">
                 <div class="stats-icon">
-                    <i class="bi bi-people-fill text-dark"></i>
+                    <i class="bi bi-people-fill"></i>
                 </div>
                 <div>
                     <p>Total Employees</p>
@@ -127,7 +127,7 @@ try {
         <div class="col-md-6 col-lg-3">
             <div class="stats-card green">
                 <div class="stats-icon">
-                    <i class="bi bi-check-circle-fill text-dark"></i>
+                    <i class="bi bi-check-circle-fill"></i>
                 </div>
                 <div>
                     <p>Present Today</p>
@@ -140,7 +140,7 @@ try {
         <div class="col-md-6 col-lg-3">
             <div class="stats-card orange">
                 <div class="stats-icon">
-                    <i class="bi bi-exclamation-circle-fill text-dark"></i>
+                    <i class="bi bi-exclamation-circle-fill"></i>
                 </div>
                 <div>
                     <p>Leave Requests</p>
@@ -153,7 +153,7 @@ try {
         <div class="col-md-6 col-lg-3">
             <div class="stats-card blue">
                 <div class="stats-icon">
-                    <i class="bi bi-cash-stack text-dark"></i>
+                    <i class="bi bi-cash-stack"></i>
                 </div>
                 <div>
                     <p>Pending Payroll</p>
@@ -164,15 +164,18 @@ try {
     </div>
 
     <!-- Content Split -->
-    <div class="row g-4">
+    <div class="row g-4 mb-5">
         <!-- Recent Attendance -->
         <div class="col-lg-8">
             <div class="card h-100 border-0 shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Live Attendance</h5>
-                    <a href="attendance.php" class="btn btn-sm btn-light text-primary rounded-pill px-3">View All</a>
+                <div
+                    class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center border-bottom-0 pb-0">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Live
+                        Attendance</h5>
+                    <a href="attendance.php" class="btn btn-sm btn-light text-primary fw-bold rounded-pill px-3">View
+                        All</a>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 pt-3">
                     <?php if (empty($todayAttendanceList)): ?>
                         <div class="text-center py-5">
                             <i class="bi bi-cup-hot text-muted" style="font-size: 2rem;"></i>
@@ -181,11 +184,11 @@ try {
                     <?php else: ?>
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light">
+                                <thead style="background: #F8FAFC;">
                                     <tr>
-                                        <th class="ps-4">Employee</th>
-                                        <th>Clock In</th>
-                                        <th>Status</th>
+                                        <th class="ps-4 text-uppercase text-secondary small fw-bold">Employee</th>
+                                        <th class="text-uppercase text-secondary small fw-bold">Clock In</th>
+                                        <th class="text-uppercase text-secondary small fw-bold">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -193,27 +196,29 @@ try {
                                         <tr>
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="user-avatar-sm me-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                                                        style="width: 35px; height: 35px; font-size: 0.8rem;">
+                                                    <div class="user-avatar-sm me-3 bg-white border shadow-sm text-primary rounded-circle d-flex align-items-center justify-content-center"
+                                                        style="width: 40px; height: 40px; font-size: 0.9rem;">
                                                         <?= strtoupper(substr($att['full_name'], 0, 1)) ?>
                                                     </div>
                                                     <div>
                                                         <div class="fw-bold text-dark">
-                                                            <?= htmlspecialchars($att['full_name']) ?></div>
+                                                            <?= htmlspecialchars($att['full_name']) ?>
+                                                        </div>
                                                         <small class="text-muted"
                                                             style="font-size: 0.75rem;"><?= ucwords(str_replace('_', ' ', $att['role'])) ?></small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="fw-bold"><?= formatTime($att['clock_in']) ?></div>
+                                                <div class="fw-bold text-dark"><?= formatTime($att['clock_in']) ?></div>
                                                 <?php if ($att['clock_in_photo']): ?>
-                                                    <small class="text-success"><i class="bi bi-camera"></i> Verified</small>
+                                                    <small class="text-success"><i class="bi bi-check-all"></i> Verified</small>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
                                                 <span
-                                                    class="badge rounded-pill bg-success bg-opacity-10 text-success px-3">Present</span>
+                                                    class="badge rounded-pill bg-success bg-opacity-10 text-success px-3 py-2">Present
+                                                    Today</span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -228,11 +233,13 @@ try {
         <!-- Pending Leaves Side Panel -->
         <div class="col-lg-4">
             <div class="card h-100 border-0 shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-envelope-paper me-2 text-warning"></i>Requests</h5>
-                    <span class="badge bg-warning text-dark pill"><?= count($recentLeaves) ?> New</span>
+                <div
+                    class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center border-bottom-0 pb-0">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-inbox me-2 text-warning"></i>Requests</h5>
+                    <span class="badge bg-warning bg-opacity-10 text-warning pill"><?= count($recentLeaves) ?>
+                        New</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body pt-3">
                     <?php if (empty($recentLeaves)): ?>
                         <div class="text-center py-5">
                             <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
@@ -240,31 +247,31 @@ try {
                         </div>
                     <?php else: ?>
                         <?php foreach ($recentLeaves as $leave): ?>
-                            <div class="p-3 mb-3 bg-light rounded-3 border-start border-4 border-warning">
+                            <div class="p-4 mb-3 bg-light rounded-4 border-0 hover-lift transition-all">
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fw-bold text-dark"><?= htmlspecialchars($leave['full_name']) ?></span>
                                     <small class="text-muted"><?= time_elapsed_string($leave['created_at']) ?></small>
                                 </div>
-                                <div class="mb-2">
-                                    <span class="badge bg-white text-dark border">
+                                <div class="mb-3">
+                                    <span class="badge bg-white text-dark shadow-sm border border-light">
                                         <?= getLeaveTypeName($leave['leave_type']) ?>
                                     </span>
-                                    <small class="ms-2 text-muted">
+                                    <small class="ms-2 text-secondary fw-semibold">
                                         <?= $leave['total_days'] ?> days
                                     </small>
                                 </div>
                                 <div class="d-grid">
                                     <a href="leaves.php?id=<?= $leave['id'] ?>"
-                                        class="btn btn-sm btn-white border text-primary bg-white">
-                                        Action Request
+                                        class="btn btn-sm btn-dark rounded-pill fw-bold">
+                                        Review Request
                                     </a>
                                 </div>
                             </div>
                         <?php endforeach; ?>
 
-                        <div class="text-center mt-3">
-                            <a href="leaves.php" class="text-decoration-none text-muted small">View all requests <i
-                                    class="bi bi-arrow-right"></i></a>
+                        <div class="text-center mt-4">
+                            <a href="leaves.php" class="text-decoration-none text-muted fw-bold small">View all requests <i
+                                    class="bi bi-arrow-right ms-1"></i></a>
                         </div>
                     <?php endif; ?>
                 </div>

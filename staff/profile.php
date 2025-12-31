@@ -8,12 +8,16 @@
  */
 
 $pageTitle = 'My Profile - MI-NES Payroll';
-require_once '../includes/header.php';
+require_once '../includes/functions.php';
+require_once '../config/database.php';
+require_once '../includes/language.php';
 requireLogin();
 
-if (isHR()) {
-    redirect('../hr/dashboard.php');
-}
+// HR check removed to allow HR to edit their own profile
+
+
+
+require_once '../includes/header.php';
 
 $userId = $_SESSION['user_id'];
 $message = '';

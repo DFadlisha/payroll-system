@@ -33,6 +33,8 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                     class="bi bi-geo-alt"></i> Locations</a></li>
         <li><a href="reports.php" <?= $currentPage === 'reports' ? 'class="active"' : '' ?>><i
                     class="bi bi-file-earmark-bar-graph"></i> <?= __('nav.reports') ?></a></li>
+        <li><a href="settings.php" <?= $currentPage === 'settings' ? 'class="active"' : '' ?>><i class="bi bi-gear"></i>
+                <?= __('Settings') ?></a></li>
         <li class="mt-auto" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 20px;">
             <a href="../auth/logout.php"><i class="bi bi-box-arrow-left"></i> <?= __('logout') ?></a>
         </li>

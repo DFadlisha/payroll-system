@@ -10,6 +10,7 @@
 $pageTitle = 'Leave Management - MI-NES Payroll';
 require_once '../includes/header.php';
 requireHR();
+require_once '../includes/mailer.php';
 
 $companyId = $_SESSION['company_id'];
 $message = '';
@@ -28,9 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$leaveId]);
         $leaveRequest = $stmt->fetch(PDO::FETCH_ASSOC);
 
+
+
         if ($leaveRequest) {
-            $emailHelper = new stdClass(); // Or just use boolean check
-            $emailSent = false;
+            $mailer = new Mailer();
 
             if ($action === 'approve') {
                 $stmt = $conn->prepare("
@@ -42,33 +44,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $messageType = 'success';
 
                 // Send Email
-                $subject = "Leave Approved - MI-NES Payroll";
-                $body = "
-                    <p>Hi {$leaveRequest['full_name']},</p>
-                    <p>Your leave request has been <strong>APPROVED</strong>.</p>
-                    <p><strong>Type:</strong> " . getLeaveTypeName($leaveRequest['leave_type']) . "<br>
-                    <strong>Date:</strong> " . formatDate($leaveRequest['start_date']) . " to " . formatDate($leaveRequest['end_date']) . "</p>
-                ";
-                sendEmail($leaveRequest['email'], $subject, $body);
+                $mailer->sendLeaveStatusNotification(
+                    $leaveRequest['email'],
+                    $leaveRequest['full_name'],
+                    'approved',
+                    $leaveRequest['leave_type'],
+                    formatDate($leaveRequest['start_date']),
+                    formatDate($leaveRequest['end_date'])
+                );
 
             } elseif ($action === 'reject') {
+                $rejectionReason = $_POST['rejection_reason'] ?? '';
                 $stmt = $conn->prepare("
                     UPDATE leaves SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ?
                     WHERE id = ?
                 ");
-                $rejectionReason = $_POST['rejection_reason'] ?? ''; // Fixed: Capture reason
-                $stmt->execute([$_SESSION['user_id'], $rejectionReason, $leaveId]); // Correct param order
+                $stmt->execute([$_SESSION['user_id'], $rejectionReason, $leaveId]);
                 $message = 'Leave request rejected.';
                 $messageType = 'warning';
 
                 // Send Email
-                $subject = "Leave Rejected - MI-NES Payroll";
-                $body = "
-                    <p>Hi {$leaveRequest['full_name']},</p>
-                    <p>Your leave request has been <strong>REJECTED</strong>.</p>
-                    <p><strong>Reason:</strong> " . htmlspecialchars($rejectionReason) . "</p>
-                ";
-                sendEmail($leaveRequest['email'], $subject, $body);
+                $mailer->sendLeaveStatusNotification(
+                    $leaveRequest['email'],
+                    $leaveRequest['full_name'],
+                    'rejected',
+                    $leaveRequest['leave_type'],
+                    formatDate($leaveRequest['start_date']),
+                    formatDate($leaveRequest['end_date'])
+                );
             }
         }
     } catch (PDOException $e) {

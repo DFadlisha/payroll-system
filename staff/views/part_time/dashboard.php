@@ -1,58 +1,54 @@
 <?php
-// PART-TIME DASHBOARD
+// PART TIME DASHBOARD
 ?>
-<!-- Part-Time Specific Welcome -->
-<div class="alert alert-primary mb-4">
-    <i class="bi bi-clock me-2"></i> Happy working! Don't forget to clock in/out for your hours.
-</div>
-
 <!-- Stats Cards -->
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-lg-3">
-        <div class="stats-card success">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2><?= $attendanceStats['present'] ?? 0 ?></h2>
-                    <p>Days Present</p>
-                </div>
-                <i class="bi bi-calendar-check" style="font-size: 2rem; opacity: 0.7;"></i>
+        <div class="stats-card green">
+            <div class="stats-icon">
+                <i class="bi bi-calendar-check"></i>
             </div>
-        </div>
-    </div>
-
-    <!-- Part-Timers focus on Hours Worked -->
-    <div class="col-md-6 col-lg-3">
-        <div class="stats-card info">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2><?= number_format($attendanceStats['total_hours'], 1) ?></h2>
-                    <p>Total Hours</p>
-                </div>
-                <i class="bi bi-stopwatch" style="font-size: 2rem; opacity: 0.7;"></i>
+            <div>
+                <p>Shifts Worked</p>
+                <h2><?= $attendanceStats['present'] ?? 0 ?></h2>
+                <small class="text-success fw-bold">Paid Daily</small>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
-        <div class="stats-card warning">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2><?= formatMoney($user['hourly_rate'] ?? 0) ?></h2>
-                    <p>Hourly Rate</p>
-                </div>
-                <i class="bi bi-coin" style="font-size: 2rem; opacity: 0.7;"></i>
+        <div class="stats-card purple">
+            <div class="stats-icon">
+                <i class="bi bi-clock"></i>
+            </div>
+            <div>
+                <p>Total Hours</p>
+                <h2><?= $attendanceStats['total_hours'] ?? 0 ?></h2>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
-        <div class="stats-card">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2><?= $latestPayslip ? formatMoney($latestPayslip['net_salary']) : '-' ?></h2>
-                    <p>Latest Pay</p>
-                </div>
-                <i class="bi bi-cash-stack" style="font-size: 2rem; opacity: 0.7;"></i>
+        <div class="stats-card red">
+            <div class="stats-icon">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <div>
+                <p>Absent</p>
+                <h2><?= $attendanceStats['absent'] ?? 0 ?></h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="stats-card blue">
+            <div class="stats-icon">
+                <i class="bi bi-cash"></i>
+            </div>
+            <div>
+                <p>Est. Earnings</p>
+                <!-- Simple est: RM 75 * days present -->
+                <h2>RM <?= number_format(($attendanceStats['present'] ?? 0) * 75, 0) ?></h2>
             </div>
         </div>
     </div>
