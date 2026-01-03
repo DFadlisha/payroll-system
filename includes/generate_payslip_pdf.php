@@ -32,9 +32,11 @@ try {
                pr.full_name, pr.ic_number, pr.epf_number, pr.socso_number, 
                pr.tax_number, pr.bank_name, pr.bank_account_number, 
                pr.employment_type, pr.role, pr.phone,
+               wl.name as assigned_location_name,
                c.name as company_name, c.address as company_address
         FROM payroll p
         JOIN profiles pr ON p.user_id = pr.id
+        LEFT JOIN work_locations wl ON pr.location_id = wl.id
         LEFT JOIN companies c ON pr.company_id = c.id
         WHERE p.id = ?
     ");
@@ -147,7 +149,10 @@ try {
     $pdf->Text($startX + 80, $yInfo + 4, 'TEL: ' . ($payslip['phone'] ?? '-'));
     $pdf->Text($startX + 140, $yInfo + 4, 'TYPE: ' . strtoupper($payslip['employment_type'] ?? '-'));
 
-    $pdf->SetY($yInfo + 10); // Start table after info
+    // Line 3: Location
+    $pdf->Text($startX, $yInfo + 8, 'WORK LOCATION: ' . strtoupper($payslip['assigned_location_name'] ?? 'OFFICE'));
+
+    $pdf->SetY($yInfo + 14); // Start table after info
 
     // --- ATTENDANCE GRID ---
     $hHeight = 3.8; // Aggressively small row height
@@ -213,12 +218,34 @@ try {
     $totalOT20 = 0;
     $totalOT30 = 0;
 
+    // OPTIMIZATION: Fetch holidays automatically via API/Cache (No Database dependency)
+    $holidayDates = [];
+    $apiHolidays = getMalaysiaHolidays($year); // Fetches from date.nager.at or local JSON
+
+    $monthPrefix = sprintf('%04d-%02d', $year, $month);
+
+    if (!empty($apiHolidays)) {
+        foreach ($apiHolidays as $hDate => $hName) {
+            // Filter only holidays for the current month
+            if (strpos($hDate, $monthPrefix) === 0) {
+                $holidayDates[] = $hDate;
+            }
+        }
+    }
+
     for ($d = 1; $d <= $daysInMonth; $d++) {
         $currentDate = sprintf('%04d-%02d-%02d', $year, $month, $d);
         $timestamp = strtotime($currentDate);
         $dayName = strtoupper(substr(date('D', $timestamp), 0, 3));
-        $isWeekend = in_array($dayName, ['SAT', 'SUN']);
-        $isPH = isPublicHoliday($currentDate);
+        // Weekend Logic: Sunday is always OFF. Saturday is OFF on 1st and 3rd week.
+        $isWeekend = ($dayName === 'SUN');
+        if ($dayName === 'SAT') {
+            $weekNum = ceil($d / 7); // 1-7=1st, 8-14=2nd, 15-21=3rd, etc.
+            if ($weekNum == 1 || $weekNum == 3) {
+                $isWeekend = true;
+            }
+        }
+        $isPH = in_array($currentDate, $holidayDates);
 
         $att = $attendanceMap[$currentDate] ?? null;
         $leave = $leaveMap[$currentDate] ?? null;

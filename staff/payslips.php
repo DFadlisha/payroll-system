@@ -72,8 +72,14 @@ try {
 
     // Router for payslips view
     // $user is available from staff_sidebar.php
-    $role = $user['role'] ?? '';
-    $type = $user['employment_type'] ?? '';
+    $role = strtolower($user['role'] ?? '');
+    $type = strtolower($user['employment_type'] ?? '');
+
+    // Normalize types (e.g. 'part-time' to 'part_time' to match folder names)
+    if ($type === 'part-time')
+        $type = 'part_time';
+    if ($role === 'part-time')
+        $role = 'part_time';
 
     if ($role === 'intern' || $type === 'intern') {
         include 'views/intern/payslips.php';

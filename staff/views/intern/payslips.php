@@ -29,34 +29,24 @@
 
             <!-- Employee Info -->
             <div class="row mb-4">
-                <div class="col-md-6">
+                <div class="col-12">
                     <table class="table table-borderless table-sm">
                         <tr>
-                            <td class="text-muted" width="40%">Name:</td>
+                            <td class="text-muted" width="20%">Name:</td>
                             <td><strong><?= htmlspecialchars($currentPayslip['full_name']) ?></strong></td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">IC No:</td>
-                            <td><?= htmlspecialchars($currentPayslip['ic_number'] ?? '-') ?></td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Role:</td>
-                            <td>Intern</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <table class="table table-borderless table-sm">
-                        <tr>
-                            <td class="text-muted" width="40%">Month/Year:</td>
+                            <td class="text-muted" width="20%">Month/Year:</td>
                             <td><strong><?= getMonthName($currentPayslip['month']) ?>
                                     <?= $currentPayslip['year'] ?></strong></td>
                         </tr>
                         <tr>
+                            <td class="text-muted">IC No:</td>
+                            <td><?= htmlspecialchars($currentPayslip['ic_number'] ?? '-') ?></td>
                             <td class="text-muted">Bank:</td>
                             <td><?= htmlspecialchars($currentPayslip['bank_name'] ?? '-') ?></td>
                         </tr>
                         <tr>
+                            <td class="text-muted">Role:</td>
+                            <td>Intern</td>
                             <td class="text-muted">Account No:</td>
                             <td><?= htmlspecialchars($currentPayslip['bank_account'] ?? '-') ?></td>
                         </tr>
@@ -66,7 +56,7 @@
 
             <!-- Earnings Only (Interns mostly just allowance) -->
             <div class="row justify-content-center">
-                <div class="col-md-8">
+                <div class="col-12">
                     <div class="card bg-light mb-3">
                         <div class="card-header bg-warning text-dark">
                             <i class="bi bi-cash me-2"></i>Allowance Details

@@ -58,9 +58,10 @@
             </div>
 
             <!-- Earnings & Deductions -->
-            <div class="row">
+            <?php $hasDeductions = ($currentPayslip['total_deductions'] > 0); ?>
+            <div class="row justify-content-center">
                 <!-- Earnings -->
-                <div class="col-md-6">
+                <div class="<?= $hasDeductions ? 'col-md-6' : 'col-md-8' ?>">
                     <div class="card bg-light mb-3">
                         <div class="card-header bg-success text-white">
                             <i class="bi bi-plus-circle me-2"></i>Earnings
@@ -102,48 +103,50 @@
                     </div>
                 </div>
 
-                <!-- Deductions -->
-                <div class="col-md-6">
-                    <div class="card bg-light mb-3">
-                        <div class="card-header bg-danger text-white">
-                            <i class="bi bi-dash-circle me-2"></i>Deductions
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-borderless table-sm mb-0">
-                                <tr>
-                                    <td>EPF</td>
-                                    <td class="text-end"><?= formatMoney($currentPayslip['epf_employee']) ?></td>
-                                </tr>
-                                <tr>
-                                    <td>SOCSO</td>
-                                    <td class="text-end"><?= formatMoney($currentPayslip['socso_employee']) ?></td>
-                                </tr>
-                                <tr>
-                                    <td>EIS</td>
-                                    <td class="text-end"><?= formatMoney($currentPayslip['eis_employee']) ?></td>
-                                </tr>
-                                <?php if ($currentPayslip['pcb_tax'] > 0): ?>
+                <?php if ($hasDeductions): ?>
+                    <!-- Deductions -->
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header bg-danger text-white">
+                                <i class="bi bi-dash-circle me-2"></i>Deductions
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless table-sm mb-0">
                                     <tr>
-                                        <td>PCB (Tax)</td>
-                                        <td class="text-end"><?= formatMoney($currentPayslip['pcb_tax']) ?></td>
+                                        <td>EPF</td>
+                                        <td class="text-end"><?= formatMoney($currentPayslip['epf_employee']) ?></td>
                                     </tr>
-                                <?php endif; ?>
-                                <?php if ($currentPayslip['other_deductions'] > 0): ?>
                                     <tr>
-                                        <td>Other Deductions</td>
-                                        <td class="text-end"><?= formatMoney($currentPayslip['other_deductions']) ?></td>
+                                        <td>SOCSO</td>
+                                        <td class="text-end"><?= formatMoney($currentPayslip['socso_employee']) ?></td>
                                     </tr>
-                                <?php endif; ?>
-                                <tr class="border-top">
-                                    <td><strong>Total Deductions</strong></td>
-                                    <td class="text-end">
-                                        <strong><?= formatMoney($currentPayslip['total_deductions']) ?></strong>
-                                    </td>
-                                </tr>
-                            </table>
+                                    <tr>
+                                        <td>EIS</td>
+                                        <td class="text-end"><?= formatMoney($currentPayslip['eis_employee']) ?></td>
+                                    </tr>
+                                    <?php if ($currentPayslip['pcb_tax'] > 0): ?>
+                                        <tr>
+                                            <td>PCB (Tax)</td>
+                                            <td class="text-end"><?= formatMoney($currentPayslip['pcb_tax']) ?></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <?php if ($currentPayslip['other_deductions'] > 0): ?>
+                                        <tr>
+                                            <td>Other Deductions</td>
+                                            <td class="text-end"><?= formatMoney($currentPayslip['other_deductions']) ?></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <tr class="border-top">
+                                        <td><strong>Total Deductions</strong></td>
+                                        <td class="text-end">
+                                            <strong><?= formatMoney($currentPayslip['total_deductions']) ?></strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Net Salary -->

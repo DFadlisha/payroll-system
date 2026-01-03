@@ -420,39 +420,26 @@ function getCurrentUser()
  */
 function isPublicHoliday($date)
 {
-    try {
-        $conn = getConnection();
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as count 
-            FROM public_holidays 
-            WHERE holiday_date = ? AND is_active = TRUE
-        ");
-        $stmt->execute([$date]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($result && intval($result['count']) > 0) {
-            return true;
-        }
-    } catch (PDOException $e) {
-        error_log("Public holiday check error: " . $e->getMessage());
-        return false;
-    }
-
-    // Fallback: use remote holiday lookup (cached)
+    // 1. Check Global Cache/API First (Fastest, No DB)
     $year = date('Y', strtotime($date));
     $holidays = getMalaysiaHolidays($year);
+
     if (isset($holidays[$date])) {
-        // Optionally cache into DB for future faster checks
-        try {
-            if (isset($conn)) {
-                $stmt = $conn->prepare(
-                    "INSERT INTO public_holidays (holiday_date, name, is_active, created_at) VALUES (?, ?, TRUE, NOW()) ON CONFLICT (holiday_date) DO UPDATE SET name = EXCLUDED.name, is_active = TRUE, updated_at = NOW()"
-                );
-                $stmt->execute([$date, $holidays[$date]]);
-            }
-        } catch (Exception $e) {
-            // ignore caching errors
-        }
         return true;
+    }
+
+    // 2. Fallback: Check DB for Custom Holidays (e.g. Company Specific)
+    try {
+        if (function_exists('getConnection')) {
+            $conn = getConnection();
+            $stmt = $conn->prepare("SELECT 1 FROM public_holidays WHERE holiday_date = ? AND is_active = TRUE LIMIT 1");
+            $stmt->execute([$date]);
+            if ($stmt->fetch()) {
+                return true;
+            }
+        }
+    } catch (Exception $e) {
+        // Ignore DB errors
     }
 
     return false;
@@ -765,43 +752,80 @@ function getMalaysiaHolidays($year = null, $force = false)
 
     $cacheFile = $cacheDir . "/holidays_MY_{$year}.json";
 
+    // 1. Try Cache
     if (!$force && file_exists($cacheFile)) {
         $raw = @file_get_contents($cacheFile);
         $data = $raw ? json_decode($raw, true) : null;
-        if (is_array($data)) {
+        if (is_array($data) && !empty($data)) {
             return $data;
         }
     }
 
+    // 2. Try API
     $url = "https://date.nager.at/api/v3/PublicHolidays/{$year}/MY";
     $context = stream_context_create([
         'http' => [
-            'timeout' => 5,
+            'timeout' => 3,
             'header' => "User-Agent: MI-NES-Payroll/1.0\r\n"
+        ],
+        'ssl' => [
+            "verify_peer" => false,
+            "verify_peer_name" => false
         ]
     ]);
 
     $raw = @file_get_contents($url, false, $context);
-    if ($raw === false) {
-        // If remote fetch failed, return empty array (do not overwrite cache)
-        return [];
-    }
-
-    $items = json_decode($raw, true);
-    if (!is_array($items))
-        return [];
-
+    $items = $raw ? json_decode($raw, true) : null;
     $result = [];
-    foreach ($items as $item) {
-        $d = $item['date'] ?? ($item['Date'] ?? null);
-        $name = $item['localName'] ?? $item['name'] ?? '';
-        if ($d) {
-            $result[$d] = $name;
+
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            $d = $item['date'] ?? ($item['Date'] ?? null);
+            $name = $item['localName'] ?? $item['name'] ?? '';
+            if ($d) {
+                $result[$d] = $name;
+            }
+        }
+        // Save to cache
+        if (!empty($result)) {
+            file_put_contents($cacheFile, json_encode($result));
+            return $result;
         }
     }
 
-    // Save to cache
-    file_put_contents($cacheFile, json_encode($result));
+    // 3. Fallback: Hardcoded Common Holidays (Offline Mode)
+    // Standard Fixed Date Holidays
+    $result = [
+        "$year-01-01" => "New Year's Day",
+        "$year-05-01" => "Labour Day",
+        "$year-08-31" => "National Day",
+        "$year-09-16" => "Malaysia Day",
+        "$year-12-25" => "Christmas Day",
+    ];
+
+    // Specific dates for 2024-2026 (Major moveable holidays)
+    if ($year == 2024) {
+        $result["2024-02-10"] = "Chinese New Year";
+        $result["2024-02-11"] = "Chinese New Year Day 2";
+        $result["2024-04-10"] = "Hari Raya Aidilfitri";
+        $result["2024-04-11"] = "Hari Raya Aidilfitri Day 2";
+        $result["2024-06-17"] = "Hari Raya Haji";
+        $result["2024-10-31"] = "Deepavali";
+    } elseif ($year == 2025) {
+        $result["2025-01-29"] = "Chinese New Year";
+        $result["2025-01-30"] = "Chinese New Year Day 2";
+        $result["2025-03-31"] = "Hari Raya Aidilfitri";
+        $result["2025-04-01"] = "Hari Raya Aidilfitri Day 2";
+        $result["2025-06-07"] = "Hari Raya Haji";
+        $result["2025-10-20"] = "Deepavali";
+    } elseif ($year == 2026) {
+        $result["2026-02-17"] = "Chinese New Year";
+        $result["2026-02-18"] = "Chinese New Year Day 2";
+        $result["2026-03-20"] = "Hari Raya Aidilfitri";
+        $result["2026-03-21"] = "Hari Raya Aidilfitri Day 2";
+        $result["2026-05-27"] = "Hari Raya Haji";
+        $result["2026-11-08"] = "Deepavali";
+    }
 
     return $result;
 }

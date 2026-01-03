@@ -45,6 +45,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
         $stmt->execute([$companyId]);
         $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // OPTIMIZATION: Pre-fetch holidays for the month to avoid redundant checks
+        $monthStart = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
+        $monthEnd = sprintf('%04d-%02d-%31', $selectedYear, $selectedMonth); // lazy end of month
+        // Actually better to use 't' or just 31 since check is simple
+        // Better: Fetch ALL holidays for the year once (cached)
+        $yearHolidays = getMalaysiaHolidays($selectedYear);
+        $holidayDates = [];
+        if (!empty($yearHolidays)) {
+            $monthPrefix = sprintf('%04d-%02d', $selectedYear, $selectedMonth);
+            foreach ($yearHolidays as $hDate => $hName) {
+                if (strpos($hDate, $monthPrefix) === 0) {
+                    $holidayDates[] = $hDate;
+                }
+            }
+        }
+
         $generated = 0;
 
         foreach ($employees as $emp) {
@@ -80,30 +96,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $role = $emp['role'] ?? 'staff';
 
                 // Priorities: Leader > Intern > Part Time > Staff
+                // Priorities: Leader > Intern > Part Time > Staff
                 if ($role === 'leader' || $employmentType === 'leader') {
-                    $basicSalary = 1900;
+                    $monthlyTarget = 1900;
                 } elseif ($employmentType === 'intern' || $role === 'intern') {
-                    $basicSalary = 800;
+                    $monthlyTarget = ($emp['basic_salary'] > 0) ? $emp['basic_salary'] : 800;
                 } elseif ($employmentType === 'part-time' || $role === 'part_time') {
-                    // Part-time: RM 75 per day * days worked
-                    $basicSalary = $daysWorked * 75;
+                    // Part-Time fixed daily rate logic is preserved or standardized? 
+                    // User said "all staff count by day". Part time was already RM 75/day.
+                    // We will keep RM 75 as the "target daily rate" equivalent or just use it directly.
+                    $monthlyTarget = 0; // Handled separately below
                 } elseif ($role === 'staff' || $employmentType === 'permanent') {
-                    if ($emp['basic_salary'] > 0) {
-                        $basicSalary = $emp['basic_salary']; // Use profile salary if set (e.g. 1700 or 1750)
-                    } else {
-                        $basicSalary = 2000; // Default staff salary
-                    }
+                    $monthlyTarget = ($emp['basic_salary'] > 0) ? $emp['basic_salary'] : 1750;
                 } else {
-                    $basicSalary = $emp['basic_salary'] ?? 0;
+                    $monthlyTarget = ($emp['basic_salary'] > 0) ? $emp['basic_salary'] : 0;
+                }
+
+                if ($employmentType === 'part-time' || $role === 'part_time') {
+                    $basicSalary = $daysWorked * 75; // Explicit daily rate
+                } else {
+                    // Standard Formula for ALL others: (Monthly / 26) * Days Worked
+                    if ($monthlyTarget > 0) {
+                        $dailyRate = $monthlyTarget / 26;
+                        $basicSalary = $daysWorked * $dailyRate;
+                    } else {
+                        $basicSalary = 0;
+                    }
                 }
 
                 $calculatedBasic = $basicSalary;
 
                 // 2. Base Hourly Rate Calculation
-                // Formula: Salary / 26 days / 8 hours
+                // Formula: MonthlyTarget / 26 days / 8 hours
                 $hourlyRate = 0;
-                if ($basicSalary > 0) {
-                    $hourlyRate = $basicSalary / 26 / 8;
+                if ($employmentType === 'part-time' || $role === 'part_time') {
+                    $hourlyRate = 75 / 8;
+                } elseif ($monthlyTarget > 0) {
+                    $hourlyRate = $monthlyTarget / 26 / 8;
                 }
 
                 // 3. Overtime Calculation (1.5x Normal, 3.0x Public Holiday)
@@ -132,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     $otDate = date('Y-m-d', strtotime($otRecord['clock_in']));
                     $otHrs = floatval($otRecord['overtime_hours']);
 
-                    if (isPublicHoliday($otDate)) {
+                    if (in_array($otDate, $holidayDates)) {
                         $otPublicHours += $otHrs;
                         $otPublic += $otHrs * $hourlyRate * 3.0; // 3x rate
                     } else {
@@ -213,8 +242,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $stmtLate->execute([$emp['id'], $selectedMonth, $selectedYear]);
                 $totalLateMinutes = $stmtLate->fetch()['total_late_minutes'] ?? 0;
 
-                if ($totalLateMinutes > 0 && $basicSalary > 0) {
-                    $perMinuteRate = ($basicSalary / 26 / 8) / 60;
+                if ($totalLateMinutes > 0 && $hourlyRate > 0) {
+                    $perMinuteRate = $hourlyRate / 60;
                     $lateDeduction = $perMinuteRate * $totalLateMinutes;
                 }
 
@@ -488,14 +517,37 @@ try {
                     </form>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                    <form method="POST" class="d-inline">
+                    <form method="POST" class="d-inline" id="generatePayrollForm">
                         <input type="hidden" name="month" value="<?= $selectedMonth ?>">
                         <input type="hidden" name="year" value="<?= $selectedYear ?>">
-                        <button type="submit" name="generate_payroll" class="btn btn-primary rounded-pill px-4"
-                            onclick="return confirm('Generate payroll for <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>?')">
+                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="confirmGenerate()">
                             <i class="bi bi-calculator me-2"></i>Generate Payroll
                         </button>
+                        <input type="hidden" name="generate_payroll" value="1">
                     </form>
+                    <script>
+                        function confirmGenerate() {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    title: 'Generate Payroll?',
+                                    text: "Generate payroll for <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>?",
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#0d6efd',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: 'Yes, generate it!'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        document.getElementById('generatePayrollForm').submit();
+                                    }
+                                });
+                            } else {
+                                if (confirm("Generate payroll for <?= getMonthName($selectedMonth) ?> <?= $selectedYear ?>?")) {
+                                    document.getElementById('generatePayrollForm').submit();
+                                }
+                            }
+                        }
+                    </script>
                 </div>
             </div>
         </div>

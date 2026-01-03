@@ -57,10 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 $stmt = $conn->prepare("
-                    INSERT INTO profiles (id, email, full_name, password, role, employment_type, basic_salary, hourly_rate, company_id, epf_number, socso_number, citizenship_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO profiles (id, email, full_name, password, role, employment_type, basic_salary, hourly_rate, company_id, epf_number, socso_number, citizenship_status, location_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$uuid, $email, $fullName, $hashedPassword, $role, $employmentType, $basicSalary, $hourlyRate, $companyId, $epfNumber, $socsoNumber, $citizenshipStatus]);
+                $locationId = !empty($_POST['location_id']) ? sanitize($_POST['location_id']) : null;
+                $stmt->execute([$uuid, $email, $fullName, $hashedPassword, $role, $employmentType, $basicSalary, $hourlyRate, $companyId, $epfNumber, $socsoNumber, $citizenshipStatus, $locationId]);
 
                 $message = 'Employee added successfully.';
                 $messageType = 'success';
@@ -99,10 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $conn->prepare("
                 UPDATE profiles SET full_name = ?, role = ?, employment_type = ?, basic_salary = ?, 
-                       hourly_rate = ?, epf_number = ?, socso_number = ?, citizenship_status = ?, updated_at = NOW()
+                       hourly_rate = ?, epf_number = ?, socso_number = ?, citizenship_status = ?, location_id = ?, updated_at = NOW()
                 WHERE id = ? AND company_id = ?
             ");
-            $stmt->execute([$fullName, $role, $employmentType, $basicSalary, $hourlyRate, $epfNumber, $socsoNumber, $citizenshipStatus, $id, $companyId]);
+            $locationId = !empty($_POST['location_id']) ? sanitize($_POST['location_id']) : null;
+            $stmt->execute([$fullName, $role, $employmentType, $basicSalary, $hourlyRate, $epfNumber, $socsoNumber, $citizenshipStatus, $locationId, $id, $companyId]);
 
             $message = 'Employee updated successfully.';
             $messageType = 'success';
@@ -154,6 +156,11 @@ try {
     $stmt = $conn->prepare($sql);
     $stmt->execute([$companyId]);
     $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch Locations for Dropdown
+    $stmt = $conn->prepare("SELECT id, name FROM work_locations WHERE company_id = ? AND is_active = TRUE ORDER BY name ASC");
+    $stmt->execute([$companyId]);
+    $locationsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get employee for editing
     $editEmployee = null;
@@ -262,6 +269,15 @@ try {
                             <label class="form-label">IC/ID Number</label>
                             <input type="text" name="ic_number" class="form-control">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Assigned Work Location</label>
+                            <select name="location_id" class="form-select">
+                                <option value="">-- No Location Assigned --</option>
+                                <?php foreach ($locationsList as $loc): ?>
+                                    <option value="<?= $loc['id'] ?>"><?= htmlspecialchars($loc['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="col-md-6" id="addEpfContainer">
                             <label class="form-label">EPF / KWSP No. <span class="text-muted">(for
                                     Staff/Leader)</span></label>
@@ -354,6 +370,17 @@ try {
                             <label class="form-label">IC/ID Number</label>
                             <input type="text" name="ic_number" class="form-control"
                                 value="<?= htmlspecialchars($editEmployee['ic_number'] ?? '') ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Assigned Work Location</label>
+                            <select name="location_id" class="form-select">
+                                <option value="">-- No Location Assigned --</option>
+                                <?php foreach ($locationsList as $loc): ?>
+                                    <option value="<?= $loc['id'] ?>" <?= ($editEmployee['location_id'] ?? '') === $loc['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($loc['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="col-md-6" id="editEpfContainer">
                             <label class="form-label">EPF / KWSP No. <span class="text-danger">*</span> <span
@@ -481,7 +508,7 @@ try {
                                                 <form method="POST" class="d-inline">
                                                     <input type="hidden" name="employee_id" value="<?= $emp['id'] ?>">
                                                     <input type="hidden" name="delete_employee" value="1">
-                                                    <button type="button" onclick="confirmDelete(this.form)"
+                                                    <button type="button" onclick="deleteEmployee(this)"
                                                         class="btn btn-sm btn-outline-danger rounded-circle ms-1" title="Deactivate"
                                                         style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
                                                         <i class="bi bi-trash"></i>
@@ -584,23 +611,30 @@ try {
         // Initial state set by PHP logic in style attribute, but consistent JS check is good.
     }
 
-    function confirmDelete(form) {
-        Swal.fire({
-            title: 'Deactivate Employee?',
-            text: "This will disable the account but preserve history.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, deactivate!',
-            cancelButtonText: 'Cancel',
-            borderRadius: '15px'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Submit the form
+    function deleteEmployee(btn) {
+        const form = btn.closest('form');
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Deactivate Employee?',
+                text: "This will disable the account but preserve history.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, deactivate!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        } else {
+            // Fallback if Swal fails
+            if (confirm("Are you sure you want to deactivate this employee?")) {
                 form.submit();
             }
-        });
+        }
     }
 </script>
 
