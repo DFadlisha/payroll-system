@@ -58,17 +58,19 @@ try {
     // 2. Fetch Attendance Data (Indexed by Date)
     $stmt = $conn->prepare("
         SELECT 
-            DATE(clock_in) as work_date,
-            clock_in, clock_out,
-            total_hours, overtime_hours,
-            ot_hours, ot_sunday_hours, ot_public_hours,
-            late_minutes,
-            status,
-            project_hours
-        FROM attendance
-        WHERE user_id = ? 
-        AND EXTRACT(MONTH FROM clock_in) = ? 
-        AND EXTRACT(YEAR FROM clock_in) = ?
+            DATE(a.clock_in) as work_date,
+            a.clock_in, a.clock_out,
+            a.total_hours, a.overtime_hours,
+            a.ot_hours, a.ot_sunday_hours, a.ot_public_hours,
+            a.late_minutes,
+            a.status,
+            a.project_hours,
+            wl.name as location_name
+        FROM attendance a
+        LEFT JOIN work_locations wl ON a.location_id = wl.id
+        WHERE a.user_id = ? 
+        AND EXTRACT(MONTH FROM a.clock_in) = ? 
+        AND EXTRACT(YEAR FROM a.clock_in) = ?
     ");
     $stmt->execute([$userId, $month, $year]);
     $attendanceRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -281,7 +283,8 @@ try {
         if ($att) {
             $txtIn = date('H:i', strtotime($att['clock_in']));
             $txtOut = $att['clock_out'] ? date('H:i', strtotime($att['clock_out'])) : '';
-            $txtLoc = 'PRESENT';
+            // Display actual location instead of generic 'PRESENT'
+            $txtLoc = strtoupper($att['location_name'] ?? $payslip['assigned_location_name'] ?? 'OFFICE');
 
             if ($isPH) {
                 $chkPH = '1';

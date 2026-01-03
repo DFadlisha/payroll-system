@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         phone = ?, 
                         address = ?, 
                         bank_name = ?, 
-                        bank_account = ?,
+                        bank_account_number = ?,
                         dependents = ?,
                         updated_at = NOW()
                     WHERE id = ?

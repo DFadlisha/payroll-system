@@ -27,13 +27,94 @@
     <div class="d-flex align-items-center gap-4">
         <?= getLanguageSwitcher() ?>
 
-        <!-- Notification Bell (Placeholder) -->
-        <div class="position-relative cursor-pointer text-secondary transition-hover">
-            <i class="bi bi-bell fs-5"></i>
-            <span
-                class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                <span class="visually-hidden">New alerts</span>
-            </span>
+        <!-- Notification Bell -->
+        <?php
+        $notifCount = 0;
+        $notifications = [];
+
+        // Check for alerts (HR)
+        if (isHR()) {
+            try {
+                if (function_exists('getConnection')) {
+                    $conn = getConnection();
+
+                    // 1. Pending Payroll
+                    $stmt = $conn->prepare("SELECT COUNT(*) FROM payroll WHERE status = 'draft'");
+                    $stmt->execute();
+                    $pendingPayroll = $stmt->fetchColumn();
+                    if ($pendingPayroll > 0) {
+                        $notifCount++;
+                        $notifications[] = ['msg' => "$pendingPayroll payslips pending review", 'link' => '../hr/payroll.php', 'icon' => 'bi-cash'];
+                    }
+
+                    // 2. Pending Leaves
+                    $stmt = $conn->prepare("SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'");
+                    $stmt->execute();
+                    $pendingLeaves = $stmt->fetchColumn();
+                    if ($pendingLeaves > 0) {
+                        $notifCount++;
+                        $notifications[] = ['msg' => "$pendingLeaves leave requests pending", 'link' => '../hr/leaves.php', 'icon' => 'bi-calendar-check'];
+                    }
+
+                    // 3. Present Today (Clocked In)
+                    $today = date('Y-m-d');
+                    $stmt = $conn->prepare("SELECT COUNT(DISTINCT user_id) FROM attendance WHERE DATE(clock_in) = ? AND status IN ('active', 'completed')");
+                    $stmt->execute([$today]);
+                    $presentToday = $stmt->fetchColumn();
+
+                    if ($presentToday > 0) {
+                        // We don't increment notifCount for this as it's 'info', not 'alert'. 
+                        // Or maybe we do to show activity? 
+                        // User said "INSERT NEW NOTIFICATION", implying they want to see it.
+                        // I will add it to the list but not necessarily trigger the 'red dot' unless you want alerts for everything.
+                        // Using consistent UI: Add to list.
+                        // Optional: $notifCount++; (if you want red dot for presence)
+                        // Let's keep red dot for "Actions Required" (Pending stuff), but show this in the list.
+                        $notifications[] = ['msg' => "$presentToday staff present today", 'link' => '../hr/attendance.php', 'icon' => 'bi-person-check', 'type' => 'info'];
+                    }
+                }
+            } catch (Exception $e) {
+            }
+        }
+        ?>
+        <div class="dropdown">
+            <div class="position-relative cursor-pointer text-secondary transition-hover" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="bi bi-bell fs-5"></i>
+                <?php if ($notifCount > 0): ?>
+                    <span
+                        class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                        <span class="visually-hidden">New alerts</span>
+                    </span>
+                <?php endif; ?>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-2 p-2" style="min-width: 250px;">
+                <li>
+                    <h6 class="dropdown-header text-uppercase small fw-bold">Notifications</h6>
+                </li>
+                <?php if (!empty($notifications)): ?>
+                    <?php foreach ($notifications as $notification):
+                        $isInfo = isset($notification['type']) && $notification['type'] === 'info';
+                        $iconBg = $isInfo ? 'bg-primary bg-opacity-10 text-primary' : 'bg-warning bg-opacity-10 text-warning';
+                        $subText = $isInfo ? 'Info' : 'Action Required';
+                        ?>
+                        <li>
+                            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center"
+                                href="<?= $notification['link'] ?>">
+                                <div class="<?= $iconBg ?> rounded-circle p-2 me-3">
+                                    <i class="bi <?= $notification['icon'] ?>"></i>
+                                </div>
+                                <div>
+                                    <small class="fw-bold d-block"><?= $notification['msg'] ?></small>
+                                    <span class="text-xs text-muted"><?= $subText ?></span>
+                                </div>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li><a class="dropdown-item rounded-3 py-3 text-center text-muted">No new notifications</a></li>
+                <?php endif; ?>
+            </ul>
         </div>
 
         <!-- User Profile (Minimal) -->
