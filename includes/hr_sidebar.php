@@ -26,13 +26,13 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         <li><a href="/shared/attendance.php" <?= $currentPage === 'attendance' ? 'class="active"' : '' ?>><i class="bi bi-search"></i> Monitor</a></li>
         <li><a href="/hr/leaves.php" <?= $currentPage === 'leaves' ? 'class="active"' : '' ?>><i class="bi bi-calendar-x"></i>
                 <?= __('nav.leaves') ?></a></li>
-        <li><a href="/hr/payroll.php" <?= $currentPage === 'payroll' ? 'class="active"' : '' ?>><i
+        <li><a href="/shared/payroll.php" <?= $currentPage === 'payroll' ? 'class="active"' : '' ?>><i
                     class="bi bi-cash-stack"></i> <?= __('nav.payroll') ?></a></li>
-        <li><a href="/hr/holidays.php" <?= $currentPage === 'holidays' ? 'class="active"' : '' ?>><i
+        <li><a href="/shared/holidays.php" <?= $currentPage === 'holidays' ? 'class="active"' : '' ?>><i
                     class="bi bi-calendar-event"></i> <?= __('nav.public_holidays') ?></a></li>
         <li><a href="/hr/locations.php" <?= $currentPage === 'locations' ? 'class="active"' : '' ?>><i
                     class="bi bi-geo-alt"></i> Locations</a></li>
-        <li><a href="/hr/reports.php" <?= $currentPage === 'reports' ? 'class="active"' : '' ?>><i
+        <li><a href="/shared/reports.php" <?= $currentPage === 'reports' ? 'class="active"' : '' ?>><i
                     class="bi bi-file-earmark-bar-graph"></i> <?= __('nav.reports') ?></a></li>
         <li><a href="/hr/settings.php" <?= $currentPage === 'settings' ? 'class="active"' : '' ?>><i class="bi bi-gear"></i>
                 <?= __('Settings') ?></a></li>
