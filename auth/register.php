@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="register-header">
                 <img src="../assets/logos/nes.jpg" alt="Company Logo" class="header-logo" id="headerLogo">
                 <h1><?= __('register_page.title') ?></h1>
-                <p id="headerCompanyName"><?= __('app_name') ?></p>
+                <p id="headerCompanyName"><?= strtoupper(__('app_name')) ?></p>
             </div>
 
             <div class="register-body">
@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <form method="POST" action="" class="needs-validation" novalidate>
                         <!-- Company Selection -->
                         <div class="company-selection">
-                            <div class="section-label">
+                            <div class="section-label text-uppercase small fw-bold">
                                 <i class="bi bi-building"></i> <?= __('login_page.select_company') ?> <span
                                     class="required">*</span>
                             </div>
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>"
                                             alt="<?= htmlspecialchars($company['name']) ?>" class="company-logo"
                                             onerror="this.src='../assets/logos/nes.jpg'">
-                                        <div class="company-name"><?= htmlspecialchars($company['name']) ?></div>
+                                        <div class="company-name"><?= strtoupper(htmlspecialchars($company['name'])) ?></div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -258,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Role Selection -->
                         <div class="mb-3">
-                            <label for="role" class="form-label">
+                            <label for="role" class="form-label text-uppercase small fw-bold">
                                 <i class="bi bi-shield-check me-1"></i> Account Type <span class="required">*</span>
                             </label>
                             <select class="form-select" id="role" name="role" required>
@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="mb-3">
-                            <label for="full_name" class="form-label">
+                            <label for="full_name" class="form-label text-uppercase small fw-bold">
                                 <i class="bi bi-person me-1"></i> Full Name <span class="required">*</span>
                             </label>
                             <input type="text" class="form-control" id="full_name" name="full_name"
@@ -283,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="mb-3">
-                            <label for="email" class="form-label">
+                            <label for="email" class="form-label text-uppercase small fw-bold">
                                 <i class="bi bi-envelope me-1"></i> Work Email <span class="required">*</span>
                             </label>
                             <input type="email" class="form-control" id="email" name="email"
@@ -292,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="mb-3">
-                            <label for="phone" class="form-label">
+                            <label for="phone" class="form-label text-uppercase small fw-bold">
                                 <i class="bi bi-telephone me-1"></i> Contact Number
                             </label>
                             <input type="tel" class="form-control" id="phone" name="phone" placeholder="+60 12-345 6789"
@@ -396,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="register-footer">
                 <p class="mb-0" id="footerCompany">
-                    &copy; <?= date('Y') ?> <?= $companies[0]['name'] ?? 'NES Solution & Network Sdn Bhd' ?>
+                    &copy; <?= date('Y') ?> <?= strtoupper($companies[0]['name'] ?? 'NES Solution & Network Sdn Bhd') ?>
                 </p>
             </div>
         </div>

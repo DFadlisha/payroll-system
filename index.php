@@ -55,6 +55,18 @@ $t = $translations[$lang];
     <title>MI-NES Payroll System - Home</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#FFD400">
+    <link rel="apple-touch-icon" href="assets/logos/nes.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
     <style>
         :root {
             --primary-color: #FFD400;
@@ -302,16 +314,16 @@ $t = $translations[$lang];
             <div class="row g-4 justify-content-center">
                 <div class="col-md-5">
                     <div class="company-logo">
-                        <img src="assets/logos/nes.jpg" alt="NES Solution & Network Sdn Bhd">
+                        <img src="assets/logos/nes.jpg" alt="NES SOLUTION & NETWORK SDN BHD">
                     </div>
-                    <h5 class="text-center mt-3">NES Solution & Network Sdn Bhd</h5>
+                    <h5 class="text-center mt-3">NES SOLUTION & NETWORK SDN BHD</h5>
                 </div>
 
                 <div class="col-md-5">
                     <div class="company-logo">
-                        <img src="assets/logos/mentari.png" alt="Mentari Infiniti Sdn Bhd">
+                        <img src="assets/logos/mentari.png" alt="MENTARI INFINITI SDN BHD">
                     </div>
-                    <h5 class="text-center mt-3">Mentari Infiniti Sdn Bhd</h5>
+                    <h5 class="text-center mt-3">MENTARI INFINITI SDN BHD</h5>
                 </div>
             </div>
         </div>
@@ -320,7 +332,7 @@ $t = $translations[$lang];
     <!-- Footer -->
     <footer>
         <div class="container">
-            <p class="mb-0">&copy; 2025 MI-NES Payroll System. <?= $t['powered_by'] ?> NES Solution & Network Sdn Bhd
+            <p class="mb-0">&copy; 2025 MI-NES PAYROLL SYSTEM. <?= $t['powered_by'] ?> NES SOLUTION & NETWORK SDN BHD
             </p>
         </div>
     </footer>

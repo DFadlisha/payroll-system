@@ -48,7 +48,7 @@
                     }
 
                     // 2. Pending Leaves
-                    $stmt = $conn->prepare("SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'");
+                    $stmt = $conn->prepare("SELECT COUNT(*) FROM leaves WHERE status = 'pending'");
                     $stmt->execute();
                     $pendingLeaves = $stmt->fetchColumn();
                     if ($pendingLeaves > 0) {

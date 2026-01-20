@@ -127,6 +127,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Custom Auth CSS -->
     <link href="../assets/css/auth.css" rel="stylesheet">
 
+    <!-- PWA -->
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="apple-touch-icon" href="../assets/logos/nes.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../sw.js');
+            });
+        }
+    </script>
+
     <style>
         .header-logo {
             width: 60px;
@@ -184,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <!-- Company Selection -->
                 <div class="company-select-container">
-                    <label class="form-label text-center d-block mb-2">
+                    <label class="form-label text-center d-block mb-2 text-uppercase small fw-bold">
                         <i class="bi bi-building me-1"></i> Select Company
                     </label>
                     <div class="company-cards">
@@ -197,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>"
                                     alt="<?= htmlspecialchars($company['name']) ?>" class="company-logo"
                                     onerror="this.src='../assets/logos/nes.jpg'">
-                                <div class="company-name"><?= htmlspecialchars($company['name']) ?></div>
+                                <div class="company-name"><?= strtoupper(htmlspecialchars($company['name'])) ?></div>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -207,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="hidden" name="company_id" id="companyId" value="<?= $companies[0]['id'] ?? 1 ?>">
 
                     <div class="mb-3">
-                        <label for="email" class="form-label">
+                        <label for="email" class="form-label text-uppercase small fw-bold">
                             <i class="bi bi-envelope me-1"></i> <?= __('login_page.email') ?>
                         </label>
                         <input type="email" class="form-control" id="email" name="email"
@@ -217,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="mb-3">
-                        <label for="password" class="form-label">
+                        <label for="password" class="form-label text-uppercase small fw-bold">
                             <i class="bi bi-lock me-1"></i> <?= __('login_page.password') ?>
                         </label>
                         <div class="password-wrapper">
@@ -253,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="login-footer">
                 <p class="mb-0" id="footerText">
                     &copy; <?= date('Y') ?> <span
-                        id="footerCompany"><?= htmlspecialchars($companies[0]['name'] ?? 'Company') ?></span>
+                        id="footerCompany"><?= strtoupper(htmlspecialchars($companies[0]['name'] ?? 'Company')) ?></span>
                 </p>
             </div>
         </div>

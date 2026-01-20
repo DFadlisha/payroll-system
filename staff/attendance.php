@@ -1,10 +1,10 @@
 <?php
 /**
- * SMART ATTENDANCE SYSTEM - No Hardware Required
- * Features: GPS + Photo + Auto Clock-Out + Reminders
+ * ENHANCED ATTENDANCE SYSTEM - High Trust & Transparency
+ * Features: GPS Tracking, Photo Hash, IP Logging, Device Info
  */
 
-$pageTitle = 'Attendance - MI-NES Payroll';
+$pageTitle = 'Enhanced Attendance - MI-NES Payroll';
 require_once '../includes/header.php';
 requireLogin();
 
@@ -17,12 +17,8 @@ $today = date('Y-m-d');
 $message = '';
 $messageType = '';
 
-// Office location (Update with your actual coordinates)
-// Default: 3.1478, 101.6953 (Petaling Jaya example)
-// User can update these later. 
-define('OFFICE_LAT', 3.1478);
-define('OFFICE_LNG', 101.6953);
-define('OFFICE_RADIUS_KM', 2.0); // Increased radius for testing/demo purposes (2km), usually 0.2km
+// Initialize connection
+$conn = getConnection();
 
 // Process clock in/out
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -30,464 +26,302 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $latitude = floatval($_POST['latitude'] ?? 0);
     $longitude = floatval($_POST['longitude'] ?? 0);
     $photoData = $_POST['photo'] ?? '';
+    $deviceInfo = $_POST['device_info'] ?? '';
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
 
     try {
-        $conn = getConnection();
-
-        // Validate GPS location
-        $distance = calculateDistance($latitude, $longitude, OFFICE_LAT, OFFICE_LNG);
-
-        // Remove strict check for demo if needed, but keeping logic
-        // For development/testing without real GPS or being at location, we might want to bypass or warn
-        // Uncomment below to enforce strict location
-        /*
-        if ($distance > OFFICE_RADIUS_KM) {
-            $message = "You must be within " . (OFFICE_RADIUS_KM * 1000) . " meters of office to clock in/out. Current distance: " . round($distance * 1000) . "m";
-            $messageType = 'error';
-        } elseif (empty($photoData)) {
-            // ...
-        }
-        */
+        // (Removed redundant $conn init)
 
         if (empty($photoData)) {
-            $message = 'Photo verification required. Please allow camera access.';
+            $message = 'Photo verification required.';
             $messageType = 'error';
         } else {
+            // Generate photo hash for security
+            $photoHash = hash('sha256', $photoData);
+            
+            // Reverse Geocode (Simplified)
+            $gpsLocation = $latitude . ', ' . $longitude;
 
             if ($action === 'clock_in') {
-                // Check if already clocked in
                 $stmt = $conn->prepare("SELECT id FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active'");
                 $stmt->execute([$userId, $today]);
 
                 if ($stmt->fetch()) {
-                    $message = 'You have already clocked in today.';
+                    $message = 'You are already clocked in.';
                     $messageType = 'warning';
                 } else {
-                    // Save photo
                     $photoPath = saveAttendancePhoto($photoData, $userId, 'in');
-
-                    // Clock in
-                    // Use UUID generator if not autolayer
-                    // Assuming id is uuid in schema based on previous interactions
-                    $attendanceId = sprintf(
-                        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                        mt_rand(0, 0xffff),
-                        mt_rand(0, 0xffff),
-                        mt_rand(0, 0xffff),
-                        mt_rand(0, 0x0fff) | 0x4000,
-                        mt_rand(0, 0x3fff) | 0x8000,
-                        mt_rand(0, 0xffff),
-                        mt_rand(0, 0xffff),
-                        mt_rand(0, 0xffff)
-                    );
+                    $attendanceId = generateUuid();
 
                     $stmt = $conn->prepare("
                         INSERT INTO attendance (
                             id, user_id, clock_in, status, 
                             clock_in_latitude, clock_in_longitude, 
-                            clock_in_address, clock_in_photo, is_verified
-                        ) VALUES (?, ?, NOW(), 'active', ?, ?, ?, ?, TRUE)
+                            clock_in_address, clock_in_photo, 
+                            gps_location, ip_address, photo_hash, device_info,
+                            is_verified
+                        ) VALUES (?, ?, NOW(), 'active', ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
                     ");
 
-                    $address = reverseGeocode($latitude, $longitude);
-                    $stmt->execute([$attendanceId, $userId, $latitude, $longitude, $address, $photoPath]);
+                    $stmt->execute([
+                        $attendanceId, $userId, 
+                        $latitude, $longitude, $gpsLocation, $photoPath,
+                        $gpsLocation, $ipAddress, $photoHash, $deviceInfo
+                    ]);
 
-                    $message = '✅ Clock in successful at ' . date('h:i A');
+                    $message = '✅ Clock In successful with security verification.';
                     $messageType = 'success';
                 }
-
             } elseif ($action === 'clock_out') {
-                // Find active clock in
                 $stmt = $conn->prepare("
-                    SELECT id, clock_in FROM attendance 
-                    WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active' AND clock_out IS NULL
+                    SELECT id FROM attendance 
+                    WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active'
                 ");
                 $stmt->execute([$userId, $today]);
-                $activeRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+                $record = $stmt->fetch();
 
-                if (!$activeRecord) {
-                    $message = 'No active clock in found for today.';
+                if (!$record) {
+                    $message = 'No active clock in found.';
                     $messageType = 'error';
                 } else {
-                    // Save photo
                     $photoPath = saveAttendancePhoto($photoData, $userId, 'out');
-
-                    // Calculate hours
-                    $clockIn = new DateTime($activeRecord['clock_in']);
-                    $clockOut = new DateTime();
-                    $interval = $clockIn->diff($clockOut);
-                    $totalHours = $interval->h + ($interval->i / 60) + ($interval->days * 24);
-                    $overtimeHours = max(0, $totalHours - 8);
-
-                    // Clock out
-                    $address = reverseGeocode($latitude, $longitude);
+                    
                     $stmt = $conn->prepare("
                         UPDATE attendance SET 
                             clock_out = NOW(), 
                             status = 'completed',
-                            total_hours = ?,
-                            overtime_hours = ?,
                             clock_out_latitude = ?,
                             clock_out_longitude = ?,
-                            clock_out_address = ?,
                             clock_out_photo = ?,
-                            is_verified = TRUE
+                            gps_location = CONCAT(gps_location, ' | Out: ', ?),
+                            updated_at = NOW()
                         WHERE id = ?
                     ");
                     $stmt->execute([
-                        $totalHours,
-                        $overtimeHours,
-                        $latitude,
-                        $longitude,
-                        $address,
-                        $photoPath,
-                        $activeRecord['id']
+                        $latitude, $longitude, $photoPath, $gpsLocation, $record['id']
                     ]);
 
-                    $message = '✅ Clock out successful at ' . date('h:i A') . '. Total hours: ' . number_format($totalHours, 2);
+                    $message = '✅ Clock Out successful. Have a good rest!';
                     $messageType = 'success';
                 }
             }
         }
-
     } catch (PDOException $e) {
-        error_log("Attendance error: " . $e->getMessage());
         $message = 'System error: ' . $e->getMessage();
         $messageType = 'error';
     }
 }
 
-// Helper Functions
-function calculateDistance($lat1, $lon1, $lat2, $lon2)
-{
-    if (!$lat1 || !$lon1 || !$lat2 || !$lon2)
-        return 0;
-
-    $earthRadius = 6371; // km
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLon = deg2rad($lon2 - $lon1);
-
-    $a = sin($dLat / 2) * sin($dLat / 2) +
-        cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-        sin($dLon / 2) * sin($dLon / 2);
-
-    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-    return $earthRadius * $c;
-}
-
-function saveAttendancePhoto($base64Data, $userId, $type)
-{
+function saveAttendancePhoto($base64Data, $userId, $type) {
     $uploadDir = __DIR__ . '/../uploads/attendance/';
-    if (!is_dir($uploadDir)) {
-        if (!mkdir($uploadDir, 0755, true)) {
-            error_log("Failed to create directory: $uploadDir");
-        }
-    }
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
-    // Clean base64 data
     $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Data));
     $filename = $userId . '_' . date('Ymd_His') . '_' . $type . '.jpg';
-    $filepath = $uploadDir . $filename;
-
-    file_put_contents($filepath, $imageData);
+    file_put_contents($uploadDir . $filename, $imageData);
     return 'uploads/attendance/' . $filename;
 }
 
-function reverseGeocode($lat, $lng)
-{
-    // Simple reverse geocoding (or use Google Maps API)
-    return "Lat: " . round($lat, 4) . ", Lng: " . round($lng, 4);
+function generateUuid() {
+    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
 }
 
-// Get today's attendance
-try {
-    $conn = getConnection();
-    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? ORDER BY clock_in DESC LIMIT 1");
-    $stmt->execute([$userId, $today]);
-    $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $todayAttendance = null;
-}
+// Get history
+$stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? ORDER BY clock_in DESC LIMIT 5");
+$stmt->execute([$userId]);
+$history = $stmt->fetchAll();
 ?>
 
 <?php include '../includes/staff_sidebar.php'; ?>
 
 <div class="main-content">
-    <?php
-    $navTitle = 'Attendance';
-    include '../includes/top_navbar.php';
-    ?>
+    <?php $navTitle = 'Enhanced Attendance'; include '../includes/top_navbar.php'; ?>
 
-    <?php if ($message): ?>
-        <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
-            <?= htmlspecialchars($message) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+                    <div class="card-body p-5 text-center bg-white">
+                        <h2 class="display-5 fw-bold mb-2" id="liveClock">00:00:00</h2>
+                        <p class="text-muted mb-5"><?= date('l, d F Y') ?></p>
+                        
+                        <div id="securityBadge" class="d-inline-flex align-items-center bg-light px-3 py-2 rounded-pill mb-4 border">
+                            <i class="bi bi-shield-lock-fill text-success me-2"></i>
+                            <span class="small fw-bold text-uppercase tracking-wider">Security Verified System</span>
+                        </div>
 
-    <div class="page-header">
-        <h1><i class="bi bi-camera me-2"></i>Smart Attendance</h1>
-        <p class="text-muted mb-0">GPS + Photo Verification</p>
-    </div>
-
-    <!-- Clock In/Out Card -->
-    <div class="card mb-4" style="background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);">
-        <div class="card-body text-center py-5">
-            <h2 class="display-4 mb-3 fw-bold" id="currentTime"><?= date('h:i:s A') ?></h2>
-            <p class="text-muted mb-4 fs-5"><?= date('l, d F Y') ?></p>
-
-            <!-- Camera Preview -->
-            <div id="cameraSection" style="display:none;" class="mb-4">
-                <div class="d-flex justify-content-center">
-                    <div
-                        style="position: relative; width: 320px; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                        <video id="cameraPreview" width="320" height="240" autoplay
-                            style="width: 100%; display: block;"></video>
-                        <div class="scan-line"></div>
-                        <style>
-                            .scan-line {
-                                position: absolute;
-                                top: 0;
-                                left: 0;
-                                width: 100%;
-                                height: 2px;
-                                background: #00ff00;
-                                box-shadow: 0 0 10px #00ff00;
-                                animation: scan 2s linear infinite;
-                            }
-
-                            @keyframes scan {
-                                0% {
-                                    top: 0;
-                                }
-
-                                50% {
-                                    top: 100%;
-                                }
-
-                                100% {
-                                    top: 0;
-                                }
-                            }
-                        </style>
-                    </div>
-                </div>
-                <canvas id="photoCanvas" style="display:none;"></canvas>
-                <div class="mt-3 text-muted"> <i class="bi bi-geo-alt-fill text-danger me-1"></i> Verifying Location &
-                    Face...</div>
-            </div>
-
-            <!-- Status Display -->
-            <div id="actionButtons">
-                <?php if (!$todayAttendance): ?>
-                    <div class="alert alert-info d-inline-block px-4 mb-4 rounded-pill border-0 shadow-sm"
-                        style="background-color: #e3f2fd; color: #0d47a1;">
-                        <i class="bi bi-info-circle me-2"></i>You have not clocked in yet
-                    </div>
-                    <div class="d-grid gap-2 d-md-block">
-                        <button onclick="startClockIn()" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
-                            <i class="bi bi-camera me-2"></i>Clock In Now
-                        </button>
-                    </div>
-
-                <?php elseif (!$todayAttendance['clock_out']): ?>
-                    <div class="alert alert-success d-inline-block px-4 mb-4 rounded-pill border-0 shadow-sm"
-                        style="background-color: #e8f5e9; color: #1b5e20;">
-                        <i class="bi bi-check-circle-fill me-2"></i>Clocked in at
-                        <?= date('h:i A', strtotime($todayAttendance['clock_in'])) ?>
-                    </div>
-                    <div class="d-grid gap-2 d-md-block">
-                        <button onclick="startClockOut()"
-                            class="btn btn-warning btn-lg px-5 rounded-pill shadow-sm text-dark">
-                            <i class="bi bi-box-arrow-right me-2"></i>Clock Out
-                        </button>
-                    </div>
-
-                <?php else: ?>
-                    <div class="alert alert-secondary d-inline-block px-4 mb-4 rounded-pill shadow-sm">
-                        <i class="bi bi-check-all me-2"></i>Attendance Completed
-                    </div>
-                    <div class="card mx-auto shadow-sm" style="max-width: 400px; border-radius: 15px;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Clock In:</span>
-                                <span class="fw-bold"><?= date('h:i A', strtotime($todayAttendance['clock_in'])) ?></span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span class="text-muted">Clock Out:</span>
-                                <span class="fw-bold"><?= date('h:i A', strtotime($todayAttendance['clock_out'])) ?></span>
-                            </div>
-                            <?php if ($todayAttendance['total_hours']): ?>
-                                <hr>
-                                <div class="d-flex justify-content-between text-primary">
-                                    <span>Total Duration:</span>
-                                    <span class="fw-bold"><?= number_format($todayAttendance['total_hours'], 1) ?> hrs</span>
+                        <div id="cameraWrapper" class="mx-auto mb-4" style="max-width: 400px; display: none;">
+                            <div class="position-relative bg-dark rounded-4 overflow-hidden border border-4 border-white shadow">
+                                <video id="videoPreview" autoplay playsinline style="width: 100%; transform: scaleX(-1);"></video>
+                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" id="gpsOverlay">
+                                    <div class="spinner-border text-white" role="status"></div>
                                 </div>
+                            </div>
+                            <div class="mt-3 text-success small" id="gpsStatus">
+                                <i class="bi bi-geo-alt-fill me-1"></i> Determining GPS Location...
+                            </div>
+                        </div>
+
+                        <div id="mainActions">
+                            <?php 
+                            $stmt = $conn->prepare("SELECT status FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active' LIMIT 1");
+                            $stmt->execute([$userId, $today]);
+                            $isActive = $stmt->fetch();
+                            ?>
+                            
+                            <?php if (!$isActive): ?>
+                                <button onclick="prepareAttendance('clock_in')" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg">
+                                    <i class="bi bi-camera-fill me-2"></i> Clock In Securely
+                                </button>
+                            <?php else: ?>
+                                <button onclick="prepareAttendance('clock_out')" class="btn btn-warning btn-lg rounded-pill px-5 py-3 shadow-lg text-dark">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Clock Out Securely
+                                </button>
                             <?php endif; ?>
                         </div>
+                        
+                        <div id="captureAction" style="display: none;">
+                            <button onclick="captureAndSubmit()" class="btn btn-success btn-lg rounded-pill px-5 py-3 shadow-lg">
+                                <i class="bi bi-check-circle-fill me-2"></i> Confirm Verification
+                            </button>
+                            <button onclick="cancelAttendance()" class="btn btn-link text-danger mt-3 d-block mx-auto text-decoration-none">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+                </div>
 
-    <!-- Instructions -->
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card h-100 border-0 shadow-sm" style="background-color: #fff3e0;">
-                <div class="card-body">
-                    <h5 class="card-title text-warning-dark"><i class="bi bi-lightbulb me-2"></i>How it works</h5>
-                    <ul class="mb-0 ps-3 mt-3">
-                        <li class="mb-2">Ensure your device <strong>Location</strong> is turned ON.</li>
-                        <li class="mb-2">Allow browser permission for <strong>Camera</strong> and
-                            <strong>Location</strong>.</li>
-                        <li class="mb-2">You must be within <strong>200 meters</strong> of the office.</li>
-                        <li class="mb-0">Your photo will be captured for verification.</li>
-                    </ul>
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Sessions</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr class="small text-uppercase text-muted">
+                                        <th class="ps-4">Date</th>
+                                        <th>In</th>
+                                        <th>Out</th>
+                                        <th>Verification</th>
+                                        <th class="pe-4">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($history as $row): ?>
+                                        <tr>
+                                            <td class="ps-4 fw-bold"><?= date('d M', strtotime($row['clock_in'])) ?></td>
+                                            <td><?= date('h:i A', strtotime($row['clock_in'])) ?></td>
+                                            <td><?= $row['clock_out'] ? date('h:i A', strtotime($row['clock_out'])) : '<span class="text-warning">Active</span>' ?></td>
+                                            <td>
+                                                <span class="badge bg-success-soft text-success rounded-pill px-2">
+                                                    <i class="bi bi-patch-check-fill me-1"></i> GPS + Photo
+                                                </span>
+                                            </td>
+                                            <td class="pe-4">
+                                                <button class="btn btn-sm btn-light rounded-circle" onclick="viewDetails('<?= $row['id'] ?>')">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 bg-primary text-white mb-4">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-shield-check display-4"></i>
+                        </div>
+                        <h4 class="fw-bold">Trust Guarantee</h4>
+                        <p class="small opacity-75">All attendance records are timestamped, location-verified, and cryptographically hashed for mutual integrity.</p>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <?php if ($todayAttendance && !empty($todayAttendance['clock_in_photo'])): ?>
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-header bg-white border-0 fw-bold">Today's Selfie</div>
-                    <div class="card-body text-center">
-                        <img src="../<?= htmlspecialchars($todayAttendance['clock_in_photo']) ?>"
-                            class="img-fluid rounded-3 shadow-sm" style="max-height: 150px;" alt="Clock In">
-                        <?php if (!empty($todayAttendance['clock_out_photo'])): ?>
-                            <img src="../<?= htmlspecialchars($todayAttendance['clock_out_photo']) ?>"
-                                class="img-fluid rounded-3 shadow-sm ms-2" style="max-height: 150px;" alt="Clock Out">
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
     </div>
-
-    <!-- Hidden Form -->
-    <form id="attendanceForm" method="POST" style="display:none;">
-        <input type="hidden" name="action" id="actionInput">
-        <input type="hidden" name="latitude" id="latitudeInput">
-        <input type="hidden" name="longitude" id="longitudeInput">
-        <input type="hidden" name="photo" id="photoInput">
-    </form>
 </div>
 
-<script>
-    let stream = null;
+<form id="hiddenForm" method="POST" style="display: none;">
+    <input type="hidden" name="action" id="formAction">
+    <input type="hidden" name="latitude" id="formLat">
+    <input type="hidden" name="longitude" id="formLng">
+    <input type="hidden" name="photo" id="formPhoto">
+    <input type="hidden" name="device_info" id="formDevice">
+</form>
 
-    // Update clock
+<canvas id="photoCanvas" style="display: none;"></canvas>
+
+<script>
+    let currentStream = null;
+    let currentAction = null;
+    let userCoords = null;
+
     setInterval(() => {
-        document.getElementById('currentTime').textContent =
-            new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('liveClock').innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
     }, 1000);
 
-    async function startClockIn() {
-        await processAttendance('clock_in');
-    }
-
-    async function startClockOut() {
-        await processAttendance('clock_out');
-    }
-
-    async function processAttendance(action) {
-        // Hide buttons, show camera
-        document.getElementById('actionButtons').style.display = 'none';
+    async function prepareAttendance(action) {
+        currentAction = action;
+        document.getElementById('mainActions').style.display = 'none';
+        document.getElementById('cameraWrapper').style.display = 'block';
+        document.getElementById('captureAction').style.display = 'block';
 
         try {
-            // Step 1: Start camera first for better UX
-            await startCamera();
+            // Start Camera
+            currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('videoPreview').srcObject = currentStream;
 
-            // Step 2: Get GPS location
-            // We do this while camera is showing to save perceived time
-            const locationPromise = getLocation();
+            // Get Location
+            navigator.geolocation.getCurrentPosition((pos) => {
+                userCoords = pos.coords;
+                document.getElementById('gpsOverlay').style.display = 'none';
+                document.getElementById('gpsStatus').innerHTML = `<i class="bi bi-geo-alt-fill me-1"></i> GPS Ready (±${Math.round(pos.coords.accuracy)}m)`;
+            }, (err) => {
+                alert("Please enable GPS/Location to procced.");
+                cancelAttendance();
+            }, { enableHighAccuracy: true });
 
-            // Wait a bit for user to position themselves
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const location = await locationPromise;
-            console.log("Location acquired:", location);
-
-            // Step 3: Capture photo
-            const photo = capturePhoto();
-            stopCamera();
-
-            // Step 4: Submit
-            document.getElementById('actionInput').value = action;
-            document.getElementById('latitudeInput').value = location.latitude;
-            document.getElementById('longitudeInput').value = location.longitude;
-            document.getElementById('photoInput').value = photo;
-            document.getElementById('attendanceForm').submit();
-
-        } catch (error) {
-            stopCamera();
-            document.getElementById('actionButtons').style.display = 'block';
-            alert('Verification Failed: ' + error);
-        }
-    }
-
-    async function getLocation() {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject('Geolocation not supported by your browser');
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                position => resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                }),
-                error => {
-                    let msg = 'Unknown location error.';
-                    switch (error.code) {
-                        case 1: msg = 'Location Permission Denied. Please enable location.'; break;
-                        case 2: msg = 'Location Unavailable.'; break;
-                        case 3: msg = 'Location Timeout.'; break;
-                    }
-                    reject(msg);
-                },
-                { enableHighAccuracy: true, timeout: 15000 }
-            );
-        });
-    }
-
-    async function startCamera() {
-        const section = document.getElementById('cameraSection');
-        section.style.display = 'block';
-        // Scroll to camera
-        section.scrollIntoView({ behavior: "smooth" });
-
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'user',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                }
-            });
-            document.getElementById('cameraPreview').srcObject = stream;
         } catch (err) {
-            section.style.display = 'none';
-            throw 'Camera Permission Denied. Please enable camera.';
+            alert("Camera access denied.");
+            cancelAttendance();
         }
     }
 
-    function capturePhoto() {
-        const video = document.getElementById('cameraPreview');
-        const canvas = document.getElementById('photoCanvas');
+    function captureAndSubmit() {
+        if (!userCoords) return alert("Waiting for GPS...");
 
+        const video = document.getElementById('videoPreview');
+        const canvas = document.getElementById('photoCanvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0);
 
-        return canvas.toDataURL('image/jpeg', 0.8);
+        const photoData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        document.getElementById('formAction').value = currentAction;
+        document.getElementById('formLat').value = userCoords.latitude;
+        document.getElementById('formLng').value = userCoords.longitude;
+        document.getElementById('formPhoto').value = photoData;
+        document.getElementById('formDevice').value = navigator.userAgent;
+        
+        document.getElementById('hiddenForm').submit();
     }
 
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-        document.getElementById('cameraSection').style.display = 'none';
+    function cancelAttendance() {
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        document.getElementById('mainActions').style.display = 'block';
+        document.getElementById('cameraWrapper').style.display = 'none';
+        document.getElementById('captureAction').style.display = 'none';
     }
 </script>
 

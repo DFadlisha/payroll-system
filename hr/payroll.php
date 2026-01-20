@@ -56,10 +56,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
             $monthPrefix = sprintf('%04d-%02d', $selectedYear, $selectedMonth);
             foreach ($yearHolidays as $hDate => $hName) {
                 if (strpos($hDate, $monthPrefix) === 0) {
-                    $holidayDates[] = $hDate;
+                    // Check if holiday falls on a working day (Mon-Sat)
+                    // Malaysian industrial standard usually considers Sat a working day for 26-day basis.
+                    $dayOfWeek = date('w', strtotime($hDate));
+                    if ($dayOfWeek != 0) { // Not Sunday
+                        $holidayDates[] = $hDate;
+                    }
                 }
             }
         }
+        $publicHolidayCount = count($holidayDates);
 
         $generated = 0;
 
@@ -88,6 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $regularHours = $attendance['regular_hours'] ?? 0;
                 $otHours = $attendance['total_ot_hours'] ?? 0;
 
+                // Get Approved Paid Leaves for the month
+                $stmtLeaves = $conn->prepare("
+                    SELECT COALESCE(SUM(total_days), 0) as leave_days
+                    FROM leaves 
+                    WHERE user_id = ? 
+                    AND status = 'approved' 
+                    AND leave_type IN ('annual', 'medical', 'emergency', 'nrl', 'other')
+                    AND (
+                        (EXTRACT(MONTH FROM start_date) = ? AND EXTRACT(YEAR FROM start_date) = ?)
+                        OR 
+                        (EXTRACT(MONTH FROM end_date) = ? AND EXTRACT(YEAR FROM end_date) = ?)
+                    )
+                ");
+                $stmtLeaves->execute([$emp['id'], $selectedMonth, $selectedYear, $selectedMonth, $selectedYear]);
+                $paidLeaveDays = floatval($stmtLeaves->fetch()['leave_days'] ?? 0);
+
+                // Total Paid Days = Days Worked + Paid Leaves + Public Holidays
+                // "No Work No Pay" means if they are absent (not in attendance, no leave, no holiday), they aren't paid.
+                $totalPaidDays = $daysWorked + $paidLeaveDays + $publicHolidayCount;
+                
+                // Cap total paid days at 26 for standard monthly calculation if it exceeds?
+                // Actually, if they work more, they get more? Usually monthly is capped at "target".
+                // But for fairness, we'll let it be. Usually it shouldn't exceed 26-27.
+                $effectivePaidDays = $totalPaidDays;
+
                 // --- NEW CALCULATION LOGIC START ---
 
                 // 1. Determine Basic Salary based on Role/Employment Type
@@ -113,12 +144,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 }
 
                 if ($employmentType === 'part-time' || $role === 'part_time') {
-                    $basicSalary = $daysWorked * 75; // Explicit daily rate
+                    $basicSalary = $daysWorked * 75; // Part-time strictly by days worked
                 } else {
-                    // Standard Formula for ALL others: (Monthly / 26) * Days Worked
+                    // Standard Formula for ALL others: (Monthly / 26) * Effective Paid Days
                     if ($monthlyTarget > 0) {
                         $dailyRate = $monthlyTarget / 26;
-                        $basicSalary = $daysWorked * $dailyRate;
+                        $basicSalary = $effectivePaidDays * $dailyRate;
+                        
+                        // Capping basic salary to monthly target for permanent staff
+                        // to avoid pay exceeding target due to 27 working days months
+                        if ($employmentType === 'permanent' || $role === 'staff' || $role === 'leader') {
+                            if ($basicSalary > $monthlyTarget && $effectivePaidDays >= 26) {
+                                $basicSalary = $monthlyTarget;
+                            }
+                        }
                     } else {
                         $basicSalary = 0;
                     }
@@ -165,16 +204,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                         $otPublicHours += $otHrs;
                         $otPublic += $otHrs * $hourlyRate * 3.0; // 3x rate
                     } else {
-                        // All other OT (including Sunday if any) treated as Normal or ignored?
-                        // Assuming standard practice: Sunday is rest day, but user requested remove Sunday OT.
-                        // We will treat non-public holiday OT as Normal (1.5x) unless it falls on Sunday and we strictly ignore it?
-                        // "yes but remove sun ot" -> implying don't calculate Sunday rate, or treat Sunday as normal day?
-                        // Interpreting as: Do not have a special Sunday rate category. Treat as normal 1.5 if worked?
-                        // Or if day is Sunday, exclude completely?
-                        // "remove sun ot" usually means simply don't have a separate sunday category.
-                        // I will treat it as normal OT (1.5).
-                        $otNormalHours += $otHrs;
-                        $otNormal += $otHrs * $hourlyRate * 1.5; // 1.5x rate
+                        // Check if day is Sunday
+                        $dayOfWeek = date('w', strtotime($otDate));
+                        if ($dayOfWeek != 0) { // Not Sunday
+                            $otNormalHours += $otHrs;
+                            $otNormal += $otHrs * $hourlyRate * 1.5; // 1.5x rate
+                        }
+                        // Sunday OT is strictly 0 as per "remove sun ot" request
                     }
                 }
 
@@ -267,8 +303,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
 
                 if ($employmentType !== 'intern' && $role !== 'intern') {
                     // 1. Determine parameters
-                    $age = 30; // TODO: Calculate from DOB if available in profiles
-                    // if (isset($emp['dob'])) $age = date_diff(date_create($emp['dob']), date_create('today'))->y;
+                    $age = 30; // Default
+                    if (!empty($emp['ic_number'])) {
+                        // Extract YYMMDD from IC
+                        $ic = preg_replace('/[^0-9]/', '', $emp['ic_number']);
+                        if (strlen($ic) >= 6) {
+                            $yy = substr($ic, 0, 2);
+                            $mm = substr($ic, 2, 2);
+                            $dd = substr($ic, 4, 2);
+                            $yearPrefix = ($yy > date('y') + 10) ? '19' : '20'; // Simple heuristic
+                            $dob = $yearPrefix . $yy . '-' . $mm . '-' . $dd;
+                            $age = date_diff(date_create($dob), date_create('today'))->y;
+                        }
+                    }
 
                     // 2. EPF (KWSP)
                     $epfRates = ContributionCalculator::calculateEPF($grossPay, $citizenship, $age);

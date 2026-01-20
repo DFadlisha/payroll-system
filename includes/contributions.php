@@ -20,11 +20,10 @@ class ContributionCalculator
         // Note: EPF act usually specifies ranges. "Exceeding X but not exceeding Y".
 
         if ($citizenship === 'non_citizen') {
-            // Part F: Non-Citizens
-            // Employer 2%, Employee 2%
-            // "The total contribution which includes cents shall be rounded to the next ringgit."
-            $share_employer = ceil($salary * 0.02);
-            $share_employee = ceil($salary * 0.02);
+            // Part F: Non-Citizens (Registered)
+            // Employer share is flat RM 5.00, Employee share is 11%
+            $share_employer = 5.00;
+            $share_employee = ceil($salary * 0.11);
             return ['employee' => $share_employee, 'employer' => $share_employer];
         }
 
@@ -104,37 +103,39 @@ class ContributionCalculator
 
     private static function getEPFLookup($salary, $is_senior)
     {
-        // This is a condensed logic of the EPF Part A Table
-        // Note: The table has variable steps (RM 20 steps, then RM 100 steps).
-        // It is recommended to implement the full array for production.
-        // Here is a "Smart Approximation" logic that matches the table closely for standard ranges.
+        // For wages not exceeding RM 20,000, EPF must follow the lookup table.
+        // The table uses intervals: 
+        // - RM 20 intervals for wages up to RM 5,000
+        // - RM 100 intervals for wages between RM 5,001 and RM 20,000.
+        // We simulate the lookup table's "Wages up to X" logic.
 
-        if ($is_senior) {
-            // For seniors, rate is approx 4% Employer, 0% Employee (Part E/C)
-            // Using logic from Part E table provided
-            // Ranges 10-20 -> 2.00/2.00... wait, Employee is 0.00 in Part E snippet
-            // Employer approx 4%
-
-            // Simplification for Senior (Part E)
-            //$employer_share = floor($salary * 0.04); 
-            // The snippet explicitly shows "Employee RM 0.00" for wages up to RM 400+.
-            // Assuming Employee 0% for seniors based on this snippet.
-            return ['employer' => ceil($salary * 0.04), 'employee' => 0];
+        $threshold = 0;
+        if ($salary <= 5000) {
+            // RM 20 intervals
+            $threshold = ceil($salary / 20) * 20;
+            $emp_rate = 0.11;
+            $employer_rate = 0.13;
+        } else {
+            // RM 100 intervals
+            $threshold = ceil($salary / 100) * 100;
+            $emp_rate = 0.11;
+            $employer_rate = 0.12;
         }
 
-        // Standard Citizens (Part A)
-        // Table logic is roughly: Employer 13% (wages < 5k) / 12% (> 5k), Employee 11%.
-        // But statutory tables round up to next Ringgit.
-
-        $emp_rate = 0.11;
-        $employer_rate = ($salary <= 5000) ? 0.13 : 0.12;
-
-        // Note: The "Bonus" note says 13% if bonus pushes > 5000.
-        // Standard wages > 5000 use 12%.
+        if ($is_senior) {
+            // Part C/E (>= 60 years)
+            // Employee Share: 0.00 (Standard) or 5.5% (voluntary) - Default 0%
+            // Employer Share: 4% (wages > 5000 is 4%, <= 5000 is also approx 4/6.5% depending on Part)
+            // Most common: Employer 4%, Employee 0% for those > 60 years.
+            return [
+                'employer' => ceil($threshold * 0.04),
+                'employee' => 0
+            ];
+        }
 
         return [
-            'employer' => ceil($salary * $employer_rate),
-            'employee' => ceil($salary * $emp_rate)
+            'employer' => ceil($threshold * $employer_rate),
+            'employee' => ceil($threshold * $emp_rate)
         ];
     }
 }

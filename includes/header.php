@@ -119,21 +119,22 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
         }
 
         .sidebar-header {
-            padding: 0 32px 32px;
+            padding: 32px;
             margin-bottom: 10px;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column; /* Stack vertically for long names */
+            align-items: flex-start;
+            gap: 8px;
         }
 
         .sidebar-header h3 {
             color: #0F172A;
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.1rem; /* Reduced from 1.5rem */
             font-weight: 800;
             letter-spacing: -0.5px;
-            white-space: nowrap;
-            /* Prevent wrapping */
+            line-height: 1.2;
+            word-break: break-word; /* Allow wrapping for long names */
         }
 
         .sidebar-menu {
@@ -208,12 +209,17 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
 
         /* Top Navbar */
         .top-navbar {
-            background: transparent;
-            padding: 0;
-            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 15px 25px;
+            margin: -40px -40px 40px -40px; /* Offset main-content padding */
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 900;
         }
 
         .top-navbar .page-title {
@@ -581,6 +587,19 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', initMobileMenu);
+    </script>
+    <!-- PWA -->
+    <link rel="manifest" href="<?= $baseUrl ?>/manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <link rel="apple-touch-icon" href="<?= $baseUrl ?>/assets/logos/nes.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('<?= $baseUrl ?>/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed', err));
+            });
+        }
     </script>
 </head>
 
