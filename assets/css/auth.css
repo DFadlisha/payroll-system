@@ -5,25 +5,32 @@
  * ============================================ */
 
 :root {
-    --primary-color: #FFD400; /* yellow */
-    --secondary-color: #f97316;
-    --accent-teal: #14b8a6;   /* teal */
-    --accent-pink: #ec4899;
-    --text-dark: #000000;     /* black */
-    --text-muted: #6b7280;
-    --surface: #ffffff;
-    --surface-alt: #f8fafc;
-    --border: #e5e7eb;
+    --primary-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    --surface-glass: rgba(255, 255, 255, 0.85);
+    --border-glass: rgba(255, 255, 255, 0.4);
+    --text-primary: #1E293B;
+    --text-secondary: #64748B;
 }
 
 body {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
+    background: radial-gradient(circle at top left, #EEF2FF 0%, #E0E7FF 100%);
+    background-attachment: fixed;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding: 40px 20px;
+    margin: 0;
+}
+
+.animate-up {
+    animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================
@@ -48,30 +55,54 @@ body {
  * CARD STYLES
  * ============================================ */
 
-.auth-card,
-.login-card,
-.register-card {
-    background: var(--surface);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+.auth-card, .login-card, .register-card {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 480px;
+    transition: transform 0.3s ease;
 }
 
-.auth-header,
-.login-header,
-.register-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
-    padding: 30px;
+.auth-header, .login-header, .register-header {
+    background: var(--primary-gradient);
+    padding: 48px 32px;
     text-align: center;
     color: #fff;
+    position: relative;
+    overflow: hidden;
 }
 
-.auth-header h1,
-.login-header h1,
-.register-header h1 {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
+.auth-header::before, .login-header::before, .register-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.auth-header h1, .login-header h1, .register-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+}
+
+.header-logo {
+    width: 64px;
+    height: 64px;
+    padding: 10px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
 }
 
 .auth-header p,
@@ -82,52 +113,50 @@ body {
     font-size: 0.9rem;
 }
 
-.auth-body,
-.login-body,
-.register-body {
-    padding: 30px;
+.auth-body, .login-body, .register-body {
+    padding: 40px;
 }
 
-.auth-footer,
-.login-footer,
-.register-footer {
+.auth-footer, .login-footer, .register-footer {
+    padding: 24px;
+    background: rgba(248, 250, 252, 0.5);
+    border-top: 1px solid rgba(226, 232, 240, 0.5);
     text-align: center;
-    padding: 20px;
-    background: var(--surface-alt);
-    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
 }
 
 /* ============================================
  * FORM CONTROLS
  * ============================================ */
 
-.form-control {
-    border-radius: 8px;
-    border: 2px solid var(--border);
-    padding: 12px 15px;
-    height: auto;
+.form-control, .form-select {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.15);
-}
-
-.form-select {
-    border-radius: 8px;
-    border: 2px solid var(--border);
-    padding: 12px 15px;
-    height: auto;
-}
-
-.form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.15);
+.form-control:focus, .form-select:focus {
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    outline: none;
 }
 
 .form-label {
-    font-weight: 500;
-    color: #333;
+    font-size: 13px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .required {
@@ -144,25 +173,24 @@ body {
  * BUTTONS
  * ============================================ */
 
-.btn-login,
-.btn-register {
-    width: 100%;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-top: 10px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
+.btn-login, .btn-register {
+    background: var(--primary-gradient);
     border: none;
+    border-radius: 12px;
     color: white;
-    transition: all 0.3s ease;
+    padding: 14px;
+    font-weight: 700;
+    font-size: 16px;
+    width: 100%;
+    margin-top: 24px;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-login:hover,
-.btn-register:hover {
+.btn-login:hover, .btn-register:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(20, 184, 166, 0.35);
-    color: white;
+    box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.4);
+    filter: brightness(1.1);
 }
 
 /* ============================================

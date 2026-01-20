@@ -114,29 +114,35 @@ if ($isAdmin) {
             </div>
         <?php else: ?>
             <div class="row g-4">
-                <?php foreach ($logs as $log): ?>
-                    <div class="col-xl-4 col-md-6">
-                        <div class="card border-0 shadow-sm rounded-4 verification-card">
+                <?php foreach ($logs as $index => $log): ?>
+                    <div class="col-xl-4 col-md-6 animate-fade-in" style="animation-delay: <?= $index * 0.1 ?>s">
+                        <div class="card glass-card border-0 verification-card h-100">
                             <div class="card-body p-4">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="avatar-sm bg-primary text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px; font-weight: 700;">
                                         <?= strtoupper(substr($log['full_name'], 0, 1)) ?>
                                     </div>
                                     <div>
-                                        <h6 class="mb-0 fw-bold"><?= htmlspecialchars($log['full_name']) ?></h6>
-                                        <span class="badge bg-light text-muted small rounded-pill"><?= date('h:i A', strtotime($log['clock_in'])) ?> In</span>
+                                        <h6 class="mb-0 fw-bold text-dark"><?= htmlspecialchars($log['full_name']) ?></h6>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-light text-muted small rounded-pill border"><?= date('h:i A', strtotime($log['clock_in'])) ?></span>
+                                            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 0.65rem;">CLOCK IN</span>
+                                        </div>
                                     </div>
-                                    <div class="ms-auto text-end">
-                                        <span class="badge bg-success-soft text-success rounded-pill px-2">
-                                            <i class="bi bi-patch-check-fill"></i> Verified
-                                        </span>
+                                    <div class="ms-auto">
+                                        <div class="p-2 bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:24px;height:24px; font-size: 0.7rem;" title="Verified">
+                                            <i class="bi bi-patch-check-fill"></i>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="position-relative mb-3">
-                                    <img src="../<?= htmlspecialchars($log['clock_in_photo']) ?>" class="img-verification" alt="Verification Photo">
-                                    <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-dark bg-opacity-50 blur p-2 rounded-bottom text-white small">
-                                        <i class="bi bi-geo-alt-fill text-danger"></i> <?= htmlspecialchars($log['gps_location']) ?>
+                                <div class="position-relative mb-4 group overflow-hidden rounded-4">
+                                    <img src="../<?= htmlspecialchars($log['clock_in_photo']) ?>" class="img-verification w-100" style="height: 220px; transition: transform 0.5s ease;" alt="Verification Photo">
+                                    <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark bg-opacity-60 text-white small" style="backdrop-filter: blur(4px);">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-geo-alt-fill text-danger"></i>
+                                            <span class="text-truncate"><?= htmlspecialchars($log['gps_location']) ?></span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -146,11 +152,11 @@ if ($isAdmin) {
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                    <div class="small text-muted">
-                                        <i class="bi bi-laptop me-1"></i> <?= $log['ip_address'] ?>
+                                    <div class="small text-muted d-flex align-items-center">
+                                        <i class="bi bi-laptop me-2"></i> <?= $log['ip_address'] ?>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modal-<?= $log['id'] ?>">
-                                        Check Maps
+                                    <button class="btn btn-sm btn-premium rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modal-<?= $log['id'] ?>">
+                                        Audit Maps
                                     </button>
                                 </div>
                             </div>

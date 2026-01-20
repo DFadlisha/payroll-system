@@ -143,16 +143,18 @@ $history = $stmt->fetchAll();
 
     <div class="container-fluid py-4">
         <div class="row">
-            <div class="col-lg-8">
-                <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
-                    <div class="card-body p-5 text-center bg-white">
-                        <h2 class="display-5 fw-bold mb-2" id="liveClock">00:00:00</h2>
-                        <p class="text-muted mb-5"><?= date('l, d F Y') ?></p>
-                        
-                        <div id="securityBadge" class="d-inline-flex align-items-center bg-light px-3 py-2 rounded-pill mb-4 border">
-                            <i class="bi bi-shield-lock-fill text-success me-2"></i>
-                            <span class="small fw-bold text-uppercase tracking-wider">Security Verified System</span>
-                        </div>
+            <div class="col-lg-8 animate-fade-in">
+                <div class="card glass-card border-0 text-center p-5 mb-4">
+                    <div class="mb-3">
+                        <span class="badge bg-primary-soft text-primary px-3 py-2 rounded-pill small fw-bold text-uppercase tracking-widest">Security Audit Mode</span>
+                    </div>
+                    <h1 class="display-3 fw-bold text-dark mb-0" id="liveClock"><?= date('H:i:s') ?></h1>
+                    <p class="text-muted mb-5 fw-medium"><?= date('l, d F Y') ?></p>
+                    
+                    <div id="securityBadge" class="d-inline-flex align-items-center bg-success bg-opacity-10 text-success px-4 py-2 rounded-pill mb-4 border border-success border-opacity-20 shadow-sm mx-auto">
+                        <i class="bi bi-shield-lock-fill me-2"></i>
+                        <span class="small fw-bold text-uppercase tracking-widest" style="font-size: 0.65rem;">Biometric & GPS Tracking Active</span>
+                    </div>
 
                         <div id="cameraWrapper" class="mx-auto mb-4" style="max-width: 400px; display: none;">
                             <div class="position-relative bg-dark rounded-4 overflow-hidden border border-4 border-white shadow">
@@ -174,12 +176,12 @@ $history = $stmt->fetchAll();
                             ?>
                             
                             <?php if (!$isActive): ?>
-                                <button onclick="prepareAttendance('clock_in')" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg">
-                                    <i class="bi bi-camera-fill me-2"></i> Clock In Securely
+                                <button onclick="prepareAttendance('clock_in')" class="btn btn-premium btn-lg rounded-pill px-5 py-3 shadow-lg">
+                                    <i class="bi bi-fingerprint me-2"></i> Clock In Securely
                                 </button>
                             <?php else: ?>
-                                <button onclick="prepareAttendance('clock_out')" class="btn btn-warning btn-lg rounded-pill px-5 py-3 shadow-lg text-dark">
-                                    <i class="bi bi-box-arrow-right me-2"></i> Clock Out Securely
+                                <button onclick="prepareAttendance('clock_out')" class="btn btn-danger btn-lg rounded-pill px-5 py-3 shadow-lg">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Finish Shift
                                 </button>
                             <?php endif; ?>
                         </div>
@@ -192,12 +194,11 @@ $history = $stmt->fetchAll();
                                 Cancel
                             </button>
                         </div>
-                    </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white py-3 border-0">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Sessions</h5>
+                <div class="card glass-card border-0 overflow-hidden animate-fade-in" style="animation-delay: 0.1s">
+                    <div class="card-header bg-transparent py-4 px-4 border-0">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Verification Sessions</h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -236,14 +237,14 @@ $history = $stmt->fetchAll();
                 </div>
             </div>
 
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 bg-primary text-white mb-4">
+            <div class="col-lg-4 animate-fade-in" style="animation-delay: 0.2s">
+                <div class="card glass-card border-0 bg-primary text-white mb-4" style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important;">
                     <div class="card-body p-4 text-center">
                         <div class="mb-3">
-                            <i class="bi bi-shield-check display-4"></i>
+                            <i class="bi bi-shield-check display-4 text-white"></i>
                         </div>
-                        <h4 class="fw-bold">Trust Guarantee</h4>
-                        <p class="small opacity-75">All attendance records are timestamped, location-verified, and cryptographically hashed for mutual integrity.</p>
+                        <h4 class="fw-bold text-white">Trust Guarantee</h4>
+                        <p class="small text-white-50">All attendance records are timestamped, location-verified, and cryptographically hashed for mutual integrity.</p>
                     </div>
                 </div>
             </div>

@@ -172,18 +172,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="login-container">
+    <div class="login-container animate-up">
         <!-- Language Switcher -->
-        <div class="text-end mb-3">
-            <?= getLanguageSwitcher() ?>
+        <div class="text-end mb-4">
+            <div class="d-inline-block glass-card p-1 px-3">
+                <?= getLanguageSwitcher() ?>
+            </div>
         </div>
 
         <div class="login-card">
             <div class="login-header" id="loginHeader">
-                <img src="../assets/logos/nes.jpg" alt="Logo" id="headerLogo"
-                    style="width: 80px; height: 80px; object-fit: contain; background: #fff; border-radius: 10px; padding: 5px;">
                 <h1 id="headerTitle"><?= __('app_name') ?></h1>
-                <p><?= __('app_subtitle') ?></p>
+                <p class="text-white-50 small fw-bold text-uppercase tracking-widest"><?= __('app_subtitle') ?></p>
             </div>
 
             <div class="login-body">
@@ -245,8 +245,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-check-label" for="remember"><?= __('login_page.remember') ?></label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-login">
-                        <i class="bi bi-box-arrow-in-right me-2"></i> <?= __('login_page.btn_login') ?>
+                    <button type="submit" class="btn btn-login">
+                        <i class="bi bi-shield-lock-fill me-2"></i> <?= __('login_page.btn_login') ?>
                     </button>
 
                     <div class="text-center mt-3">
@@ -304,11 +304,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update hidden input
             document.getElementById('companyId').value = element.dataset.companyId;
 
-            // Update header logo
+            // Update header info (logo update removed)
             const logo = element.dataset.companyLogo;
-            if (logo) {
-                document.getElementById('headerLogo').src = '../assets/logos/' + logo;
-            }
 
             // Update footer company name
             document.getElementById('footerCompany').textContent = element.dataset.companyName;

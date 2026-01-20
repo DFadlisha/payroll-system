@@ -16,10 +16,10 @@
                 class="bi bi-list fs-4"></i></button>
 
         <!-- Search Bar (Minimalist) -->
-        <div class="d-none d-md-flex align-items-center position-relative text-muted ms-2">
-            <i class="bi bi-search position-absolute ms-3"></i>
-            <input type="text" class="form-control rounded-pill border-0 ps-5 bg-transparent"
-                style="min-width: 300px; background-color: #F1F5F9 !important;" placeholder="Search (Ctrl + K)">
+        <div class="d-none d-md-flex align-items-center position-relative transition-all ms-2 group">
+            <i class="bi bi-search position-absolute ms-3 text-muted opacity-50"></i>
+            <input type="text" class="form-control rounded-pill border-0 ps-5"
+                style="min-width: 320px; background-color: rgba(241, 245, 249, 0.7) !important; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5) !important;" placeholder="Search (Ctrl + K)">
         </div>
     </div>
 

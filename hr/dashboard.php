@@ -108,56 +108,68 @@ try {
         </div>
     </div>
 
-    <!-- Stats Cards (Pastel Design) -->
-    <div class="row g-4 mb-5">
-        <!-- Total Employees (Purple) -->
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card purple">
-                <div class="stats-icon">
-                    <i class="bi bi-people-fill"></i>
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Total Employees -->
+        <div class="col-md-3">
+            <div class="card glass-card border-0 p-4 h-100 animate-fade-in" style="animation-delay: 0.1s">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-sm bg-primary text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase">Total Employees</span>
                 </div>
-                <div>
-                    <p>Total Employees</p>
-                    <h2><?= $totalEmployees ?></h2>
-                </div>
-            </div>
-        </div>
-
-        <!-- Present Today (Green) -->
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card green">
-                <div class="stats-icon">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-                <div>
-                    <p>Present Today</p>
-                    <h2><?= $todayAttendance ?></h2>
+                <h2 class="mb-0 fw-bold"><?= $totalEmployees ?></h2>
+                <div class="mt-2" style="font-size: 0.75rem;">
+                    <span class="text-success fw-bold"><i class="bi bi-arrow-up-short"></i> Active</span>
                 </div>
             </div>
         </div>
 
-        <!-- Pending Leaves (Orange) -->
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card orange">
-                <div class="stats-icon">
-                    <i class="bi bi-exclamation-circle-fill"></i>
+        <!-- Today's Attendance -->
+        <div class="col-md-3">
+            <div class="card glass-card border-0 p-4 h-100 animate-fade-in" style="animation-delay: 0.2s">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-sm bg-success text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase">Present Today</span>
                 </div>
-                <div>
-                    <p>Leave Requests</p>
-                    <h2><?= $pendingLeaves ?></h2>
+                <h2 class="mb-0 fw-bold text-success"><?= $todayAttendance ?> <span class="text-muted fs-6 fw-normal">/ <?= $totalEmployees ?></span></h2>
+                <div class="mt-2" style="font-size: 0.75rem;">
+                    <span class="text-muted"><?= round(($todayAttendance / max($totalEmployees, 1)) * 100) ?>% attendance rate</span>
                 </div>
             </div>
         </div>
 
-        <!-- Payroll Pending (Blue) -->
-        <div class="col-md-6 col-lg-3">
-            <div class="stats-card blue">
-                <div class="stats-icon">
-                    <i class="bi bi-cash-stack"></i>
+        <!-- Pending Leaves -->
+        <div class="col-md-3">
+            <div class="card glass-card border-0 p-4 h-100 animate-fade-in" style="animation-delay: 0.3s">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-sm bg-warning text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+                        <i class="bi bi-calendar-x"></i>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase">Pending Leaves</span>
                 </div>
-                <div>
-                    <p>Pending Payroll</p>
-                    <h2><?= $unpaidPayroll ?></h2>
+                <h2 class="mb-0 fw-bold text-warning"><?= $pendingLeaves ?></h2>
+                <div class="mt-2" style="font-size: 0.75rem;">
+                    <a href="leaves.php" class="text-warning text-decoration-none fw-bold">Review Now <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Payroll -->
+        <div class="col-md-3">
+            <div class="card glass-card border-0 p-4 h-100 animate-fade-in" style="animation-delay: 0.4s">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-sm bg-danger text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase">Pending Payroll</span>
+                </div>
+                <h2 class="mb-0 fw-bold text-danger"><?= $unpaidPayroll ?></h2>
+                <div class="mt-2" style="font-size: 0.75rem;">
+                    <span class="text-muted">Month: <?= date('F Y') ?></span>
                 </div>
             </div>
         </div>

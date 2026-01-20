@@ -45,25 +45,39 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
     <!-- Custom CSS -->
     <style>
         :root {
-            /* Branding Colors */
-            --primary-color: #2D3436;
-            --secondary-color: #64748B;
-            --accent-color: #4F46E5;
-            /* Indigo */
+            /* Branding Colors - Modern Indigo & Slate */
+            --primary-color: #4F46E5; /* Indigo 600 */
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --secondary-color: #64748B; /* Slate 500 */
+            --accent-color: #F59E0B; /* Amber 500 */
+            
+            /* Status Colors */
+            --success-color: #10B981;
+            --info-color: #3B82F6;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
 
             /* Sidebar & Layout */
             --sidebar-width: 280px;
             --sidebar-bg: #FFFFFF;
             --sidebar-text: #334155;
-            --sidebar-active-bg: #EEF2FF;
+            --sidebar-active-bg: #F5F3FF;
             --sidebar-active-text: #4F46E5;
 
             /* Backgrounds */
             --bg-color: #F8FAFC;
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+            --glass-blur: blur(12px);
 
-            /* Modern Pastel Palette (Refined) */
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+            /* Card Palette (Refined) */
             --card-purple: #F5F3FF;
             --card-purple-text: #7C3AED;
             --card-purple-icon: #DDD6FE;
@@ -72,17 +86,11 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
             --card-green-text: #059669;
             --card-green-icon: #A7F3D0;
 
-            --card-orange: #FFF7ED;
-            --card-orange-text: #EA580C;
-            --card-orange-icon: #FED7AA;
-
             --card-blue: #EFF6FF;
             --card-blue-text: #2563EB;
             --card-blue-icon: #BFDBFE;
 
             --card-red: #FEF2F2;
-            --card-red-text: #DC2626;
-            --card-red-icon: #FECACA;
         }
 
         body {
@@ -93,38 +101,81 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
             letter-spacing: -0.01em;
         }
 
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        .page-title,
-        .sidebar-header h3 {
+        h1, h2, h3, h4, h5, h6 {
             font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #0F172A;
+            letter-spacing: -0.02em;
+        }
+
+        /* Utility Classes */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            box-shadow: var(--shadow-md);
+            border-radius: 20px;
+        }
+
+        .premium-shadow {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white !important;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-premium:active {
+            transform: scale(0.98);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
         }
 
         /* Sidebar Styles */
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
-            padding-top: 30px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            transition: all 0.3s ease;
             z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-right: 1px solid #F1F5F9;
+            border-right: 1px solid rgba(226, 232, 240, 0.8);
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar-header {
-            padding: 32px;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column; /* Stack vertically for long names */
-            align-items: flex-start;
-            gap: 8px;
+            padding: 24px;
+            margin-bottom: 8px;
         }
 
         .sidebar-header h3 {
@@ -160,40 +211,53 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
             font-size: 1rem;
         }
 
-        .sidebar-menu a {
+        .sidebar-menu .nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 10px 16px;
             color: #64748B;
             text-decoration: none;
             border-radius: 12px;
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
         }
 
-        .sidebar-menu a:hover {
+        .sidebar-menu .nav-link:hover {
             background: #F8FAFC;
-            color: #1E293B;
-            transform: translateX(2px);
+            color: var(--primary-color);
+            transform: translateX(4px);
         }
 
-        .sidebar-menu a.active {
+        .sidebar-menu .nav-link.active {
             background-color: var(--sidebar-active-bg);
             color: var(--sidebar-active-text);
             font-weight: 600;
+            box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.1);
         }
 
-        .sidebar-menu a.active i {
+        .sidebar-menu .nav-link.active i {
             color: var(--sidebar-active-text);
         }
 
-        .sidebar-menu a i {
-            margin-right: 14px;
+        .sidebar-menu .nav-link i {
             font-size: 1.25rem;
             color: #94A3B8;
             transition: color 0.2s;
         }
+
+        .sidebar-menu .nav-link:hover i {
+            color: var(--primary-color);
+        }
+
+        .text-xs { font-size: 0.75rem; }
+        .tracking-wider { letter-spacing: 0.05em; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        .cursor-pointer { cursor: pointer; }
+        .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
+        .avatar-sm { width: 32px; height: 32px; }
+        .avatar-lg { width: 64px; height: 64px; }
 
         /* Main Content */
         .main-content {

@@ -110,13 +110,13 @@ try {
     <?php displayFlashMessage(); ?>
 
     <!-- Welcome Section -->
-    <div class="row mb-5 align-items-center">
+    <div class="row mb-5 align-items-center animate-fade-in">
         <div class="col-md-8">
             <h1 class="fw-bold text-dark mb-1">Welcome back, <?= htmlspecialchars($user['full_name']) ?>! 👋</h1>
             <p class="text-muted mb-0">Here's what's happening with your attendance today.</p>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <div class="d-inline-flex align-items-center bg-white px-4 py-2 rounded-pill shadow-sm">
+            <div class="d-inline-flex align-items-center glass-card px-4 py-2 border-0">
                 <i class="bi bi-calendar-event text-primary me-2"></i>
                 <span class="fw-bold text-dark"><?= date('l, d M Y') ?></span>
             </div>
@@ -124,36 +124,35 @@ try {
     </div>
 
     <!-- Clock In/Out Hero Card -->
-    <div class="card border-0 text-white overflow-hidden position-relative mb-5"
-        style="background: linear-gradient(135deg, #0F172A 0%, #334155 100%); min-height: 200px; box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);">
+    <div class="card border-0 text-white overflow-hidden position-relative mb-5 animate-fade-in"
+        style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); min-height: 220px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.2);">
         <!-- Decorative Shapes -->
         <div class="position-absolute end-0 top-0 p-5 mt-n5 me-n5 rounded-circle bg-white opacity-10"
-            style="width: 300px; height: 300px; opacity: 0.05;"></div>
+            style="width: 300px; height: 300px;"></div>
         <div class="position-absolute start-0 bottom-0 p-5 mb-n5 ms-n5 rounded-circle bg-white opacity-05"
-            style="width: 200px; height: 200px; opacity: 0.05;"></div>
+            style="width: 200px; height: 200px;"></div>
 
         <div class="card-body p-4 p-lg-5 position-relative">
             <div class="row align-items-center">
                 <div class="col-lg-7 mb-4 mb-lg-0">
                     <?php if ($todayAttendance): ?>
-                        <span class="badge bg-white text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
-                            <i class="bi bi-geo-alt-fill text-success me-1"></i> Checked In
+                        <span class="badge bg-white text-primary mb-3 px-3 py-2 rounded-pill fw-bold shadow-sm">
+                            <i class="bi bi-patch-check-fill text-success me-1"></i> Verified Arrival
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-white">Clocked in at
-                            <?= formatTime($todayAttendance['clock_in']) ?>
+                        <h2 class="display-6 fw-bold mb-2 text-dark">Clocked in at
+                            <span class="opacity-75"><?= formatTime($todayAttendance['clock_in']) ?></span>
                         </h2>
                         <?php if (!$todayAttendance['clock_out']): ?>
-                            <p class="text-white-50 fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
+                            <p class="text-dark opacity-75 fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
                         <?php else: ?>
-                            <p class="text-emerald-300 fs-5 mb-0" style="color: #6EE7B7;">You've completed your shift. Great
-                                job!</p>
+                            <p class="fs-5 mb-0" style="color: #6EE7B7;">You've completed your shift. Great job!</p>
                         <?php endif; ?>
                     <?php else: ?>
                         <span class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
                             <i class="bi bi-hourglass-split me-1"></i> Not Started
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-white">Start your work day</h2>
-                        <p class="text-white-50 fs-5 mb-0">Ready to clock in?</p>
+                        <h2 class="display-6 fw-bold mb-2 text-dark">Start your work day</h2>
+                        <p class="text-dark opacity-75 fs-5 mb-0">Ready to clock in?</p>
                     <?php endif; ?>
                 </div>
 
@@ -204,17 +203,16 @@ try {
     ?>
 
     <!-- Content Split -->
-    <div class="row g-4 mt-2">
+    <div class="row g-4 mt-2 animate-fade-in">
         <!-- Recent Activity -->
         <div class="col-lg-8">
-            <div class="card h-100 border-0 shadow-sm">
+            <div class="card glass-card border-0 h-100">
                 <div
-                    class="card-header d-flex justify-content-between align-items-center bg-transparent border-bottom-0 pb-0">
+                    class="card-header d-flex justify-content-between align-items-center bg-transparent border-bottom-0 pt-4 px-4 pb-0">
                     <h5 class="fw-bold mb-0 text-dark">Recent Leaves</h5>
-                    <a href="leaves.php" class="btn btn-sm btn-light text-primary fw-bold rounded-pill px-3">View
-                        All</a>
+                    <a href="leaves.php" class="btn btn-sm btn-premium rounded-pill px-3">View All</a>
                 </div>
-                <div class="card-body pt-3">
+                <div class="card-body px-4 pt-3 pb-4">
                     <?php if (empty($recentLeaves)): ?>
                         <div class="text-center py-5">
                             <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
@@ -269,8 +267,8 @@ try {
             <div class="row g-3">
                 <div class="col-6">
                     <a href="leaves.php?action=new" class="text-decoration-none">
-                        <div class="card h-100 hover-lift border-0 shadow-sm text-center p-4">
-                            <div class="rounded-circle d-inline-flex p-3 mb-3"
+                        <div class="card glass-card h-100 hover-lift border-0 text-center p-4">
+                            <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto"
                                 style="background:var(--card-purple); color:var(--card-purple-text);">
                                 <i class="bi bi-calendar-plus fs-4"></i>
                             </div>
@@ -281,8 +279,8 @@ try {
                 </div>
                 <div class="col-6">
                     <a href="attendance.php" class="text-decoration-none">
-                        <div class="card h-100 hover-lift border-0 shadow-sm text-center p-4">
-                            <div class="rounded-circle d-inline-flex p-3 mb-3"
+                        <div class="card glass-card h-100 hover-lift border-0 text-center p-4">
+                            <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto"
                                 style="background:var(--card-green); color:var(--card-green-text);">
                                 <i class="bi bi-clock-history fs-4"></i>
                             </div>
@@ -293,8 +291,8 @@ try {
                 </div>
                 <div class="col-6">
                     <a href="payslips.php" class="text-decoration-none">
-                        <div class="card h-100 hover-lift border-0 shadow-sm text-center p-4">
-                            <div class="rounded-circle d-inline-flex p-3 mb-3"
+                        <div class="card glass-card h-100 hover-lift border-0 text-center p-4">
+                            <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto"
                                 style="background:var(--card-blue); color:var(--card-blue-text);">
                                 <i class="bi bi-file-earmark-text fs-4"></i>
                             </div>
@@ -305,8 +303,8 @@ try {
                 </div>
                 <div class="col-6">
                     <a href="profile.php" class="text-decoration-none">
-                        <div class="card h-100 hover-lift border-0 shadow-sm text-center p-4">
-                            <div class="rounded-circle d-inline-flex p-3 mb-3"
+                        <div class="card glass-card h-100 hover-lift border-0 text-center p-4">
+                            <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto"
                                 style="background:var(--card-orange); color:var(--card-orange-text);">
                                 <i class="bi bi-person-gear fs-4"></i>
                             </div>

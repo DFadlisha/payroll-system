@@ -198,17 +198,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="register-container">
+    <div class="register-container animate-up">
         <!-- Language Switcher -->
-        <div class="text-end mb-3">
-            <?= getLanguageSwitcher() ?>
+        <div class="text-end mb-4">
+            <div class="d-inline-block glass-card p-1 px-3">
+                <?= getLanguageSwitcher() ?>
+            </div>
         </div>
 
         <div class="register-card">
             <div class="register-header">
-                <img src="../assets/logos/nes.jpg" alt="Company Logo" class="header-logo" id="headerLogo">
                 <h1><?= __('register_page.title') ?></h1>
-                <p id="headerCompanyName"><?= strtoupper(__('app_name')) ?></p>
+                <p id="headerCompanyName" class="text-white-50 small fw-bold text-uppercase tracking-widest"><?= strtoupper(__('app_name')) ?></p>
             </div>
 
             <div class="register-body">
@@ -220,12 +221,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <?php if ($success): ?>
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle me-2"></i>
-                        <?= htmlspecialchars($success) ?>
-                        <br><br>
-                        <a href="login.php" class="btn btn-success btn-sm">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> <?= __('login_page.btn_login') ?>
+                    <div class="alert glass-card border-0 p-5 text-center">
+                        <div class="avatar-lg bg-success-soft text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; font-size: 2.5rem; background: rgba(16, 185, 129, 0.1);">
+                            <i class="bi bi-check2-circle"></i>
+                        </div>
+                        <h2 class="fw-bold mb-3"><?= __('register_page.register_success') ?></h2>
+                        <p class="text-muted mb-4">Your account has been created. You can now access your dashboard.</p>
+                        <a href="login.php" class="btn btn-premium w-100 py-3">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> <?= __('login_page.btn_login') ?>
                         </a>
                     </div>
                 <?php endif; ?>
@@ -240,14 +243,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="company-cards">
                                 <?php foreach ($companies as $index => $company): ?>
-                                    <div class="company-card <?= $index === 0 ? 'selected' : '' ?>"
+                                    <div class="company-card glass-card <?= $index === 0 ? 'selected' : '' ?>"
                                         onclick="selectCompany('<?= htmlspecialchars($company['id']) ?>', '<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>', '<?= htmlspecialchars($company['name']) ?>')">
                                         <div class="check-badge">
-                                            <i class="bi bi-check"></i>
+                                            <i class="bi bi-check-lg"></i>
                                         </div>
-                                        <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>"
-                                            alt="<?= htmlspecialchars($company['name']) ?>" class="company-logo"
-                                            onerror="this.src='../assets/logos/nes.jpg'">
+                                        <div class="company-logo-wrapper">
+                                            <img src="../assets/logos/<?= htmlspecialchars($company['logo_url'] ?? 'nes.jpg') ?>"
+                                                alt="<?= htmlspecialchars($company['name']) ?>" class="company-logo"
+                                                onerror="this.src='../assets/logos/nes.jpg'">
+                                        </div>
                                         <div class="company-name"><?= strtoupper(htmlspecialchars($company['name'])) ?></div>
                                     </div>
                                 <?php endforeach; ?>
@@ -382,8 +387,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="invalid-feedback">Please confirm your password.</div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-register">
-                            <i class="bi bi-person-plus-fill me-2"></i> Create Account
+                        <button type="submit" class="btn btn-register">
+                            <i class="bi bi-rocket-takeoff-fill me-2"></i> Get Started
                         </button>
 
                         <div class="text-center mt-3">
@@ -411,8 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update hidden input
             document.getElementById('company_id').value = companyId;
 
-            // Update header logo
-            document.getElementById('headerLogo').src = '../assets/logos/' + logo;
+            // Update header info
             document.getElementById('headerCompanyName').textContent = name;
 
             // Update footer
