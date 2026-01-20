@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
 
         // OPTIMIZATION: Pre-fetch holidays for the month to avoid redundant checks
         $monthStart = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
-        $monthEnd = sprintf('%04d-%02d-%31', $selectedYear, $selectedMonth); // lazy end of month
+        $monthEnd = sprintf('%04d-%02d-31', $selectedYear, $selectedMonth); // lazy end of month
         // Actually better to use 't' or just 31 since check is simple
         // Better: Fetch ALL holidays for the year once (cached)
         $yearHolidays = getMalaysiaHolidays($selectedYear);

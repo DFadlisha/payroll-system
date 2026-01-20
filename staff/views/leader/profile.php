@@ -20,121 +20,115 @@
             $themeColor = 'info';
             $roleLabel = 'Leader';
             $icon = 'bi-briefcase-fill';
-
-            $textClass = 'text-white';
-            $bgClass = 'bg-' . $themeColor;
             ?>
 
-            <div class="card border-<?= $themeColor ?> shadow-sm">
-                <!-- Colored Header for Visual Distinction -->
-                <div class="card-header <?= $bgClass ?> <?= $textClass ?> text-center py-4">
-                    <div class="mb-3">
-                        <div class="user-avatar mx-auto border border-4 border-white"
-                            style="width: 100px; height: 100px; font-size: 3rem; background-color: rgba(255,255,255,0.2); color: inherit;">
-                            <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
+            <div class="card glass-card border-0 animate-fade-in h-100">
+                <!-- Header with Gradient -->
+                <div class="card-header border-0 bg-transparent text-center py-5 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 w-100 h-100" 
+                         style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%); z-index: 0;"></div>
+                    
+                    <div class="position-relative z-1">
+                        <div class="mb-4">
+                            <div class="user-avatar mx-auto shadow-lg d-flex align-items-center justify-content-center gradient-text bg-white"
+                                style="width: 110px; height: 110px; font-size: 3.5rem; border-radius: 50%; border: 4px solid rgba(255,255,255,0.8);">
+                                <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
+                            </div>
                         </div>
+                        <h4 class="mb-1 fw-bold"><?= htmlspecialchars($user['full_name']) ?></h4>
+                        <p class="mb-3 text-muted small"><?= htmlspecialchars($user['email']) ?></p>
+                        <span class="badge bg-info-soft text-info rounded-pill px-4 py-2 border border-info-subtle">
+                            <i class="bi <?= $icon ?> me-1"></i> <?= $roleLabel ?>
+                        </span>
                     </div>
-                    <h4 class="mb-1 fw-bold"><?= htmlspecialchars($user['full_name']) ?></h4>
-                    <p class="mb-2 opacity-75"><?= htmlspecialchars($user['email']) ?></p>
-                    <span class="badge bg-white text-dark rounded-pill px-3 py-2">
-                        <i class="bi <?= $icon ?> me-1"></i> <?= $roleLabel ?>
-                    </span>
                 </div>
 
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span class="text-muted"><i class="bi bi-building me-2"></i>Company</span>
-                            <span class="fw-bold text-end"><?= htmlspecialchars($user['company_name'] ?? 'N/A') ?></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span class="text-muted"><i class="bi bi-person-workspace me-2"></i>Employment Type</span>
-                            <span class="badge bg-secondary"><?= getEmploymentTypeName($user['employment_type']) ?></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span class="text-muted"><i class="bi bi-cash me-2"></i>Basic Salary</span>
-                            <span class="fw-bold"><?= formatMoney($user['basic_salary']) ?></span>
-                        </li>
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white bg-opacity-50 border border-light">
+                            <span class="text-muted small text-uppercase fw-bold"><i class="bi bi-building me-2 text-info"></i>Company</span>
+                            <span class="fw-semibold text-end text-dark"><?= htmlspecialchars($user['company_name'] ?? 'N/A') ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white bg-opacity-50 border border-light">
+                            <span class="text-muted small text-uppercase fw-bold"><i class="bi bi-person-workspace me-2 text-info"></i>Type</span>
+                            <span class="badge bg-secondary-soft text-secondary border"><?= getEmploymentTypeName($user['employment_type']) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white bg-opacity-50 border border-light">
+                            <span class="text-muted small text-uppercase fw-bold"><i class="bi bi-cash me-2 text-info"></i>Basic Salary</span>
+                            <span class="fw-bold text-success font-monospace fs-5"><?= formatMoney($user['basic_salary']) ?></span>
+                        </div>
 
                         <?php if (!empty($user['ic_number'])): ?>
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <span class="text-muted"><i class="bi bi-card-heading me-2"></i>IC No.</span>
-                                <span><?= htmlspecialchars($user['ic_number']) ?></span>
-                            </li>
+                            <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white bg-opacity-50 border border-light">
+                                <span class="text-muted small text-uppercase fw-bold"><i class="bi bi-card-heading me-2 text-info"></i>IC No.</span>
+                                <span class="font-monospace"><?= htmlspecialchars($user['ic_number']) ?></span>
+                            </div>
                         <?php endif; ?>
-
-                        <!-- Leader might see Team Info or similar here later -->
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Profile Form -->
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-pencil me-2"></i>Update Information
+            <div class="card glass-card border-0 animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="card-header bg-transparent border-bottom border-light py-4 ps-4">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2 text-info"></i>Update Information</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form method="POST" class="needs-validation" novalidate>
                         <input type="hidden" name="action" value="update_profile">
                         <!-- Personal Info -->
-                        <h6 class="text-muted mb-3">Personal Information</h6>
-                        <div class="row g-3 mb-4">
+                        <h6 class="text-info text-uppercase small fw-bold mb-4 ps-1 border-start border-4 border-info ps-2">Personal Information</h6>
+                        <div class="row g-4 mb-5">
                             <div class="col-md-6">
-                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" name="full_name" class="form-control"
+                                <label class="form-label text-muted small fw-bold">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="full_name" class="form-control form-control-lg fs-6"
                                     value="<?= htmlspecialchars($user['full_name']) ?>" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">IC No.</label>
-                                <input type="text" name="ic_number" class="form-control"
+                                <label class="form-label text-muted small fw-bold">IC No.</label>
+                                <input type="text" name="ic_number" class="form-control form-control-lg fs-6"
                                     value="<?= htmlspecialchars($user['ic_number'] ?? '') ?>" placeholder="000000-00-0000">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>"
-                                    disabled>
-                                <small class="text-muted">Email cannot be changed.</small>
+                                <label class="form-label text-muted small fw-bold">Email</label>
+                                <input type="email" class="form-control form-control-lg fs-6 bg-light text-muted" value="<?= htmlspecialchars($user['email']) ?>"
+                                    disabled style="cursor: not-allowed;">
+                                <div class="form-text"><i class="bi bi-lock-fill me-1"></i>Email cannot be changed contact HR for updates.</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Phone No.</label>
-                                <input type="text" name="phone" class="form-control"
+                                <label class="form-label text-muted small fw-bold">Phone No.</label>
+                                <input type="text" name="phone" class="form-control form-control-lg fs-6"
                                     value="<?= htmlspecialchars($user['phone'] ?? '') ?>" placeholder="012-3456789">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Address</label>
-                                <textarea name="address" class="form-control" rows="2"
-                                    placeholder="Full address..."><?= htmlspecialchars($user['address'] ?? '') ?></textarea>
+                                <label class="form-label text-muted small fw-bold">Address</label>
+                                <textarea name="address" class="form-control" rows="3"
+                                    placeholder="Enter your full residential address..."><?= htmlspecialchars($user['address'] ?? '') ?></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Number of Dependents (For PCB Tax Calculation)</label>
-                                <input type="number" name="dependents" class="form-control"
-                                    value="<?= intval($user['dependents'] ?? 0) ?>" min="0" max="10" placeholder="0">
-                                <small class="text-muted">Total dependents for LHDN tax relief (Max: 6)</small>
+                                <label class="form-label text-muted small fw-bold">Number of Dependents</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-people"></i></span>
+                                    <input type="number" name="dependents" class="form-control form-control-lg fs-6 border-start-0"
+                                        value="<?= intval($user['dependents'] ?? 0) ?>" min="0" max="10" placeholder="0">
+                                </div>
+                                <div class="form-text text-info"><i class="bi bi-info-circle me-1"></i>Used for PCB Tax Calculation (Max: 10)</div>
                             </div>
                         </div>
 
                         <!-- Bank Info -->
-                        <h6 class="text-muted mb-3">Bank Information</h6>
-                        <div class="row g-3 mb-4">
+                        <h6 class="text-info text-uppercase small fw-bold mb-4 ps-1 border-start border-4 border-info ps-2">Bank Information</h6>
+                        <div class="row g-4 mb-5">
                             <div class="col-md-6">
-                                <label class="form-label">Bank Name</label>
-                                <select name="bank_name" class="form-select">
+                                <label class="form-label text-muted small fw-bold">Bank Name</label>
+                                <select name="bank_name" class="form-select form-select-lg fs-6">
                                     <option value="">-- Select Bank --</option>
                                     <?php
                                     $banks = [
-                                        'Maybank',
-                                        'CIMB Bank',
-                                        'Public Bank',
-                                        'RHB Bank',
-                                        'Hong Leong Bank',
-                                        'AmBank',
-                                        'Bank Islam',
-                                        'Bank Rakyat',
-                                        'BSN',
-                                        'Affin Bank',
-                                        'Alliance Bank'
+                                        'Maybank', 'CIMB Bank', 'Public Bank', 'RHB Bank', 'Hong Leong Bank',
+                                        'AmBank', 'Bank Islam', 'Bank Rakyat', 'BSN', 'Affin Bank', 'Alliance Bank'
                                     ];
                                     foreach ($banks as $bank):
                                         ?>
@@ -145,43 +139,47 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Bank Account No.</label>
-                                <input type="text" name="bank_account" class="form-control"
-                                    value="<?= htmlspecialchars($user['bank_account'] ?? '') ?>" placeholder="1234567890">
+                                <label class="form-label text-muted small fw-bold">Bank Account No.</label>
+                                <input type="text" name="bank_account" class="form-control form-control-lg fs-6"
+                                    value="<?= htmlspecialchars($user['bank_account'] ?? '') ?>" placeholder="Enter account number">
                             </div>
                         </div>
 
-                        <hr>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-2"></i>Save Changes
-                        </button>
+                        <div class="d-flex justify-content-end pt-3 border-top border-light">
+                            <button type="submit" class="btn btn-premium px-5 py-2">
+                                <i class="bi bi-check-lg me-2"></i>Save Changes
+                            </button>
+                        </div>
                     </form>
 
                     <!-- Password Change Form (Separate) -->
-                    <form method="POST" class="mt-4" onsubmit="return confirmPasswordChange()">
-                        <input type="hidden" name="action" value="change_password">
-                        <h6 class="text-muted mb-3">Change Password</h6>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Current Password <span class="text-danger">*</span></label>
-                                <input type="password" name="current_password" class="form-control" required>
+                    <div class="mt-5 pt-4 border-top border-light">
+                        <form method="POST" onsubmit="return confirmPasswordChange()">
+                            <input type="hidden" name="action" value="change_password">
+                            <h6 class="text-danger text-uppercase small fw-bold mb-4 ps-1 border-start border-4 border-danger ps-2">Security Settings</h6>
+                            
+                            <div class="row g-4 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small fw-bold">Current Password</label>
+                                    <input type="password" name="current_password" class="form-control" required placeholder="********">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small fw-bold">New Password</label>
+                                    <input type="password" name="new_password" id="new_password" class="form-control"
+                                        minlength="6" required placeholder="min. 6 chars">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small fw-bold">Confirm Password</label>
+                                    <div class="input-group">
+                                        <input type="password" name="confirm_password" class="form-control" required placeholder="Repeat password">
+                                        <button type="submit" class="btn btn-warning text-white">
+                                            Change
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">New Password <span class="text-danger">*</span></label>
-                                <input type="password" name="new_password" id="new_password" class="form-control"
-                                    minlength="6" required>
-                                <small class="text-muted">Minimum 6 characters</small>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                                <input type="password" name="confirm_password" class="form-control" required>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-warning">
-                            <i class="bi bi-key me-2"></i>Change Password
-                        </button>
-                    </form>
+                        </form>
+                    </div>
 
                     <script>
                         function confirmPasswordChange() {
