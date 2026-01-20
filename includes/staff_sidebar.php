@@ -20,11 +20,11 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     
     <div class="sidebar-header border-bottom border-light mb-2">
         <div class="d-flex align-items-center gap-3">
-            <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;">
-                <i class="bi bi-person-workspace text-white fs-5"></i>
+            <div class="avatar-sm bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm p-1" style="width: 42px; height: 42px;">
+                <img src="../assets/logos/mi-nes-logo.jpg" alt="Logo" class="img-fluid rounded-circle w-100 h-100 object-fit-cover">
             </div>
             <div class="overflow-hidden">
-                <h6 class="mb-0 fw-bold text-dark text-truncate"><?= strtoupper($_SESSION['company_name'] ?? 'MI-NES') ?></h6>
+                <h6 class="mb-0 fw-bold text-dark text-truncate">MI-NES SYSTEM</h6>
                 <small class="text-muted text-xs text-uppercase tracking-wider" style="font-size: 0.65rem;">Staff Member</small>
             </div>
         </div>

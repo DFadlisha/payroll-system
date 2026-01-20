@@ -130,7 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- PWA -->
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#0d6efd">
-    <link rel="apple-touch-icon" href="../assets/logos/nes.jpg">
+    <link rel="apple-touch-icon" href="../assets/logos/mi-nes-logo.jpg">
+    <link rel="icon" type="image/jpeg" href="../assets/logos/mi-nes-logo.jpg">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

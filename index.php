@@ -59,7 +59,8 @@ $t = $translations[$lang];
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#FFD400">
-    <link rel="apple-touch-icon" href="assets/logos/nes.jpg">
+    <link rel="apple-touch-icon" href="assets/logos/mi-nes-logo.jpg">
+    <link rel="icon" type="image/jpeg" href="assets/logos/mi-nes-logo.jpg">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -91,9 +92,20 @@ $t = $translations[$lang];
         }
 
         .hero-section {
-            padding: 80px 0;
+            padding: 60px 0 80px;
             color: white;
             text-align: center;
+        }
+
+        .hero-logo-img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            margin-bottom: 1.5rem;
+            background: white;
         }
 
         .hero-title {
@@ -222,6 +234,7 @@ $t = $translations[$lang];
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container">
+            <img src="assets/logos/mi-nes-logo.jpg" alt="MI-NES Logo" class="hero-logo-img">
             <h1 class="hero-title"><?= $t['welcome'] ?></h1>
             <p class="hero-subtitle"><?= $t['subtitle'] ?></p>
             <p class="hero-description"><?= $t['description'] ?></p>

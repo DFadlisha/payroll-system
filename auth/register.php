@@ -183,6 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Custom Auth CSS -->
     <link href="../assets/css/auth.css" rel="stylesheet">
+    <link rel="apple-touch-icon" href="../assets/logos/mi-nes-logo.jpg">
+    <link rel="icon" type="image/jpeg" href="../assets/logos/mi-nes-logo.jpg">
 
     <style>
         .header-logo {

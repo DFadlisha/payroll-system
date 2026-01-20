@@ -655,7 +655,8 @@ $currentFolder = basename(dirname($_SERVER['PHP_SELF']));
     <!-- PWA -->
     <link rel="manifest" href="<?= $baseUrl ?>/manifest.json">
     <meta name="theme-color" content="#4F46E5">
-    <link rel="apple-touch-icon" href="<?= $baseUrl ?>/assets/logos/nes.jpg">
+    <link rel="apple-touch-icon" href="<?= $baseUrl ?>/assets/logos/mi-nes-logo.jpg">
+    <link rel="icon" type="image/jpeg" href="<?= $baseUrl ?>/assets/logos/mi-nes-logo.jpg">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
