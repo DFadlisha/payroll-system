@@ -283,7 +283,7 @@ try {
         if ($att) {
             $txtIn = date('H:i', strtotime($att['clock_in']));
             $txtOut = $att['clock_out'] ? date('H:i', strtotime($att['clock_out'])) : '';
-            // Display actual location instead of generic 'PRESENT'
+            // Use the specific location name from the attendance record
             $txtLoc = strtoupper($att['location_name'] ?? $payslip['assigned_location_name'] ?? 'OFFICE');
 
             if ($isPH) {
