@@ -8,6 +8,11 @@
  * ============================================
  */
 
+// Enable output buffering to prevent "headers already sent" errors
+if (!ob_get_level()) {
+    ob_start();
+}
+
 // Load environment configuration
 require_once __DIR__ . '/../config/environment.php';
 
@@ -93,6 +98,11 @@ function isStaff()
  */
 function redirect($url)
 {
+    // Clean output buffer if exists to prevent "headers already sent" errors
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    
     header("Location: $url");
     exit();
 }
