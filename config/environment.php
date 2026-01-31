@@ -25,10 +25,8 @@ class Environment
         }
 
         if (!file_exists($path)) {
-            // In production, throw error. In development, allow fallback to defaults
-            if (getenv('APP_ENV') === 'production') {
-                throw new Exception('.env file not found. Please create one from .env.example');
-            }
+            // In cloud deployments (Render/Docker), variables are injected directly.
+            // So missing .env file is normal and expected.
             return;
         }
 
