@@ -23,11 +23,11 @@ if (!class_exists('Environment')) {
 }
 
 // Using Session Mode Pooler (IPv4 reachable from your network)
-define('DB_HOST', Environment::get('DB_HOST', 'aws-1-ap-southeast-1.pooler.supabase.com'));
+define('DB_HOST', Environment::get('DB_HOST', ''));
 define('DB_PORT', Environment::get('DB_PORT', '5432'));                                       
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
-define('DB_USER', Environment::get('DB_USER', 'postgres.aahaznqptohmkdiqpjnx'));
-define('DB_PASS', Environment::get('DB_PASS', 'itkoqLjr1QTLuFqg'));
+define('DB_USER', Environment::get('DB_USER', 'postgres'));
+define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
  * Function to connect to Supabase (PostgreSQL)
