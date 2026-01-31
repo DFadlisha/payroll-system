@@ -12,15 +12,35 @@ Your application is now configured for production. Here is how to deploy it safe
 ## 2. Recommended Hosting
 Since this is a custom PHP application, we recommend **Railway** or **Heroku** or a standard **VPS (Ubuntu/Nginx)**.
 
-### Option A: Railway (Fastest) 🚅
+### Option A: Render (Free & Recommended) ☁️
+**Best for:** Free hosting with continuous deployment from GitHub.
+
+1.  **Sign Up:** Go to [render.com](https://render.com) and sign up with GitHub.
+2.  **New Web Service:** Click "New +" -> "Web Service".
+3.  **Connect Repo:** Select `DFadlisha/payroll-system`.
+4.  **Configure:**
+    *   **Name:** `mi-nes-payroll` (or similar)
+    *   **Runtime:** `Docker` (It will automatically detect the Dockerfile I just created)
+    *   **Region:** Singapore (nearest to Malaysia)
+    *   **Instance Type:** Free
+5.  **Environment Variables:**
+    *   Click "Advanced" or wait for creation, then go to "Environment" tab.
+    *   Add the following keys/values:
+        - `DB_HOST`: (Your Supabase Host)
+        - `DB_PORT`: `6543` (Transaction Pooler) or `5432`
+        - `DB_USER`: (Your Supabase User)
+        - `DB_PASS`: (Your Supabase Password)
+        - `DB_NAME`: `postgres`
+        - `APP_ENV`: `production`
+6.  **Deploy:** Click "Create Web Service".
+
+*Note: The free tier on Render spins down after 15 minutes of inactivity. The first request after a break might take 30-60 seconds.*
+
+### Option B: Railway (Paid / Trial) 🚅
+**Best for:** Production performance, no spin-downs.
 1. Connect your GitHub repository to Railway.
-2. Add a **PHP** service.
-3. In Railway "Variables", add these (copy from your `.env`):
-   - `DB_HOST`
-   - `DB_PORT` (6543 for transaction pooler recommended on production)
-   - `DB_USER`
-   - `DB_PASS`
-   - `DB_NAME`
+2. Add a **New Service** from GitHub.
+3. In "Variables", add the same DB credentials as above.
 4. Set `APP_ENV=production`.
 
 ### Option B: Traditional Hosting (cPanel/Hostinger) 🌐
