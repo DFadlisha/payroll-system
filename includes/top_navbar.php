@@ -44,7 +44,7 @@
                     $pendingPayroll = $stmt->fetchColumn();
                     if ($pendingPayroll > 0) {
                         $notifCount++;
-                        $notifications[] = ['msg' => "$pendingPayroll payslips pending review", 'link' => '../hr/payroll.php', 'icon' => 'bi-cash'];
+                        $notifications[] = ['msg' => "$pendingPayroll payslips pending review", 'link' => '../shared/payroll.php', 'icon' => 'bi-cash'];
                     }
 
                     // 2. Pending Leaves

@@ -94,6 +94,21 @@ try {
     ");
     $stmt->execute([$year]);
     $holidays = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // AUTO-SEED: If no holidays found, try to seed automatically
+    if (empty($holidays)) {
+        require_once '../database/seed_holidays.php';
+        fetchAndSeedHolidays($year);
+        
+        // Refetch after seeding
+        $stmt->execute([$year]);
+        $holidays = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (!empty($holidays)) {
+            $message = "Public holidays for $year have been automatically retrieved.";
+            $messageType = 'success';
+        }
+    }
     
 } catch (PDOException $e) {
     error_log("Public Holidays fetch error: " . $e->getMessage());

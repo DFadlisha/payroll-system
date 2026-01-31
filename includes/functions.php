@@ -442,6 +442,23 @@ function isPublicHoliday($date)
         // Ignore DB errors
     }
 
+    // 3. Fixed Date Recurrence Check (Automatic for any year)
+    // MM-DD format
+    $md = date('m-d', strtotime($date));
+    $fixedRecurrence = [
+        '01-01', // New Year
+        '02-01', // Federal Territory
+        '04-15', // Declaration of Malacca as Historical City (Melaka)
+        '05-01', // Labour Day
+        '08-31', // National Day
+        '09-16', // Malaysia Day
+        '12-25'  // Christmas
+    ];
+    
+    if (in_array($md, $fixedRecurrence)) {
+        return true;
+    }
+
     return false;
 }
 
