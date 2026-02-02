@@ -27,7 +27,7 @@ if (!class_exists('Environment')) {
 
 // 1. Define the Primary Host (Use Environment variables)
 define('DB_HOST', Environment::get('DB_HOST', 'db.aahaznqptohmkdiqpjnx.supabase.co'));
-define('DB_PORT', Environment::get('DB_PORT', '5432'));
+define('DB_PORT', Environment::get('DB_PORT', '6543')); // Default to 6543 for cloud
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
 define('DB_USER', Environment::get('DB_USER', 'postgres')); 
 define('DB_PASS', Environment::get('DB_PASS', ''));
@@ -44,11 +44,9 @@ function getConnection() {
     }
 
     try {
-        // PostgreSQL connection DSN with SSL requirement
-        // We do NOT use persistent connections anymore to avoid pooler conflicts
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require";
+        // Build DSN - We use a short timeout (5s) to prevent 502 Gateway Timeouts
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require;connect_timeout=5";
         
-        // Re-define options here to ensure scope access
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
