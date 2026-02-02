@@ -22,14 +22,28 @@ if (!class_exists('Environment')) {
     require_once __DIR__ . '/environment.php';
 }
 
-// Using Supabase Pooler (IPv4 Compatible)
-// We use Port 5432 (Session Mode) because Port 6543 (Transaction Mode) is blocked by the firewall.
-// We Correctly point to 'aws-1' (where your tenant lives) instead of 'aws-0'.
-define('DB_HOST', 'aws-1-ap-southeast-1.pooler.supabase.com');
+// DATABASE CONFIGURATION START
+// -------------------------------------------------------------------------
+
+// 1. Define the Primary Host (Direct Connection)
+$primaryHost = 'db.aahaznqptohmkdiqpjnx.supabase.co';
+
+// 2. Force IPv4 Resolution
+// Render prefers IPv6, which fails for Supabase Direct Connections.
+// We use gethostbyname() to manually grab the IPv4 address (A Record).
+$resolvedIP = gethostbyname($primaryHost);
+
+if ($resolvedIP !== $primaryHost && filter_var($resolvedIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    // We found a valid IPv4 address! Use it to bypass IPv6 issues.
+    define('DB_HOST', $resolvedIP);
+} else {
+    // Fallback to the hostname
+    define('DB_HOST', $primaryHost);
+}
+
 define('DB_PORT', '5432');
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
-// Pooler requires "user.project_ref" format
-define('DB_USER', 'postgres.aahaznqptohmkdiqpjnx');
+define('DB_USER', 'postgres'); // Direct uses simple 'postgres' user
 define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
@@ -45,15 +59,16 @@ function getConnection() {
 
     try {
         // PostgreSQL connection DSN with SSL requirement
-        // Added keepalives=1 for better stability with Supabase
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require;keepalives=1";
+        // We do NOT use persistent connections anymore to avoid pooler conflicts
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require";
         
+        // Re-define options here to ensure scope access
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => true, // Required for Supabase Transaction Pooler
-            PDO::ATTR_TIMEOUT => 10,  // 10 second timeout
-            PDO::ATTR_PERSISTENT => true, // Use persistent connections
+            PDO::ATTR_EMULATE_PREPARES => true,
+            PDO::ATTR_TIMEOUT => 5,
+            PDO::ATTR_PERSISTENT => false, 
         ];
         
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
