@@ -25,25 +25,11 @@ if (!class_exists('Environment')) {
 // DATABASE CONFIGURATION START
 // -------------------------------------------------------------------------
 
-// 1. Define the Primary Host (Direct Connection)
-$primaryHost = 'db.aahaznqptohmkdiqpjnx.supabase.co';
-
-// 2. Force IPv4 Resolution
-// Render prefers IPv6, which fails for Supabase Direct Connections.
-// We use gethostbyname() to manually grab the IPv4 address (A Record).
-$resolvedIP = gethostbyname($primaryHost);
-
-if ($resolvedIP !== $primaryHost && filter_var($resolvedIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-    // We found a valid IPv4 address! Use it to bypass IPv6 issues.
-    define('DB_HOST', $resolvedIP);
-} else {
-    // Fallback to the hostname
-    define('DB_HOST', $primaryHost);
-}
-
-define('DB_PORT', '5432');
+// 1. Define the Primary Host (Use Environment variables)
+define('DB_HOST', Environment::get('DB_HOST', 'db.aahaznqptohmkdiqpjnx.supabase.co'));
+define('DB_PORT', Environment::get('DB_PORT', '5432'));
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
-define('DB_USER', 'postgres'); // Direct uses simple 'postgres' user
+define('DB_USER', Environment::get('DB_USER', 'postgres')); 
 define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
@@ -80,17 +66,24 @@ function getConnection() {
         // Show detailed error for debugging (remove in production)
         $errorMsg = "Connection error to Supabase.<br><br>";
         $errorMsg .= "<strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "<br><br>";
+        
+        if (strpos($e->getMessage(), 'authentication failed') !== false) {
+            $errorMsg .= "<div style='color:red; background:#fee; padding:15px; border-radius:8px; border:1px solid #fcc; margin-bottom:15px;'>";
+            $errorMsg .= "<strong>⚠️ Authentication Failed:</strong> Your database password in .env might be wrong.<br>";
+            $errorMsg .= "Note: Your Supabase <strong>Login</strong> password is often different from your <strong>Database</strong> password.</div>";
+        }
+
         $errorMsg .= "<strong>Check these settings in config/database.php:</strong><br>";
-        $errorMsg .= "- DB_HOST: " . DB_HOST . "<br>";
+        $errorMsg .= "- DB_HOST: " . DB_HOST . " (via Pooler)<br>";
         $errorMsg .= "- DB_PORT: " . DB_PORT . "<br>";
         $errorMsg .= "- DB_NAME: " . DB_NAME . "<br>";
         $errorMsg .= "- DB_USER: " . DB_USER . "<br>";
-        $errorMsg .= "- DB_PASS: " . (DB_PASS === '[YOUR-PASSWORD]' ? '<span style=\"color:red\">NOT SET - Please update with your Supabase password!</span>' : '******') . "<br><br>";
-        $errorMsg .= "<strong>To get your password:</strong><br>";
-        $errorMsg .= "1. Go to Supabase Dashboard<br>";
-        $errorMsg .= "2. Click Settings → Database<br>";
-        $errorMsg .= "3. Copy the Database Password<br>";
-        $errorMsg .= "4. Update DB_PASS in config/database.php";
+        $errorMsg .= "- DB_PASS: " . (DB_PASS === '[YOUR-PASSWORD]' ? '<span style="color:red">NOT SET</span>' : '******') . "<br><br>";
+        $errorMsg .= "<strong>To fix your password:</strong><br>";
+        $errorMsg .= "1. Go to your <a href='https://supabase.com/dashboard/project/aahaznqptohmkdiqpjnx/settings/database' target='_blank'>Supabase Database Settings</a><br>";
+        $errorMsg .= "2. Click <strong>'Reset database password'</strong> to set a new one.<br>";
+        $errorMsg .= "3. Open your <strong>.env</strong> file and update <code>DB_PASS</code>.<br>";
+        $errorMsg .= "4. Refresh this page.";
         
         die($errorMsg);
     }

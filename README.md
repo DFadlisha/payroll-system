@@ -48,15 +48,22 @@ You might ask: *"Do I need Apache if I have Supabase?"*
     *   Rename `.env.example` to `.env`.
     *   Update `DB_HOST`, `DB_USER`, `DB_PASS` with your Supabase credentials.
 
-### 2. Cloud Deployment (Render)
+### 2. Cloud Deployment (Zeabur / Koyeb / Back4App)
 
-1.  Connect your GitHub repository to Render.
-2.  Use the **Docker** Runtime (detected automatically via `Dockerfile`).
-3.  Add Environment Variables in Render Dashboard:
+1.  **Repository**: Connect your GitHub repository to your chosen cloud provider.
+2.  **Runtime**: Ensure **Docker** is selected as the runtime (detected automatically).
+3.  **Environment Variables**: Add these in your provider's dashboard:
     *   `DB_HOST`: `db.aahaznqptohmkdiqpjnx.supabase.co`
-    *   `DB_PORT`: `5432`
+    *   `DB_PORT`: `6543` (**CRITICAL**: Use 6543 to avoid cloud timeouts)
+    *   `DB_NAME`: `postgres`
     *   `DB_USER`: `postgres`
-    *   `DB_PASS`: `[YOUR_PASSWORD]`
+    *   `DB_PASS`: `[YOUR_SUPABASE_PASSWORD]`
+    *   `APP_ENV`: `production`
+
+---
+
+## 🧹 Cleanup
+I have removed all older redundant guides and utility scripts to keep the project clean for production.
 
 ---
 

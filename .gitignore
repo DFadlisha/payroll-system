@@ -1,31 +1,22 @@
-# Environment Variables
+# PHP
+vendor/
+composer.lock
 .env
+debug.log
+cache/holidays/*.json
+uploads/*
+!uploads/.gitkeep
 
-# Dependencies
-/vendor/
-
-# IDE
+# IDE & OS
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-error_log
+# Docker
+.docker/
+docker-compose.override.yml
 
-# Temporary files
-*.tmp
-*.temp
-*.swp
-*~
-
-# Backup files
-*.bak
-*.backup
-
-# Database dumps
-*.sql.gz
-*.sql.zip
+# Diagnostics
+test_connection.php
+database/seed_*.php

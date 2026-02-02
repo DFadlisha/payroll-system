@@ -153,7 +153,6 @@ try {
     $absent = 0;
 
     $attendanceList = [];
-    $locations = [];
 
     $stmt = $conn->prepare("
         SELECT p.id as user_id, p.full_name, p.role, p.employment_type,

@@ -22,52 +22,71 @@ $today = date('Y-m-d');
 
 try {
     $conn = getConnection();
-
-    // Get Profile Data
-    $stmt = $conn->prepare("SELECT * FROM profiles WHERE id = ?");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Check Today's Attendance
-    $stmt = $conn->prepare("SELECT * FROM attendance WHERE user_id = ? AND DATE(clock_in) = ?");
-    $stmt->execute([$userId, $today]);
-    $todayAttendance = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Attendance Stats for Current Month
     $currentMonth = date('n');
     $currentYear = date('Y');
+
+    // Consolidated Query: Profile, Today's Attendance, Monthly Stats, and Latest Payslip
+    // This reduces 4 network round-trips to 1, significantly improving performance for Cloud DBs.
     $stmt = $conn->prepare("
         SELECT 
-            COUNT(*) as total_days,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as present,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-            COALESCE(SUM(total_hours), 0) as total_hours,
-            COALESCE(SUM(overtime_hours), 0) as overtime_hours
-        FROM attendance 
-        WHERE user_id = ? AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?
+            p.*,
+            (SELECT clock_in FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_clock_in,
+            (SELECT clock_out FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_clock_out,
+            (SELECT status FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_status,
+            (SELECT COUNT(*) FROM attendance  WHERE user_id = p.id AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as total_days,
+            (SELECT COUNT(*) FROM attendance WHERE user_id = p.id AND status = 'completed' AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as present,
+            (SELECT COUNT(*) FROM attendance WHERE user_id = p.id AND status = 'active' AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as active,
+            (SELECT COALESCE(SUM(total_hours), 0) FROM attendance WHERE user_id = p.id AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as total_hours,
+            (SELECT COALESCE(SUM(overtime_hours), 0) FROM attendance WHERE user_id = p.id AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as overtime_hours,
+            (SELECT net_pay FROM payroll WHERE user_id = p.id AND status = 'paid' ORDER BY year DESC, month DESC LIMIT 1) as latest_net_pay,
+            (SELECT month FROM payroll WHERE user_id = p.id AND status = 'paid' ORDER BY year DESC, month DESC LIMIT 1) as latest_month,
+            (SELECT year FROM payroll WHERE user_id = p.id AND status = 'paid' ORDER BY year DESC, month DESC LIMIT 1) as latest_year
+        FROM profiles p
+        WHERE p.id = ?
     ");
-    $stmt->execute([$userId, $currentMonth, $currentYear]);
-    $attendanceStats = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Calculate derived stats
-    if ($attendanceStats) {
-        $attendanceStats['attendance_percentage'] = ($attendanceStats['total_days'] > 0)
-            ? round(($attendanceStats['present'] / $attendanceStats['total_days']) * 100)
-            : 0;
-        $attendanceStats['absent'] = 0; // Placeholder logic
-    } else {
+    
+    $stmt->execute([
+        $today, $today, $today,               // Attendance Check
+        $currentMonth, $currentYear,          // total_days
+        $currentMonth, $currentYear,          // present
+        $currentMonth, $currentYear,          // active
+        $currentMonth, $currentYear,          // total_hours
+        $currentMonth, $currentYear,          // overtime_hours
+        $userId                               // profiles.id
+    ]);
+    
+    $dashboardData = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($dashboardData) {
+        $user = $dashboardData;
+        
+        // Reconstruct expected variables for the UI
+        $todayAttendance = $dashboardData['today_clock_in'] ? [
+            'clock_in' => $dashboardData['today_clock_in'],
+            'clock_out' => $dashboardData['today_clock_out'],
+            'status' => $dashboardData['today_status']
+        ] : null;
+        
         $attendanceStats = [
-            'total_days' => 0,
-            'present' => 0,
-            'active' => 0,
-            'total_hours' => 0,
-            'overtime_hours' => 0,
-            'attendance_percentage' => 0,
+            'total_days' => $dashboardData['total_days'],
+            'present' => $dashboardData['present'],
+            'active' => $dashboardData['active'],
+            'total_hours' => $dashboardData['total_hours'],
+            'overtime_hours' => $dashboardData['overtime_hours'],
+            'attendance_percentage' => ($dashboardData['total_days'] > 0) 
+                ? round(($dashboardData['present'] / $dashboardData['total_days']) * 100) 
+                : 0,
             'absent' => 0
         ];
+        
+        $latestPayslip = $dashboardData['latest_net_pay'] ? [
+            'net_pay' => $dashboardData['latest_net_pay'],
+            'month' => $dashboardData['latest_month'],
+            'year' => $dashboardData['latest_year']
+        ] : null;
     }
 
-    // Recent Leaves
+    // Recent Leaves (Keep separate as it returns multiple rows)
     $stmt = $conn->prepare("
         SELECT * FROM leaves 
         WHERE user_id = ? 
@@ -77,21 +96,11 @@ try {
     $stmt->execute([$userId]);
     $recentLeaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Latest Payslip
-    $stmt = $conn->prepare("
-        SELECT * FROM payroll 
-        WHERE user_id = ? AND status = 'paid'
-        ORDER BY year DESC, month DESC 
-        LIMIT 1
-    ");
-    $stmt->execute([$userId]);
-    $latestPayslip = $stmt->fetch(PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
     error_log("Staff Dashboard error: " . $e->getMessage());
     $user = null;
     $todayAttendance = null;
-    $attendanceStats = ['total_days' => 0, 'present' => 0, 'active' => 0, 'total_hours' => 0, 'overtime_hours' => 0];
+    $attendanceStats = ['total_days' => 0, 'present' => 0, 'active' => 0, 'total_hours' => 0, 'overtime_hours' => 0, 'attendance_percentage' => 0];
     $recentLeaves = [];
     $latestPayslip = null;
 }
