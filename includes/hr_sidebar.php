@@ -11,19 +11,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 ?>
 <!-- Sidebar -->
 <nav class="sidebar">
-    <div class="sidebar-header border-bottom border-light mb-2">
-        <div class="d-flex align-items-center gap-3">
-            <div class="avatar-sm bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm p-1" style="width: 42px; height: 42px;">
-                <img src="../assets/logos/mi-nes-logo.jpg" alt="Logo" class="img-fluid rounded-circle w-100 h-100 object-fit-cover">
-            </div>
-            <div class="overflow-hidden">
-                <h6 class="mb-0 fw-bold text-dark text-truncate">MI-NES SYSTEM</h6>
-                <small class="text-muted text-xs text-uppercase tracking-wider" style="font-size: 0.65rem;">HR Executive</small>
-            </div>
-        </div>
+    <div class="sidebar-header">
+        <div class="sidebar-logo"></div>
+        <h3>MI-NES PAYROLL</h3>
     </div>
 
-    <div class="px-3 py-2 flex-grow-1 overflow-auto">
+    <div class="flex-grow-1 overflow-auto">
         <ul class="sidebar-menu list-unstyled mb-0">
             <li class="menu-label small text-muted text-uppercase fw-bold mb-2 px-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Main Menu</li>
             <li><a href="/hr/dashboard.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'dashboard' ? 'active' : '' ?>"><i class="bi bi-grid-fill me-3"></i> <?= __('nav.dashboard') ?></a></li>

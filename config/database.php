@@ -44,14 +44,15 @@ function getConnection() {
     }
 
     try {
-        // Build DSN - We use a short timeout (5s) to prevent 502 Gateway Timeouts
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require;connect_timeout=5";
+        // Build DSN - Increased timeout for local development
+        $sslMode = Environment::isDevelopment() ? 'prefer' : 'require';
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode={$sslMode};connect_timeout=30";
         
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => true,
-            PDO::ATTR_TIMEOUT => 5,
+            PDO::ATTR_TIMEOUT => 30, // Increased for local dev
             PDO::ATTR_PERSISTENT => false, 
         ];
         
