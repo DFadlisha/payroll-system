@@ -24,8 +24,8 @@ if (!class_exists('Environment')) {
 
 // Using Supabase Pooler (IPv4 Compatible)
 // We use Port 5432 (Session Mode) because Port 6543 (Transaction Mode) is blocked by the firewall.
-// We use the Pooler Host because the Direct Host (db.xxx) is IPv6-only and failing.
-define('DB_HOST', 'aws-0-ap-southeast-1.pooler.supabase.com');
+// We Correctly point to 'aws-1' (where your tenant lives) instead of 'aws-0'.
+define('DB_HOST', 'aws-1-ap-southeast-1.pooler.supabase.com');
 define('DB_PORT', '5432');
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
 // Pooler requires "user.project_ref" format
