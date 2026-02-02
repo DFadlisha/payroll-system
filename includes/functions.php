@@ -771,57 +771,7 @@ function resetPasswordWithToken($token, $newPassword)
  */
 function getMalaysiaHolidays($year = null, $force = false)
 {
-    $year = $year ? intval($year) : intval(date('Y'));
-    $cacheDir = __DIR__ . '/../cache/holidays';
-    if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0755, true);
-    }
-
-    $cacheFile = $cacheDir . "/holidays_MY_{$year}.json";
-
-    // 1. Try Cache
-    if (!$force && file_exists($cacheFile)) {
-        $raw = @file_get_contents($cacheFile);
-        $data = $raw ? json_decode($raw, true) : null;
-        if (is_array($data) && !empty($data)) {
-            return $data;
-        }
-    }
-
-    // 2. Try API
-    $url = "https://date.nager.at/api/v3/PublicHolidays/{$year}/MY";
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 3,
-            'header' => "User-Agent: MI-NES-Payroll/1.0\r\n"
-        ],
-        'ssl' => [
-            "verify_peer" => false,
-            "verify_peer_name" => false
-        ]
-    ]);
-
-    $raw = @file_get_contents($url, false, $context);
-    $items = $raw ? json_decode($raw, true) : null;
-    $result = [];
-
-    if (is_array($items)) {
-        foreach ($items as $item) {
-            $d = $item['date'] ?? ($item['Date'] ?? null);
-            $name = $item['localName'] ?? $item['name'] ?? '';
-            if ($d) {
-                $result[$d] = $name;
-            }
-        }
-        // Save to cache
-        if (!empty($result)) {
-            file_put_contents($cacheFile, json_encode($result));
-            return $result;
-        }
-    }
-
-    // 3. Fallback: Hardcoded Common Holidays (Offline Mode)
-    // Standard Fixed Date Holidays
+    // 1. Hardcoded Common Holidays (Instant - No API needed)
     $result = [
         "$year-01-01" => "New Year's Day",
         "$year-05-01" => "Labour Day",
@@ -829,6 +779,42 @@ function getMalaysiaHolidays($year = null, $force = false)
         "$year-09-16" => "Malaysia Day",
         "$year-12-25" => "Christmas Day",
     ];
+
+    // Moveable Holidays for Malaysia (2024-2026)
+    if ($year == 2024) {
+        $result["2024-02-10"] = "Chinese New Year";
+        $result["2024-02-11"] = "Chinese New Year Day 2";
+        $result["2024-04-10"] = "Hari Raya Aidilfitri";
+        $result["2025-04-01"] = "Hari Raya Aidilfitri Day 2";
+        $result["2024-06-17"] = "Hari Raya Haji";
+        $result["2024-10-31"] = "Deepavali";
+    } elseif ($year == 2025) {
+        $result["2025-01-29"] = "Chinese New Year";
+        $result["2025-01-30"] = "Chinese New Year Day 2";
+        $result["2025-03-31"] = "Hari Raya Aidilfitri";
+        $result["2025-04-01"] = "Hari Raya Aidilfitri Day 2";
+        $result["2025-06-07"] = "Hari Raya Haji";
+        $result["2025-10-20"] = "Deepavali";
+    } elseif ($year == 2026) {
+        $result["2026-02-17"] = "Chinese New Year";
+        $result["2026-02-18"] = "Chinese New Year Day 2";
+        $result["2026-03-20"] = "Hari Raya Aidilfitri";
+        $result["2026-03-21"] = "Hari Raya Aidilfitri Day 2";
+        $result["2026-05-27"] = "Hari Raya Haji";
+        $result["2026-11-08"] = "Deepavali";
+    }
+
+    if (!empty($result) && !$force && $year >= 2024 && $year <= 2026) {
+        return $result;
+    }
+
+    // 2. Try Cache (Fallback for other years)
+    $cacheDir = __DIR__ . '/../cache/holidays';
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0755, true);
+    }
+    $cacheFile = $cacheDir . "/holidays_MY_{$year}.json";
+
 
     // Specific dates for 2024-2026 (Major moveable holidays)
     if ($year == 2024) {
