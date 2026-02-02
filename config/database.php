@@ -44,7 +44,7 @@ if ($resolvedIP !== $primaryHost && filter_var($resolvedIP, FILTER_VALIDATE_IP, 
 define('DB_PORT', '5432');
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
 define('DB_USER', 'postgres'); // Direct uses simple 'postgres' user
-define('DB_PASS', 'ZGdRerSZQfxtoHKs'); // Hardcoded new password to override Render env settings temporarily
+define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
  * Function to connect to Supabase (PostgreSQL)
