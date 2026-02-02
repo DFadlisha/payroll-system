@@ -47,11 +47,21 @@ try {
         }
         return $aIsNes ? -1 : 1;
     });
-} catch (PDOException $e) {
-    // If companies table doesn't exist or error, use default
-    // If companies table doesn't exist or error, log it
-    error_log("Failed to fetch companies: " . $e->getMessage());
-    $companies = [];
+} catch (Exception $e) {
+    // If database connection fails completely, show error page
+    error_log("Database connection failed: " . $e->getMessage());
+    
+    // Use default company if DB is down
+    $companies = [
+        [
+            'id' => '1',
+            'name' => 'NES Solution',
+            'logo_url' => 'nes.jpg'
+        ]
+    ];
+    
+    // Set error message for display
+    $error = 'Database connection error. Please contact administrator.';
 }
 
 // Debug helper: show companies when ?debug=1 is passed
