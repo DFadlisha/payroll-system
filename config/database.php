@@ -22,35 +22,11 @@ if (!class_exists('Environment')) {
     require_once __DIR__ . '/environment.php';
 }
 
-// Using Session Mode Pooler (IPv4 reachable from your network)
-$startHost = Environment::get('DB_HOST', '');
-$startUser = Environment::get('DB_USER', 'postgres');
-$startPort = Environment::get('DB_PORT', '5432');
-
-// Fix for Supabase: If using Pooler but blocked/failing, switch to Direct Connection
-// Extract Project Ref from User (e.g., postgres.abcdef -> abcdef)
-if (strpos($startHost, 'pooler.supabase.com') !== false && strpos($startUser, '.') !== false) {
-    $parts = explode('.', $startUser);
-    if (count($parts) === 2 && $parts[0] === 'postgres') {
-        // We found a project ref! Switch to Direct Connection details.
-        // This is often more reliable than the pooler for simple apps or blocked networks.
-        $ref = $parts[1];
-        define('DB_HOST', "db.$ref.supabase.co");
-        define('DB_USER', 'postgres');
-        define('DB_PORT', '5432');
-    } else {
-        // Fallback
-        define('DB_HOST', $startHost);
-        define('DB_USER', $startUser);
-        define('DB_PORT', '5432'); // Hardcode 5432
-    }
-} else {
-    define('DB_HOST', $startHost);
-    define('DB_USER', $startUser);
-    define('DB_PORT', '5432');
-}
-
+// Using Direct Connection (Port 5432) - Most reliable for this setup
+define('DB_HOST', Environment::get('DB_HOST', ''));
+define('DB_PORT', Environment::get('DB_PORT', '5432'));
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
+define('DB_USER', Environment::get('DB_USER', 'postgres'));
 define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
