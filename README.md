@@ -331,7 +331,7 @@ $stmtOT = $conn->prepare(""
 	AND EXTRACT(YEAR FROM clock_in) = ? 
 	AND overtime_hours > 0
 	AND status IN ('active', 'completed')
-""");
+"");
 $stmtOT->execute([$emp['id'], $selectedMonth, $selectedYear]);
 $otRecords = $stmtOT->fetchAll(PDO::FETCH_ASSOC);
 
@@ -443,33 +443,192 @@ The staff section of the MI-NES Payroll System has been optimized for mobile dev
 - **Touch-Optimized**: All interactive elements have minimum touch target sizes of 44x44px
 - **Auto-Close**: Sidebar automatically closes when a menu item is selected
 
-### 2. **Adaptive Layout**n+
-... (truncated in README for brevity)
+### 2. **Adaptive Layout**
+- **Mobile-First Grid**: Layouts shift from multi-column to single-column on smaller screens
+- **Card-Based Design**: Data tables convert to card views on mobile for better readability
+- **Hidden/Visible Utilities**: `d-none` and `d-block` classes used to toggle elements based on screen width
+
+### 3. **Specific Page Optimizations**
+
+#### **Dashboard (`staff/dashboard.php`)**
+- **Hero Card**: Resizes and stacks content vertically
+- **Stats Grid**: Shifts from 4 columns to 1 column
+- **Activity Feed**: Optimized padding and font sizes
+
+#### **Attendance (`staff/attendance.php`)**
+- **Clock In/Out**: Large, full-width buttons for easy tapping
+- **Location Map**: Responsive iframe height (250px on mobile)
+- **History Table**: Simplified view with horizontal scrolling if needed
+
+#### **Payslips (`staff/payslips.php`)**
+- **List View**: Payslips appear as cards with a "Download" button
+- **Modal Preview**: Responsive modal for viewing details
+
+#### **Profile (`staff/profile.php`)**
+- **Avatar Upload**: Centered and touch-friendly
+- **Form Groups**: Full width inputs with larger labels
+
+## Development Guidelines
+
+When modifying the mobile view:
+
+1. **Use Bootstrap 5 Breakpoints**:
+   - Mobile: `< 576px` (`col-12`)
+   - Tablet: `≥ 576px` (`col-sm`)
+   - Desktop: `≥ 768px` (`col-md`)
+
+2. **CSS Variables**:
+   Use the defined variables in `index.css` for consistent spacing and colors.
+
+3. **Testing**:
+   Always test on:
+   - Chrome DevTools (Device Toolbar)
+   - Real Android Device (via USB debugging)
+   - Real iOS Device (via local network)
 
 ---
 
 ## Merged: MOBILE_VIEW_DEMO.md
 
-(mobile demo examples and visual comparison included)
+# Mobile View Demo & Visuals
+
+This section describes the visual changes and demo flows for the mobile interface.
+
+## 1. Login Screen
+- **Before**: Fixed width centered box.
+- **After**: Full width card on mobile, centered logo.
+
+## 2. Dashboard
+- **Desktop**: Sidebar on left, stats in row.
+- **Mobile**: Hamburger menu, stats stacked vertically, "Clock In" button prominent at top.
+
+## 3. Navigation
+- **Action**: Click hamburger menu.
+- **Result**: Sidebar slides in from left with dark overlay. Clicking overlay closes sidebar.
+
+## 4. Payslip View
+- **Mobile**: Each payslip row becomes a card:
+  ```
+  [ JANUARY 2025 ]
+  Status: Paid
+  Net Pay: RM 3,500.00
+  [ Download PDF ]
+  ```
 
 ---
 
 ## Merged: MOBILE_QUICK_REFERENCE.md
 
-(quick reference commands and testing checklist included)
+# Mobile Development - Quick Reference
+
+## Common Classes (Bootstrap 5)
+
+| Class | Description |
+|-------|-------------|
+| `d-none d-md-block` | Hide on mobile, show on desktop |
+| `d-block d-md-none` | Show on mobile, hide on desktop |
+| `flex-column flex-md-row` | Stack on mobile, row on desktop |
+| `w-100` | Full width (useful for buttons on mobile) |
+| `mb-3 mb-md-0` | Margin bottom on mobile, none on desktop |
+| `text-center text-md-start` | Center text on mobile, align left on desktop |
+
+## Custom CSS Helpers (in `includes/header.php`)
+
+```css
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.show { transform: translateX(0); }
+    .main-content { margin-left: 0; padding: 15px; }
+}
+```
+
+## JavaScript Helpers (in `includes/header.php`)
+
+```javascript
+toggleSidebar() // Toggles the .show class on sidebar
+```
 
 ---
 
 ## Merged: MOBILE_IMPLEMENTATION_SUMMARY.md
 
-(implementation summary and changes list included)
+# Mobile Implementation Summary
+
+## Status: ✅ Completed
+
+The following files were modified to support mobile responsiveness:
+
+1. **`includes/header.php`**
+   - Added Mobile CSS styles (`@media` queries)
+   - Added JavaScript for Sidebar Toggle
+   - Added Hamburger Menu Button in Navbar template
+   - Added `meta viewport` tag (already existed, confirmed)
+
+2. **`includes/top_navbar.php`**
+   - Added Hamburger Icon (`bi-list`) visible only on mobile
+   - Adjusted padding and layout for small screens
+
+3. **`staff/dashboard.php`**
+   - Refactored `row` and `col` classes to `col-12 col-md-3` etc.
+   - Added "Welcome" text responsive sizing
+
+4. **`staff/attendance.php`**
+   - Made Clock In/Out section responsive
+   - Wrapped tables in `.table-responsive`
+
+5. **`staff/payslips.php`**
+   - Added card-based view for mobile (hidden on desktop)
+   - Kept table view for desktop (hidden on mobile)
+
+6. **`staff/leaves.php`**
+   - Optimized "Apply Leave" modal for mobile width
 
 ---
 
 ## Merged: LAUNCH_READINESS_REPORT.md
 
-(full launch readiness report included)
+# Launch Readiness Report - MI-NES Payroll System
+
+## 🚀 System Status: READY FOR DEPLOYMENT
+
+### 1. Core Functionality
+- ✅ **Authentication**: Login, Logout, Session Management (Secure)
+- ✅ **Roles**: HR Admin, Staff, Intern, Leader (Permanent/Contract)
+- ✅ **Database**: Supabase PostgreSQL connected via Transaction Pooler (Port 6543)
+- ✅ **PDF Generation**: TCPDF Installed and Configured
+
+### 2. HR Modules
+- ✅ **Employee Management**: Add, Edit, View Profiles
+- ✅ **Attendance**: Daily Logs, Monthly Reports, OT Calculation
+- ✅ **Payroll**:
+  - Auto-calculation of Basic, OT, Allowances
+  - EPF, SOCSO, EIS Deductions (Standard Rates)
+  - **PCB Integration**: LHDN 2024 Tax Brackets implemented
+- ✅ **Reports**: Excel Exports, PDF summary
+
+### 3. Staff Modules
+- ✅ **Dashboard**: Mobile-responsive overview
+- ✅ **Attendance**: Geolocation Clock In/Out
+- ✅ **Leaves**: Apply, View Status (Pending, Approved, Rejected)
+- ✅ **Payslips**: View history, Download PDF
+- ✅ **Profile**: Update basic info, **Declare Dependents (for PCB)**
+
+### 4. Technical Optimizations
+- ✅ **Performance**: Database connection pooling enabled, persistent connections
+- ✅ **Security**: `htmlspecialchars` protection, PDO prepared statements, Password Hashing
+- ✅ **Mobile**: Fully responsive layout for Staff portal
+
+### 5. Deployment Checklist
+- [x] Configure `.env` with Supabase Credentials
+- [x] Run `composer install` for TCPDF
+- [x] Import `database.sql` to Supabase
+- [x] Run `database/add_dependents_column.sql` migration
+- [x] Upload code to Web Server (Apache/Render)
+
+### 6. Known Issues / Future Improvements
+- *Minor*: Notification system uses session polling (could be upgraded to WebSockets)
+- *Minor*: Email notifications rely on basic PHP `mail()` (suggest upgrading to PHPMailer/SMTP)
 
 ---
 
-If you want the merged sections expanded inline (no truncation) or a different ordering, tell me and I will update the file accordingly.
+## End of Consolidated Documentation
