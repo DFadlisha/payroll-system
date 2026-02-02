@@ -24,7 +24,7 @@ if (!class_exists('Environment')) {
 
 // Using Session Mode Pooler (IPv4 reachable from your network)
 define('DB_HOST', Environment::get('DB_HOST', ''));
-define('DB_PORT', Environment::get('DB_PORT', '5432'));                                       
+define('DB_PORT', '5432'); // Hardcoded to 5432 to prevent timeout on restricted networks
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
 define('DB_USER', Environment::get('DB_USER', 'postgres'));
 define('DB_PASS', Environment::get('DB_PASS', ''));
