@@ -17,43 +17,33 @@ try {
     $conn = getConnection();
     $companyId = $_SESSION['company_id'];
 
-    // 1. Total Employees
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM profiles WHERE company_id = ? AND is_active = TRUE");
-    $stmt->execute([$companyId]);
-    $totalEmployees = $stmt->fetch()['total'];
-
-    // 2. Attendance Today
-    $today = date('Y-m-d');
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as total 
-        FROM attendance a 
-        JOIN profiles p ON a.user_id = p.id 
-        WHERE p.company_id = ? AND DATE(a.clock_in) = ?
-    ");
-    $stmt->execute([$companyId, $today]);
-    $todayAttendance = $stmt->fetch()['total'];
-
-    // 3. Pending Leave Requests
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as total 
-        FROM leaves l 
-        JOIN profiles p ON l.user_id = p.id 
-        WHERE p.company_id = ? AND l.status = 'pending'
-    ");
-    $stmt->execute([$companyId]);
-    $pendingLeaves = $stmt->fetch()['total'];
-
-    // 4. Pending Payroll (Current Month)
+    // 4. Combined Stats Query (Reduces 4 round-trips to 1)
+    // This is much faster for Supabase/Cloud databases
     $currentMonth = date('n');
     $currentYear = date('Y');
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as total 
-        FROM payroll pay 
-        JOIN profiles p ON pay.user_id = p.id 
-        WHERE p.company_id = ? AND pay.month = ? AND pay.year = ? AND pay.status != 'paid'
-    ");
-    $stmt->execute([$companyId, $currentMonth, $currentYear]);
-    $unpaidPayroll = $stmt->fetch()['total'];
+    
+    $statsQuery = "
+        SELECT 
+            (SELECT COUNT(*) FROM profiles WHERE company_id = ? AND is_active = TRUE) as total_employees,
+            (SELECT COUNT(*) FROM attendance a JOIN profiles p ON a.user_id = p.id WHERE p.company_id = ? AND DATE(a.clock_in) = ?) as today_attendance,
+            (SELECT COUNT(*) FROM leaves l JOIN profiles p ON l.user_id = p.id WHERE p.company_id = ? AND l.status = 'pending') as pending_leaves,
+            (SELECT COUNT(*) FROM payroll pay JOIN profiles p ON pay.user_id = p.id WHERE p.company_id = ? AND pay.month = ? AND pay.year = ? AND pay.status != 'paid') as unpaid_payroll
+    ";
+
+    $stmt = $conn->prepare($statsQuery);
+    $stmt->execute([
+        $companyId,                         // total_employees
+        $companyId, $today,                 // today_attendance
+        $companyId,                         // pending_leaves
+        $companyId, $currentMonth, $currentYear // unpaid_payroll
+    ]);
+    
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $totalEmployees = $stats['total_employees'];
+    $todayAttendance = $stats['today_attendance'];
+    $pendingLeaves = $stats['pending_leaves'];
+    $unpaidPayroll = $stats['unpaid_payroll'];
 
     // 5. Recent Attendance List
     $stmt = $conn->prepare("

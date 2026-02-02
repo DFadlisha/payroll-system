@@ -34,15 +34,23 @@ define('DB_PASS', Environment::get('DB_PASS', ''));
  * Using PDO for security
  */
 function getConnection() {
+    static $pdo = null;
+
+    if ($pdo !== null) {
+        return $pdo;
+    }
+
     try {
         // PostgreSQL connection DSN with SSL requirement
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require";
+        // Added keepalives=1 for better stability with Supabase
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=require;keepalives=1";
         
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_EMULATE_PREPARES => true, // Required for Supabase Transaction Pooler
             PDO::ATTR_TIMEOUT => 10,  // 10 second timeout
+            PDO::ATTR_PERSISTENT => true, // Use persistent connections
         ];
         
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);

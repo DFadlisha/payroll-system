@@ -1,0 +1,15 @@
+hey i need your for planning to create payroll system intergrated with attendance
+1. staff can clock in & out
+2. staff can view and download and view payslip
+3. staff can appeal any annual leave
+4. staff can see work shedule 
+5. can edit thier profile
+in mobile phone
+
+for hr
+1. can view attendance for all staff
+2. can do payroll automaticly by inserting number based on attendance include ot
+3. can edit staff payslip
+4. can approve or reject annuale leave
+5. can arrange work scedhule
+6. have dashboard

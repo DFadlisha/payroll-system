@@ -34,46 +34,58 @@
 
         // Check for alerts (HR)
         if (isHR()) {
-            try {
-                if (function_exists('getConnection')) {
-                    $conn = getConnection();
+            // Cache Key
+            $cacheKey = 'hr_notifications_cache';
+            $cacheDuration = 60; // 60 seconds cache
 
-                    // 1. Pending Payroll
-                    $stmt = $conn->prepare("SELECT COUNT(*) FROM payroll WHERE status = 'draft'");
-                    $stmt->execute();
-                    $pendingPayroll = $stmt->fetchColumn();
-                    if ($pendingPayroll > 0) {
-                        $notifCount++;
-                        $notifications[] = ['msg' => "$pendingPayroll payslips pending review", 'link' => '../shared/payroll.php', 'icon' => 'bi-cash'];
+            // Check Cache
+            if (isset($_SESSION[$cacheKey]) && (time() - $_SESSION[$cacheKey]['time'] < $cacheDuration)) {
+                $notifications = $_SESSION[$cacheKey]['data'];
+                $notifCount = $_SESSION[$cacheKey]['count'];
+            } else {
+                // Fetch from DB
+                try {
+                    if (function_exists('getConnection')) {
+                        $conn = getConnection();
+
+                        // 1. Pending Payroll
+                        $stmt = $conn->prepare("SELECT COUNT(*) FROM payroll WHERE status = 'draft'");
+                        $stmt->execute();
+                        $pendingPayroll = $stmt->fetchColumn();
+                        if ($pendingPayroll > 0) {
+                            $notifCount++;
+                            $notifications[] = ['msg' => "$pendingPayroll payslips pending review", 'link' => '../shared/payroll.php', 'icon' => 'bi-cash'];
+                        }
+
+                        // 2. Pending Leaves
+                        $stmt = $conn->prepare("SELECT COUNT(*) FROM leaves WHERE status = 'pending'");
+                        $stmt->execute();
+                        $pendingLeaves = $stmt->fetchColumn();
+                        if ($pendingLeaves > 0) {
+                            $notifCount++;
+                            $notifications[] = ['msg' => "$pendingLeaves leave requests pending", 'link' => '../hr/leaves.php', 'icon' => 'bi-calendar-check'];
+                        }
+
+                        // 3. Present Today (Clocked In)
+                        $today = date('Y-m-d');
+                        $stmt = $conn->prepare("SELECT COUNT(DISTINCT user_id) FROM attendance WHERE DATE(clock_in) = ? AND status IN ('active', 'completed')");
+                        $stmt->execute([$today]);
+                        $presentToday = $stmt->fetchColumn();
+
+                        if ($presentToday > 0) {
+                            $notifications[] = ['msg' => "$presentToday staff present today", 'link' => '../hr/attendance.php', 'icon' => 'bi-person-check', 'type' => 'info'];
+                        }
+
+                        // Save to Cache
+                        $_SESSION[$cacheKey] = [
+                            'time' => time(),
+                            'data' => $notifications,
+                            'count' => $notifCount
+                        ];
                     }
-
-                    // 2. Pending Leaves
-                    $stmt = $conn->prepare("SELECT COUNT(*) FROM leaves WHERE status = 'pending'");
-                    $stmt->execute();
-                    $pendingLeaves = $stmt->fetchColumn();
-                    if ($pendingLeaves > 0) {
-                        $notifCount++;
-                        $notifications[] = ['msg' => "$pendingLeaves leave requests pending", 'link' => '../hr/leaves.php', 'icon' => 'bi-calendar-check'];
-                    }
-
-                    // 3. Present Today (Clocked In)
-                    $today = date('Y-m-d');
-                    $stmt = $conn->prepare("SELECT COUNT(DISTINCT user_id) FROM attendance WHERE DATE(clock_in) = ? AND status IN ('active', 'completed')");
-                    $stmt->execute([$today]);
-                    $presentToday = $stmt->fetchColumn();
-
-                    if ($presentToday > 0) {
-                        // We don't increment notifCount for this as it's 'info', not 'alert'. 
-                        // Or maybe we do to show activity? 
-                        // User said "INSERT NEW NOTIFICATION", implying they want to see it.
-                        // I will add it to the list but not necessarily trigger the 'red dot' unless you want alerts for everything.
-                        // Using consistent UI: Add to list.
-                        // Optional: $notifCount++; (if you want red dot for presence)
-                        // Let's keep red dot for "Actions Required" (Pending stuff), but show this in the list.
-                        $notifications[] = ['msg' => "$presentToday staff present today", 'link' => '../hr/attendance.php', 'icon' => 'bi-person-check', 'type' => 'info'];
-                    }
+                } catch (Exception $e) {
+                    error_log("Navbar Notification Error: " . $e->getMessage());
                 }
-            } catch (Exception $e) {
             }
         }
         ?>
