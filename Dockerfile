@@ -28,10 +28,10 @@ RUN composer install --no-dev --optimize-autoloader
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# Configure Apache DocumentRoot to current directory (default is /var/www/html)
-# (Optional: if you want to use public/ folder, change this)
-# ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-# RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-# RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf | /etc/apache2/conf-available/*.conf
+# Configure Apache to listen on the port provided by Zeabur (defaults to 80)
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
+ENV PORT=80
 EXPOSE 80
+
+CMD ["apache2-foreground"]
