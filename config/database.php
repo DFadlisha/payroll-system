@@ -22,11 +22,14 @@ if (!class_exists('Environment')) {
     require_once __DIR__ . '/environment.php';
 }
 
-// Using Direct Connection (Port 5432) - Most reliable for this setup
-define('DB_HOST', Environment::get('DB_HOST', ''));
-define('DB_PORT', Environment::get('DB_PORT', '5432'));
+// Using Supabase Pooler (IPv4 Compatible)
+// We use Port 5432 (Session Mode) because Port 6543 (Transaction Mode) is blocked by the firewall.
+// We use the Pooler Host because the Direct Host (db.xxx) is IPv6-only and failing.
+define('DB_HOST', 'aws-0-ap-southeast-1.pooler.supabase.com');
+define('DB_PORT', '5432');
 define('DB_NAME', Environment::get('DB_NAME', 'postgres'));
-define('DB_USER', Environment::get('DB_USER', 'postgres'));
+// Pooler requires "user.project_ref" format
+define('DB_USER', 'postgres.aahaznqptohmkdiqpjnx');
 define('DB_PASS', Environment::get('DB_PASS', ''));
 
 /**
