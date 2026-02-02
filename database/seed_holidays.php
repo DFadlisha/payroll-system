@@ -29,16 +29,17 @@ function fetchAndSeedHolidays($year) {
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Fix for local dev SSL issues
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Reduced from 15s to prevent long delays
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3); // Max 3s to establish connection
         curl_setopt($ch, CURLOPT_USERAGENT, 'MI-NES-Payroll/1.0');
         $jsonData = curl_exec($ch);
-        curl_close($ch);
+        // curl_close() is deprecated in PHP 8.0+ - cURL handle is auto-closed when $ch goes out of scope
     }
     
     // Fallback to file_get_contents if curl failed or not available
     if (!$jsonData) {
         $context = stream_context_create([
-            'http' => ['timeout' => 15, 'header' => "User-Agent: MI-NES-Payroll/1.0\r\n"],
+            'http' => ['timeout' => 5, 'header' => "User-Agent: MI-NES-Payroll/1.0\r\n"],
             'ssl' => ["verify_peer"=>false, "verify_peer_name"=>false]
         ]);
         $jsonData = @file_get_contents($url, false, $context);

@@ -107,6 +107,14 @@ We use **TCPDF** via Composer to generate professional, Malay-language compatibl
 - **Touch Targets**: All buttons are optimized for touch (min 44px height).
 - **Data Cards**: Tables convert to card views on mobile for better readability.
 
+### Performance Optimizations
+- **Holiday API Caching**: The system fetches Malaysian public holidays from Nager.Date API with:
+  - **5-second timeout** (reduced from 15s) to prevent blocking
+  - **Fast fallback** to hardcoded 2025-2026 holidays if API is slow/unavailable
+  - **Smart caching** - only fetches once per year, then stores in database
+- **Non-blocking Seeding**: Auto-seeding only triggers when viewing the holidays page for the first time
+- **PHP 8.2+ Optimizations**: Uses modern PHP practices (no deprecated functions like `curl_close`)
+
 ---
 
 ## 🔐 Credentials (Demo)

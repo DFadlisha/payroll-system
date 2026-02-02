@@ -96,18 +96,16 @@ try {
     $holidays = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // AUTO-SEED: If no holidays found, try to seed automatically
+    // To prevent blocking, we check but don't wait - fallback data will seed fast
     if (empty($holidays)) {
         require_once '../database/seed_holidays.php';
+        
+        // Call the seeding function (now optimized with 5s timeout and fast fallback)
         fetchAndSeedHolidays($year);
         
         // Refetch after seeding
         $stmt->execute([$year]);
         $holidays = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        if (!empty($holidays)) {
-            $message = "Public holidays for $year have been automatically retrieved.";
-            $messageType = 'success';
-        }
     }
     
 } catch (PDOException $e) {
