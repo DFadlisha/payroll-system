@@ -1,58 +1,121 @@
-# 🚀 Deployment Guide: MI-NES Payroll System
+# Deployment Guide - MI-NES Payroll System
 
-Status: **READY FOR DEPLOYMENT** ✅
+## Option 1: Railway.app (Recommended - Easiest)
 
-Your application is now configured for production. Here is how to deploy it safely.
+### Step 1: Sign Up
+1. Go to [railway.app](https://railway.app)
+2. Sign up with GitHub
 
-## 1. Pre-Deployment Check
-- [x] **Database Credentials Secured**: We moved hardcoded passwords to `.env`.
-- [x] **UI Polished**: Staff and HR dashboards are using the premium glassmorphism theme.
-- [x] **Environment Variables**: `.env` file created for local testing.
+### Step 2: Create New Project
+1. Click "New Project"
+2. Select "Deploy from GitHub repo"
+3. Choose your `payroll-system` repository
 
-## 2. Recommended Hosting
-Since this is a custom PHP application, we recommend **Railway** or **Heroku** or a standard **VPS (Ubuntu/Nginx)**.
+### Step 3: Add Environment Variables
+Click on your service → Variables → Add these:
 
-### Option A: Render (Free & Recommended) ☁️
-**Best for:** Free hosting with continuous deployment from GitHub.
+```
+DB_HOST=db.aahaznqptohmkdiqpjnx.supabase.co
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASS=ZGdRerSZQfxtoHKs
+APP_ENV=production
+APP_DEBUG=false
+```
 
-1.  **Sign Up:** Go to [render.com](https://render.com) and sign up with GitHub.
-2.  **New Web Service:** Click "New +" -> "Web Service".
-3.  **Connect Repo:** Select `DFadlisha/payroll-system`.
-4.  **Configure:**
-    *   **Name:** `mi-nes-payroll` (or similar)
-    *   **Runtime:** `Docker` (It will automatically detect the Dockerfile I just created)
-    *   **Region:** Singapore (nearest to Malaysia)
-    *   **Instance Type:** Free
-5.  **Environment Variables:**
-    *   Click "Advanced" or wait for creation, then go to "Environment" tab.
-    *   Add the following keys/values:
-        - `DB_HOST`: (Your Supabase Host)
-        - `DB_PORT`: `6543` (Transaction Pooler) or `5432`
-        - `DB_USER`: (Your Supabase User)
-        - `DB_PASS`: (Your Supabase Password)
-        - `DB_NAME`: `postgres`
-        - `APP_ENV`: `production`
-6.  **Deploy:** Click "Create Web Service".
+### Step 4: Deploy
+- Railway will auto-deploy
+- You'll get a URL like: `https://your-app.up.railway.app`
 
-*Note: The free tier on Render spins down after 15 minutes of inactivity. The first request after a break might take 30-60 seconds.*
+**That's it!** Railway handles everything automatically.
 
-### Option B: Railway (Paid / Trial) 🚅
-**Best for:** Production performance, no spin-downs.
-1. Connect your GitHub repository to Railway.
-2. Add a **New Service** from GitHub.
-3. In "Variables", add the same DB credentials as above.
-4. Set `APP_ENV=production`.
+---
 
-### Option B: Traditional Hosting (cPanel/Hostinger) 🌐
-1. Upload all files to `public_html`.
-2. Edit `.env` on the server with your production database details.
-3. Ensure PHP 8.1+ is enabled.
+## Option 2: Vercel (Serverless - Requires Modification)
 
-## 3. Important Notes
-- **Do not upload the `.env` file** to public GitHub repositories.
-- Use the **Transaction Pooler** (Port 6543) for Supabase in production if you have many users.
-- Ensure `https` is forced on your domain.
+### Requirements
+- Need to convert to serverless functions
+- Not recommended for this project (requires major refactoring)
 
-## 4. Post-Deployment
-- Log in as the HR Admin (`admin@nes.com.my` / `password123`) to verify access.
-- Test the "Clock In" feature on a mobile device to ensure GPS works (requires HTTPS).
+---
+
+## Option 3: InfinityFree (Traditional Hosting - Very Simple)
+
+### Step 1: Sign Up
+1. Go to [infinityfree.net](https://infinityfree.net)
+2. Create free account
+
+### Step 2: Create Hosting Account
+1. Choose subdomain or use custom domain
+2. Wait for account activation (instant)
+
+### Step 3: Upload Files
+1. Use File Manager or FTP
+2. Upload all files to `htdocs` folder
+3. Create `.env` file with your Supabase credentials
+
+### Step 4: Configure
+- Edit `.env` with your database details
+- That's it!
+
+**Pros:** Works exactly like XAMPP
+**Cons:** Slower, limited resources
+
+---
+
+## Option 4: Fly.io (Better than Render)
+
+### Step 1: Install Fly CLI
+```bash
+# Windows (PowerShell)
+iwr https://fly.io/install.ps1 -useb | iex
+```
+
+### Step 2: Login
+```bash
+fly auth login
+```
+
+### Step 3: Launch App
+```bash
+cd "c:\Users\User\Documents\SEM 7\INDUSTRIAL THINGS\NES SOLUTION AND NETWORK SDN BHD\payroll system"
+fly launch
+```
+
+### Step 4: Set Secrets
+```bash
+fly secrets set DB_HOST=db.aahaznqptohmkdiqpjnx.supabase.co
+fly secrets set DB_PORT=5432
+fly secrets set DB_USER=postgres
+fly secrets set DB_PASS=ZGdRerSZQfxtoHKs
+```
+
+### Step 5: Deploy
+```bash
+fly deploy
+```
+
+---
+
+## Comparison Table
+
+| Platform | Ease of Use | Free Tier | Speed | Supabase Compatibility |
+|----------|-------------|-----------|-------|------------------------|
+| **Railway** | ⭐⭐⭐⭐⭐ | $5/month credit | Fast | ✅ Excellent |
+| **Render** | ⭐⭐⭐ | 750 hours/month | Medium | ⚠️ IPv6 Issues |
+| **Fly.io** | ⭐⭐⭐⭐ | 3 VMs free | Fast | ✅ Good |
+| **InfinityFree** | ⭐⭐⭐⭐⭐ | Unlimited | Slow | ✅ Good |
+| **Vercel** | ⭐⭐ | Generous | Very Fast | ⚠️ Requires Refactoring |
+
+---
+
+## Recommended: Switch to Railway
+
+Railway is the easiest and most reliable option for your PHP + Supabase setup.
+
+**Next Steps:**
+1. Go to railway.app
+2. Connect your GitHub
+3. Deploy in 2 minutes
+4. Done! ✅
