@@ -63,14 +63,16 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT:-80}/health.php || exit 1
 
 # Create startup script for better error handling
-RUN echo '#!/bin/bash\n\
-    set -e\n\
-    PORT=${PORT:-80}\n\
-    echo "Starting Apache on port $PORT..."\n\
-    sed -i "s/Listen 80/Listen $PORT/g" /etc/apache2/ports.conf\n\
-    sed -i "s/<VirtualHost \\*:80>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf\n\
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf\n\
-    echo "Apache configured successfully"\n\
-    exec apache2-foreground' > /start.sh && chmod +x /start.sh
+# Create startup script using printf to ensure correct newlines and avoid echo compatibility issues
+RUN printf "#!/bin/bash\n" > /start.sh && \
+    printf "set -e\n" >> /start.sh && \
+    printf "PORT=\${PORT:-80}\n" >> /start.sh && \
+    printf "echo \"Starting Apache on port \$PORT...\"\n" >> /start.sh && \
+    printf "sed -i \"s/Listen 80/Listen \$PORT/g\" /etc/apache2/ports.conf\n" >> /start.sh && \
+    printf "sed -i \"s/<VirtualHost *:80>/<VirtualHost *:\$PORT>/g\" /etc/apache2/sites-available/000-default.conf\n" >> /start.sh && \
+    printf "echo \"ServerName localhost\" >> /etc/apache2/apache2.conf\n" >> /start.sh && \
+    printf "echo \"Apache configured successfully\"\n" >> /start.sh && \
+    printf "exec apache2-foreground\n" >> /start.sh && \
+    chmod +x /start.sh
 
 CMD ["/start.sh"]
