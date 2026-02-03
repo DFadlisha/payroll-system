@@ -167,21 +167,15 @@ try {
 
                 <div class="col-lg-5 text-lg-end">
                     <?php if (!$todayAttendance): ?>
-                        <form method="POST" action="attendance.php">
-                            <input type="hidden" name="action" value="clock_in">
-                            <button type="submit"
-                                class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow-lg hover-scale">
-                                <i class="bi bi-fingerprint me-2 text-primary"></i> Clock In Now
-                            </button>
-                        </form>
+                        <a href="attendance.php" 
+                           class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow-lg hover-scale">
+                            <i class="bi bi-fingerprint me-2 text-primary"></i> Clock In Now
+                        </a>
                     <?php elseif (!$todayAttendance['clock_out']): ?>
-                        <form method="POST" action="attendance.php">
-                            <input type="hidden" name="action" value="clock_out">
-                            <button type="submit"
-                                class="btn btn-outline-light btn-lg rounded-pill px-5 py-3 fw-bold hover-scale">
-                                <i class="bi bi-box-arrow-right me-2"></i> Clock Out
-                            </button>
-                        </form>
+                        <a href="attendance.php" 
+                           class="btn btn-outline-light btn-lg rounded-pill px-5 py-3 fw-bold hover-scale">
+                            <i class="bi bi-box-arrow-right me-2"></i> Clock Out
+                        </a>
                     <?php else: ?>
                         <div
                             class="bg-white bg-opacity-10 p-4 rounded-4 text-center backdrop-blur border border-white border-opacity-10">

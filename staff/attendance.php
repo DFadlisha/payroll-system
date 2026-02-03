@@ -75,9 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'clock_out') {
                 $stmt = $conn->prepare("
                     SELECT id FROM attendance 
-                    WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active'
+                    WHERE user_id = ? AND status = 'active'
+                    ORDER BY clock_in DESC LIMIT 1
                 ");
-                $stmt->execute([$userId, $today]);
+                $stmt->execute([$userId]);
                 $record = $stmt->fetch();
 
                 if (!$record) {
@@ -170,8 +171,9 @@ $history = $stmt->fetchAll();
 
                         <div id="mainActions">
                             <?php 
-                            $stmt = $conn->prepare("SELECT status FROM attendance WHERE user_id = ? AND DATE(clock_in) = ? AND status = 'active' LIMIT 1");
-                            $stmt->execute([$userId, $today]);
+                            // Check for ANY active session, not just today's (handles overnight shifts)
+                            $stmt = $conn->prepare("SELECT status FROM attendance WHERE user_id = ? AND status = 'active' ORDER BY clock_in DESC LIMIT 1");
+                            $stmt->execute([$userId]);
                             $isActive = $stmt->fetch();
                             ?>
                             
