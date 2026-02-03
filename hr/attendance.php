@@ -458,7 +458,7 @@ try {
     }
 
     function openAddModal(data) {
-        document.getElementById('modalTitle').innerText = 'Add Manual Attendance';
+        document.getElementById('modalTitle').innerText = 'Manual Clock In & Attendance';
         document.getElementById('modalEmployeeName').innerText = 'Employee: ' + data.full_name;
         document.getElementById('modalUserId').value = data.user_id;
         document.getElementById('modalAttId').value = ''; // Clear ID
@@ -477,7 +477,7 @@ try {
     }
 
     function openEditModal(data) {
-        document.getElementById('modalTitle').innerText = 'Edit Attendance Details';
+        document.getElementById('modalTitle').innerText = 'Edit Clock In/Out & Details';
         document.getElementById('modalEmployeeName').innerText = 'Employee: ' + data.full_name;
         document.getElementById('modalUserId').value = data.user_id;
         document.getElementById('modalAttId').value = data.attendance_id;
