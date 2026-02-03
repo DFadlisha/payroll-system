@@ -473,13 +473,23 @@ try {
     </div>
 </div>
 
+<?php require_once '../includes/footer.php'; ?>
+
 <script>
-    const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+    let modal;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+    });
 
     function formatTime(dateTimeStr) {
         if (!dateTimeStr) return '';
         const date = new Date(dateTimeStr);
         // Format to HH:MM for input time
+        // Handle timezone offset if needed, but local browser time usually OK if standard string
+        // Better: extract HH:MM substring if format is YYYY-MM-DD HH:MM:SS
+        if(dateTimeStr.length >= 16) return dateTimeStr.substring(11, 16);
+        
         return date.toTimeString().substring(0, 5);
     }
 
@@ -494,11 +504,6 @@ try {
         // Clear fields and set default to current time for Clock In
         const now = new Date();
         const currentTime = now.toTimeString().substring(0, 5);
-        document.getElementById('modalClockIn').value = ''; // Default empty to let user choose? Or Keep current time?
-        // User asked for "forgot to clock in". Current time is helpful but maybe misleading if fixing yesterday.
-        // Let's leave it empty to force explicit entry, OR 09:00? 
-        // Let's stick to existing behavior (currentTime) but usually empty is safer for "forgot".
-        // Actually, let's set it to 09:00 if empty or just empty.
         document.getElementById('modalClockIn').value = '09:00'; 
         document.getElementById('modalClockOut').value = '18:00'; // Default Shift
 
@@ -509,7 +514,7 @@ try {
         document.getElementById('modalLate').value = '';
         document.getElementById('modalShift').value = '';
 
-        modal.show();
+        if(modal) modal.show();
     }
 
     function openEditModal(data) {
@@ -533,7 +538,7 @@ try {
         document.getElementById('modalLate').value = data.late_minutes || 0;
         document.getElementById('modalShift').value = data.extra_shifts || 0;
 
-        modal.show();
+        if(modal) modal.show();
     }
 
     function confirmDelete() {
@@ -542,10 +547,11 @@ try {
             // Since we are using one form, we can use the hidden input trick OR separate form.
             // But here we can just enable a hidden input 'delete_attendance' ??
             // Actually, the PHP checks for `isset($_POST['delete_attendance'])`.
-            // So we need to add a name='delete_attendance' input that is only sent when deleting.
-            // or just change the form action? 
-            // Simpler: Set the hidden input 'delete_attendance' to 1 and remove 'save_attendance'.
-            // But 'save_attendance' is a hidden input? No, existing code: <input type="hidden" name="save_attendance" value="1">
+            // So we need an input with name="delete_attendance".
+            // My previous chunk added: <input type="hidden" name="delete_attendance" id="deleteFlag" value="0">
+            // This will send delete_attendance=0 even on save.
+            // On save: isset($_POST['save_attendance']) is true.
+            // On delete: we want isset($_POST['delete_attendance']) to be true (and maybe save_attendance false/missing).
             
             // Let's tweak the form submission.
             const form = document.querySelector('#attendanceModal form');
@@ -570,5 +576,3 @@ try {
         }
     }
 </script>
-
-<?php require_once '../includes/footer.php'; ?>

@@ -191,6 +191,8 @@ if ($isAdmin) {
     </div>
 </div>
 
+<?php require_once '../includes/footer.php'; ?>
+
 <script>
     function updateFilters() {
         const date = document.getElementById('filterDate').value;
@@ -199,5 +201,3 @@ if ($isAdmin) {
         window.location.href = `?date=${date}&user_id=${staffId}`;
     }
 </script>
-
-<?php require_once '../includes/footer.php'; ?>
