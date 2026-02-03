@@ -354,23 +354,47 @@ $history = $stmt->fetchAll();
 
 
     function captureAndSubmit() {
-        if (!userCoords) return alert("Waiting for GPS...");
+        try {
+            if (!userCoords) return alert("Waiting for GPS...");
+            if (!currentAction) return alert("System Error: No action selected. Please refresh.");
 
-        const video = document.getElementById('videoPreview');
-        const canvas = document.getElementById('photoCanvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
+            const btn = document.querySelector('button[onclick="captureAndSubmit()"]');
+            if(btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+            }
 
-        const photoData = canvas.toDataURL('image/jpeg', 0.8);
-        
-        document.getElementById('formAction').value = currentAction;
-        document.getElementById('formLat').value = userCoords.latitude;
-        document.getElementById('formLng').value = userCoords.longitude;
-        document.getElementById('formPhoto').value = photoData;
-        document.getElementById('formDevice').value = navigator.userAgent;
-        
-        document.getElementById('hiddenForm').submit();
+            const video = document.getElementById('videoPreview');
+            const canvas = document.getElementById('photoCanvas');
+            
+            if (!video.videoWidth) {
+                throw new Error("Video stream not ready. Please wait a moment.");
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            const photoData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            console.log("Submitting attendance:", currentAction);
+            
+            document.getElementById('formAction').value = currentAction;
+            document.getElementById('formLat').value = userCoords.latitude;
+            document.getElementById('formLng').value = userCoords.longitude;
+            document.getElementById('formPhoto').value = photoData;
+            document.getElementById('formDevice').value = navigator.userAgent;
+            
+            document.getElementById('hiddenForm').submit();
+        } catch (e) {
+            alert("Error during submission: " + e.message);
+            console.error(e);
+            const btn = document.querySelector('button[onclick="captureAndSubmit()"]');
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Confirm Verification';
+            }
+        }
     }
 
     function cancelAttendance() {
