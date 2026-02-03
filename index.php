@@ -30,8 +30,8 @@ $translations = [
         'features_title' => 'Key Features',
         'feature1' => 'Employee Management',
         'feature1_desc' => 'Manage employee profiles, contracts, and employment types',
-        'feature2' => 'Attendance Tracking',
-        'feature2_desc' => 'Real-time clock in/out with location tracking and overtime calculation',
+        'feature2' => 'Smart Attendance',
+        'feature2_desc' => 'Secure clock in/out with GPS tracking, photo verification, and digital security hashing',
 
         'feature4' => 'Payroll Processing',
         'feature4_desc' => 'Automated salary calculation with EPF, SOCSO, EIS, and PCB deductions',
@@ -79,8 +79,8 @@ $t = $translations[$lang];
         }
 
         body {
-            /* Premium Glassmorphic Gradient Background */
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            /* Premium Dark Glassmorphic Gradient Background */
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%);
             background-attachment: fixed;
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -360,7 +360,7 @@ $t = $translations[$lang];
     <!-- Features Section -->
     <section class="features-section">
         <div class="container">
-            <h2 class="section-title" style="color: #1f2937;"><?= $t['features_title'] ?></h2>
+            <h2 class="section-title text-white"><?= $t['features_title'] ?></h2>
 
             <div class="row g-4">
                 <div class="col-md-4">
