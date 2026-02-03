@@ -135,6 +135,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'error';
         }
     }
+
+
+    // 2. Delete Attendance
+    if (isset($_POST['delete_attendance'])) {
+        try {
+            $attendanceId = $_POST['attendance_id'];
+            if ($attendanceId) {
+                $stmt = $conn->prepare("DELETE FROM attendance WHERE id = ?");
+                $stmt->execute([$attendanceId]);
+                $message = 'Attendance record deleted.';
+                $messageType = 'success';
+            }
+        } catch (PDOException $e) {
+             error_log("Delete attendance error: " . $e->getMessage());
+             $message = 'Error deleting record.';
+             $messageType = 'error';
+        }
+    }
 }
 
 // Fetch Data
@@ -322,8 +340,7 @@ try {
                                         <td>
                                             <?php if ($hasAtt): ?>
                                                 <span class="badge bg-light text-dark border">
-                                                    <?= floatval($att['ot_hours']) ?> / <?= floatval($att['ot_sunday_hours']) ?> /
-                                                    <?= floatval($att['ot_public_hours']) ?>
+                                                    OT: <?= floatval($att['ot_hours']) ?> / PH: <?= floatval($att['ot_public_hours']) ?>
                                                 </span>
                                             <?php else: ?>
                                                 -
@@ -355,7 +372,7 @@ try {
                                                 <button class="btn btn-sm btn-outline-success rounded-pill px-3"
                                                     data-att="<?= $attData ?>"
                                                     onclick="openAddModal(JSON.parse(this.dataset.att))">
-                                                    <i class="bi bi-box-arrow-in-right me-1"></i> Clock In
+                                                    <i class="bi bi-plus-lg me-1"></i> Add Entry
                                                 </button>
                                             <?php endif; ?>
                                         </td>
@@ -380,6 +397,8 @@ try {
                 <input type="hidden" name="save_attendance" value="1">
                 <input type="hidden" name="attendance_id" id="modalAttId">
                 <input type="hidden" name="user_id" id="modalUserId">
+                <input type="hidden" name="delete_attendance" id="deleteFlag" value="0">
+
                 <input type="hidden" name="date" value="<?= $selectedDate ?>">
 
                 <div class="modal-body">
@@ -438,9 +457,16 @@ try {
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Save Attendance</button>
+                <div class="modal-footer border-0 d-flex justify-content-between">
+                    <div>
+                         <button type="button" class="btn btn-outline-danger rounded-pill" id="btnDelete" onclick="confirmDelete()" style="display:none;">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">Save Changes</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -458,16 +484,24 @@ try {
     }
 
     function openAddModal(data) {
-        document.getElementById('modalTitle').innerText = 'Manual Clock In & Attendance';
+        document.getElementById('modalTitle').innerText = 'Add Attendance Entry'; // Renamed
         document.getElementById('modalEmployeeName').innerText = 'Employee: ' + data.full_name;
         document.getElementById('modalUserId').value = data.user_id;
-        document.getElementById('modalAttId').value = ''; // Clear ID
+        document.getElementById('modalAttId').value = ''; 
+        document.getElementById('deleteFlag').disabled = true; // Disable delete flag for Add
+        document.getElementById('btnDelete').style.display = 'none';
 
         // Clear fields and set default to current time for Clock In
         const now = new Date();
         const currentTime = now.toTimeString().substring(0, 5);
-        document.getElementById('modalClockIn').value = currentTime;
-        document.getElementById('modalClockOut').value = '';
+        document.getElementById('modalClockIn').value = ''; // Default empty to let user choose? Or Keep current time?
+        // User asked for "forgot to clock in". Current time is helpful but maybe misleading if fixing yesterday.
+        // Let's leave it empty to force explicit entry, OR 09:00? 
+        // Let's stick to existing behavior (currentTime) but usually empty is safer for "forgot".
+        // Actually, let's set it to 09:00 if empty or just empty.
+        document.getElementById('modalClockIn').value = '09:00'; 
+        document.getElementById('modalClockOut').value = '18:00'; // Default Shift
+
         document.getElementById('modalLocation').value = '';
         document.getElementById('modalOT').value = '';
         document.getElementById('modalOTPub').value = '';
@@ -479,10 +513,15 @@ try {
     }
 
     function openEditModal(data) {
-        document.getElementById('modalTitle').innerText = 'Edit Clock In/Out & Details';
+        document.getElementById('modalTitle').innerText = 'Edit Attendance Details';
         document.getElementById('modalEmployeeName').innerText = 'Employee: ' + data.full_name;
         document.getElementById('modalUserId').value = data.user_id;
         document.getElementById('modalAttId').value = data.attendance_id;
+        
+        document.getElementById('deleteFlag').disabled = true; // Default disabled
+        document.getElementById('deleteFlag').value = '0';
+        // Show delete button
+        document.getElementById('btnDelete').style.display = 'inline-block';
 
         // Populate fields
         document.getElementById('modalClockIn').value = formatTime(data.clock_in);
@@ -495,6 +534,40 @@ try {
         document.getElementById('modalShift').value = data.extra_shifts || 0;
 
         modal.show();
+    }
+
+    function confirmDelete() {
+        if (confirm('Are you sure you want to delete this attendance record? This will mark the employee as Absent.')) {
+            // We need to submit the form with delete_attendance set
+            // Since we are using one form, we can use the hidden input trick OR separate form.
+            // But here we can just enable a hidden input 'delete_attendance' ??
+            // Actually, the PHP checks for `isset($_POST['delete_attendance'])`.
+            // So we need to add a name='delete_attendance' input that is only sent when deleting.
+            // or just change the form action? 
+            // Simpler: Set the hidden input 'delete_attendance' to 1 and remove 'save_attendance'.
+            // But 'save_attendance' is a hidden input? No, existing code: <input type="hidden" name="save_attendance" value="1">
+            
+            // Let's tweak the form submission.
+            const form = document.querySelector('#attendanceModal form');
+            
+            // Remove save_attendance input or disable it
+            const saveInput = form.querySelector('input[name="save_attendance"]');
+            if(saveInput) saveInput.disabled = true;
+
+            // Enable delete flag (which we need to change to be the trigger name)
+            // wait, PHP: if (isset($_POST['delete_attendance']))
+            // So we need an input with name="delete_attendance".
+            // My previous chunk added: <input type="hidden" name="delete_attendance" id="deleteFlag" value="0">
+            // This will send delete_attendance=0 even on save.
+            // On save: isset($_POST['save_attendance']) is true.
+            // On delete: we want isset($_POST['delete_attendance']) to be true (and maybe save_attendance false/missing).
+            
+            const deleteInput = document.getElementById('deleteFlag');
+            deleteInput.value = '1';
+            deleteInput.disabled = false;
+            
+            form.submit();
+        }
     }
 </script>
 

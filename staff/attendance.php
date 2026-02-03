@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             clock_out_latitude = ?,
                             clock_out_longitude = ?,
                             clock_out_photo = ?,
-                            gps_location = CONCAT(gps_location, ' | Out: ', ?),
+                            gps_location = CONCAT(COALESCE(gps_location, ''), ' | Out: ', ?),
                             updated_at = NOW()
                         WHERE id = ?
                     ");
@@ -284,21 +284,74 @@ $history = $stmt->fetchAll();
             currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
             document.getElementById('videoPreview').srcObject = currentStream;
 
-            // Get Location
-            navigator.geolocation.getCurrentPosition((pos) => {
-                userCoords = pos.coords;
-                document.getElementById('gpsOverlay').style.display = 'none';
-                document.getElementById('gpsStatus').innerHTML = `<i class="bi bi-geo-alt-fill me-1"></i> GPS Ready (±${Math.round(pos.coords.accuracy)}m)`;
-            }, (err) => {
-                alert("Please enable GPS/Location to procced.");
-                cancelAttendance();
-            }, { enableHighAccuracy: true });
+            // Get Location with enhanced robustness
+            getLocation();
 
         } catch (err) {
-            alert("Camera access denied.");
+            alert("Camera access denied or error: " + err.message);
             cancelAttendance();
         }
     }
+
+    function getLocation(highAccuracy = true) {
+        if (!navigator.geolocation) {
+             alert('Geolocation is not supported by your browser');
+             return;
+        }
+
+        const options = {
+            enableHighAccuracy: highAccuracy,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                userCoords = pos.coords;
+                document.getElementById('gpsOverlay').style.display = 'none';
+                document.getElementById('gpsStatus').innerHTML = 
+                    `<i class="bi bi-geo-alt-fill me-1"></i> GPS Ready (±${Math.round(pos.coords.accuracy)}m)`;
+                document.getElementById('gpsStatus').className = 'mt-3 text-success small';
+            },
+            (err) => {
+                console.warn(`GPS Error (${err.code}): ${err.message}`);
+                
+                // If High Accuracy failed (timeout or error), try Low Accuracy once
+                if (highAccuracy) {
+                     console.log("High accuracy failed, trying low accuracy...");
+                     getLocation(false);
+                     return;
+                }
+
+                let msg = "Unable to retrieve location.";
+                switch(err.code) {
+                    case err.PERMISSION_DENIED:
+                        msg = "User denied the request for Geolocation. Please enable location permissions.";
+                        break;
+                    case err.POSITION_UNAVAILABLE:
+                        msg = "Location information is unavailable.";
+                        break;
+                    case err.TIMEOUT:
+                        msg = "The request to get user location timed out.";
+                        break;
+                }
+                
+                // Check if insecure context
+                if (window.isSecureContext === false) {
+                    msg += "\n\nNOTE: GPS requires HTTPS. You seem to be using HTTP.";
+                }
+
+                document.getElementById('gpsStatus').innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> ${msg}`;
+                document.getElementById('gpsStatus').className = 'mt-3 text-danger small';
+                alert(msg);
+                cancelAttendance();
+            },
+            options
+        );
+    }
+
+
+
 
     function captureAndSubmit() {
         if (!userCoords) return alert("Waiting for GPS...");
