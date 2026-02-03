@@ -355,7 +355,7 @@ try {
                                                 <button class="btn btn-sm btn-outline-success rounded-pill px-3"
                                                     data-att="<?= $attData ?>"
                                                     onclick="openAddModal(JSON.parse(this.dataset.att))">
-                                                    <i class="bi bi-plus-lg me-1"></i> Add
+                                                    <i class="bi bi-box-arrow-in-right me-1"></i> Clock In
                                                 </button>
                                             <?php endif; ?>
                                         </td>
@@ -463,9 +463,11 @@ try {
         document.getElementById('modalUserId').value = data.user_id;
         document.getElementById('modalAttId').value = ''; // Clear ID
 
-        // Clear fields
-        document.getElementById('modalClockIn').value = '09:00';
-        document.getElementById('modalClockOut').value = '18:00';
+        // Clear fields and set default to current time for Clock In
+        const now = new Date();
+        const currentTime = now.toTimeString().substring(0, 5);
+        document.getElementById('modalClockIn').value = currentTime;
+        document.getElementById('modalClockOut').value = '';
         document.getElementById('modalLocation').value = '';
         document.getElementById('modalOT').value = '';
         document.getElementById('modalOTPub').value = '';
