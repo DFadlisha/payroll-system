@@ -23,7 +23,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
             <li><a href="/hr/employees.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'employees' ? 'active' : '' ?>"><i class="bi bi-person-badge-fill me-3"></i> <?= __('nav.employees') ?></a></li>
             <li><a href="/hr/attendance.php" class="nav-link rounded-3 mb-1 <?= ($currentPage === 'attendance' && $currentFolder === 'hr') ? 'active' : '' ?>"><i class="bi bi-clock-fill me-3"></i> <?= __('nav.attendance') ?></a></li>
             <li><a href="/shared/attendance.php" class="nav-link rounded-3 mb-1 <?= ($currentPage === 'attendance' && $currentFolder === 'shared') ? 'active' : '' ?>"><i class="bi bi-shield-check me-3"></i> Monitor</a></li>
-            <li><a href="/hr/leaves.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'leaves' ? 'active' : '' ?>"><i class="bi bi-calendar2-week-fill me-3"></i> <?= __('nav.leaves') ?></a></li>
+
             
             <li class="menu-label small text-muted text-uppercase fw-bold mb-2 mt-4 px-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Operations</li>
             <li><a href="/shared/payroll.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'payroll' ? 'active' : '' ?>"><i class="bi bi-wallet2 me-3"></i> <?= __('nav.payroll') ?></a></li>

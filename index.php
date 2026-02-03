@@ -32,8 +32,7 @@ $translations = [
         'feature1_desc' => 'Manage employee profiles, contracts, and employment types',
         'feature2' => 'Attendance Tracking',
         'feature2_desc' => 'Real-time clock in/out with location tracking and overtime calculation',
-        'feature3' => 'Leave Management',
-        'feature3_desc' => 'Annual, sick, emergency, and unpaid leave requests with approval workflow',
+
         'feature4' => 'Payroll Processing',
         'feature4_desc' => 'Automated salary calculation with EPF, SOCSO, EIS, and PCB deductions',
         'feature5' => 'Reports & Analytics',
@@ -384,15 +383,7 @@ $t = $translations[$lang];
                     </div>
                 </div>
 
-                <div class="col-md-4">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="bi bi-calendar-check"></i>
-                        </div>
-                        <h3 class="feature-title"><?= $t['feature3'] ?></h3>
-                        <p class="feature-desc"><?= $t['feature3_desc'] ?></p>
-                    </div>
-                </div>
+
 
                 <div class="col-md-4">
                     <div class="feature-card">

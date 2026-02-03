@@ -28,7 +28,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
             <li class="menu-label small text-muted text-uppercase fw-bold mb-3 px-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">My Workspace</li>
             <li><a href="/staff/dashboard.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'dashboard' ? 'active' : '' ?>"><i class="bi bi-grid-fill me-3"></i> <?= __('nav.dashboard') ?></a></li>
             <li><a href="/staff/attendance.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'attendance' ? 'active' : '' ?>"><i class="bi bi-clock-history me-3"></i> <?= __('nav.attendance') ?></a></li>
-            <li><a href="/staff/leaves.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'leaves' ? 'active' : '' ?>"><i class="bi bi-calendar2-heart-fill me-3"></i> <?= __('nav.leaves') ?></a></li>
+
             <li><a href="/staff/payslips.php" class="nav-link rounded-3 mb-1 <?= $currentPage === 'payslips' ? 'active' : '' ?>"><i class="bi bi-receipt-cutoff me-3"></i> <?= __('nav.payslips') ?></a></li>
         </ul>
     </div>

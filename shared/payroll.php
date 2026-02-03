@@ -94,25 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $regularHours = $attendance['regular_hours'] ?? 0;
                 $otHours = $attendance['total_ot_hours'] ?? 0;
 
-                // Get Approved Paid Leaves for the month
-                $stmtLeaves = $conn->prepare("
-                    SELECT COALESCE(SUM(total_days), 0) as leave_days
-                    FROM leaves 
-                    WHERE user_id = ? 
-                    AND status = 'approved' 
-                    AND leave_type IN ('annual', 'medical', 'emergency', 'nrl', 'other')
-                    AND (
-                        (EXTRACT(MONTH FROM start_date) = ? AND EXTRACT(YEAR FROM start_date) = ?)
-                        OR 
-                        (EXTRACT(MONTH FROM end_date) = ? AND EXTRACT(YEAR FROM end_date) = ?)
-                    )
-                ");
-                $stmtLeaves->execute([$emp['id'], $selectedMonth, $selectedYear, $selectedMonth, $selectedYear]);
-                $paidLeaveDays = floatval($stmtLeaves->fetch()['leave_days'] ?? 0);
 
-                // Total Paid Days = Days Worked + Paid Leaves + Public Holidays
+
+                // Total Paid Days = Days Worked + Public Holidays
                 // "No Work No Pay" means if they are absent (not in attendance, no leave, no holiday), they aren't paid.
-                $totalPaidDays = $daysWorked + $paidLeaveDays + $publicHolidayCount;
+                $totalPaidDays = $daysWorked + $publicHolidayCount;
                 
                 // Cap total paid days at 26 for standard monthly calculation if it exceeds?
                 // Actually, if they work more, they get more? Usually monthly is capped at "target".

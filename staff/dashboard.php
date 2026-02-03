@@ -86,22 +86,14 @@ try {
         ] : null;
     }
 
-    // Recent Leaves (Keep separate as it returns multiple rows)
-    $stmt = $conn->prepare("
-        SELECT * FROM leaves 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT 5
-    ");
-    $stmt->execute([$userId]);
-    $recentLeaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 } catch (PDOException $e) {
     error_log("Staff Dashboard error: " . $e->getMessage());
     $user = null;
     $todayAttendance = null;
     $attendanceStats = ['total_days' => 0, 'present' => 0, 'active' => 0, 'total_hours' => 0, 'overtime_hours' => 0, 'attendance_percentage' => 0];
-    $recentLeaves = [];
+
     $latestPayslip = null;
 }
 ?>
@@ -208,78 +200,13 @@ try {
     <!-- Content Split -->
     <div class="row g-4 mt-2 animate-fade-in">
         <!-- Recent Activity -->
-        <div class="col-lg-8">
-            <div class="card glass-card border-0 h-100">
-                <div
-                    class="card-header d-flex justify-content-between align-items-center bg-transparent border-bottom-0 pt-4 px-4 pb-0">
-                    <h5 class="fw-bold mb-0 text-dark">Recent Leaves</h5>
-                    <a href="leaves.php" class="btn btn-sm btn-premium rounded-pill px-3">View All</a>
-                </div>
-                <div class="card-body px-4 pt-3 pb-4">
-                    <?php if (empty($recentLeaves)): ?>
-                        <div class="text-center py-5">
-                            <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
-                                <i class="bi bi-brightness-high text-muted fs-1"></i>
-                            </div>
-                            <h6 class="fw-bold text-dark">No leave history</h6>
-                            <p class="text-muted small">You haven't requested any time off recently.</p>
-                            <a href="leaves.php?action=new" class="btn btn-sm btn-outline-primary rounded-pill mt-2">Apply
-                                Now</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="d-flex flex-column gap-3">
-                            <?php foreach ($recentLeaves as $leave):
-                                $badge = getLeaveStatusBadge($leave['status']);
-                                $leaveIcon = match ($leave['leave_type']) {
-                                    'medical' => 'bi-bandaid',
-                                    'annual' => 'bi-airplane',
-                                    'emergency' => 'bi-exclamation-triangle',
-                                    default => 'bi-calendar-check'
-                                };
-                                ?>
-                                <div
-                                    class="p-3 rounded-4 bg-light border-0 d-flex align-items-center justify-content-between transition-hover">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="bg-white p-2 rounded-circle shadow-sm text-primary d-flex align-items-center justify-content-center"
-                                            style="width: 45px; height: 45px;">
-                                            <i class="bi <?= $leaveIcon ?> fs-5"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="fw-bold text-dark mb-0"><?= getLeaveTypeName($leave['leave_type']) ?>
-                                            </h6>
-                                            <small class="text-muted"><?= formatDate($leave['start_date']) ?> -
-                                                <?= formatDate($leave['end_date']) ?></small>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <span
-                                            class="badge <?= $badge['class'] ?> rounded-pill mb-1"><?= $badge['name'] ?></span>
-                                        <div class="small fw-bold text-dark"><?= $leave['total_days'] ?> Days</div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Quick Actions -->
         <div class="col-lg-4">
             <h5 class="fw-bold mb-3 ms-1 text-dark">Quick Access</h5>
             <div class="row g-3">
-                <div class="col-6">
-                    <a href="leaves.php?action=new" class="text-decoration-none">
-                        <div class="card glass-card h-100 hover-lift border-0 text-center p-4">
-                            <div class="rounded-circle d-inline-flex p-3 mb-3 mx-auto"
-                                style="background:var(--card-purple); color:var(--card-purple-text);">
-                                <i class="bi bi-calendar-plus fs-4"></i>
-                            </div>
-                            <h6 class="fw-bold text-dark mb-1">Apply Leave</h6>
-                            <small class="text-muted d-block">Time off</small>
-                        </div>
-                    </a>
-                </div>
+
                 <div class="col-6">
                     <a href="attendance.php" class="text-decoration-none">
                         <div class="card glass-card h-100 hover-lift border-0 text-center p-4">

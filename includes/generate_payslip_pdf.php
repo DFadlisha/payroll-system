@@ -79,39 +79,8 @@ try {
         $attendanceMap[$row['work_date']] = $row;
     }
 
-    // 3. Fetch Leaves (Indexed by Date)
-    // We need to expand multi-day leaves into individual dates
-    $stmt = $conn->prepare("
-        SELECT leave_type, start_date, end_date 
-        FROM leaves 
-        WHERE user_id = ? AND status = 'approved'
-        AND (
-            (EXTRACT(MONTH FROM start_date) = ? AND EXTRACT(YEAR FROM start_date) = ?)
-            OR 
-            (EXTRACT(MONTH FROM end_date) = ? AND EXTRACT(YEAR FROM end_date) = ?)
-        )
-    ");
-    $stmt->execute([$userId, $month, $year, $month, $year]);
-    $leavesRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // 3. Fetch Leaves - REMOVED
     $leaveMap = [];
-
-    foreach ($leavesRaw as $leave) {
-        $start = new DateTime($leave['start_date']);
-        $end = new DateTime($leave['end_date']);
-        // Constrain to current month
-        $monthStart = new DateTime("$year-$month-01");
-        $monthEnd = new DateTime("$year-$month-$daysInMonth");
-
-        if ($start < $monthStart)
-            $start = $monthStart;
-        if ($end > $monthEnd)
-            $end = $monthEnd;
-
-        while ($start <= $end) {
-            $leaveMap[$start->format('Y-m-d')] = $leave['leave_type'];
-            $start->modify('+1 day');
-        }
-    }
 
     // 4. Init PDF (Landscape)
     $pdf = new TCPDF('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
@@ -322,19 +291,7 @@ try {
                 $valProj = $att['project_hours'];
 
         } else {
-            if ($leave) {
-                $txtLoc = strtoupper(substr($leave, 0, 8));
-                if ($leave === 'medical') {
-                    $chkMC = '1';
-                    $totalMC++;
-                } elseif ($leave === 'annual') {
-                    $chkAL = '1';
-                    $totalAL++;
-                } elseif ($leave === 'unpaid') {
-                    $chkUPL = '1';
-                    $totalUPL++;
-                }
-            } elseif ($isPH) {
+            if ($isPH) {
                 $txtLoc = 'PH';
                 $chkPH = '1';
                 $totalPH++;
