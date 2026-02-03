@@ -105,6 +105,6 @@ function getConnection() {
 // } catch (Exception $e) {
 //     echo "Connection failed: " . $e->getMessage();
 // }
-?>
+// End of file
 
 
