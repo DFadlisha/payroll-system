@@ -21,6 +21,7 @@ try {
     // This is much faster for Supabase/Cloud databases
     $currentMonth = date('n');
     $currentYear = date('Y');
+    $today = date('Y-m-d');
     
     $statsQuery = "
         SELECT 

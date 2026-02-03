@@ -44,25 +44,35 @@ function getConnection() {
     }
 
     try {
-        // Build DSN - Increased timeout for local development
+        // Build DSN with optimized timeouts
         $sslMode = Environment::isDevelopment() ? 'prefer' : 'require';
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode={$sslMode};connect_timeout=30";
+        $timeout = Environment::isDevelopment() ? 30 : 10; // Faster timeout in production
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode={$sslMode};connect_timeout={$timeout}";
         
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => true,
-            PDO::ATTR_TIMEOUT => 30, // Increased for local dev
-            PDO::ATTR_PERSISTENT => false, 
+            PDO::ATTR_EMULATE_PREPARES => false, // Use native prepared statements for better performance
+            PDO::ATTR_TIMEOUT => $timeout,
+            PDO::ATTR_PERSISTENT => false, // Disable persistent connections for Zeabur
         ];
         
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+        
+        // Test connection with a simple query
+        $pdo->query("SELECT 1");
+        
         return $pdo;
         
     } catch (PDOException $e) {
         error_log("Supabase Connection Error: " . $e->getMessage());
         
-        // Show detailed error for debugging (remove in production)
+        // In production, show minimal error
+        if (!Environment::isDevelopment()) {
+            die("Database connection error. Please check server logs or contact support.");
+        }
+        
+        // Show detailed error for debugging in development
         $errorMsg = "Connection error to Supabase.<br><br>";
         $errorMsg .= "<strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "<br><br>";
         
@@ -96,3 +106,5 @@ function getConnection() {
 //     echo "Connection failed: " . $e->getMessage();
 // }
 ?>
+
+

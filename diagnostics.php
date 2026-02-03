@@ -1,4 +1,4 @@
-&lt;?php
+<?php
 /**
  * Diagnostic Page for Zeabur Deployment
  * This page helps diagnose 502 Bad Gateway errors
@@ -7,11 +7,11 @@
 
 header('Content-Type: text/html; charset=utf-8');
 
-echo '&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-&lt;head&gt;
-    &lt;title&gt;Zeabur Diagnostics&lt;/title&gt;
-    &lt;style&gt;
+echo '<!DOCTYPE html>
+<html>
+<head>
+    <title>Zeabur Diagnostics</title>
+    <style>
         body { font-family: monospace; background: #1a1a1a; color: #0f0; padding: 20px; }
         .section { background: #2a2a2a; padding: 15px; margin: 15px 0; border-radius: 8px; }
         .ok { color: #0f0; }
@@ -19,31 +19,31 @@ echo '&lt;!DOCTYPE html&gt;
         .warning { color: #ff0; }
         h2 { color: #00f0ff; border-bottom: 2px solid #00f0ff; padding-bottom: 5px; }
         pre { background: #000; padding: 10px; overflow-x: auto; }
-    &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;';
+    </style>
+</head>
+<body>';
 
-echo '&lt;h1&gt;🔍 Zeabur Deployment Diagnostics&lt;/h1&gt;';
+echo '<h1>🔍 Zeabur Deployment Diagnostics</h1>';
 
 // 1. Check PHP Version
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;1. PHP Environment&lt;/h2&gt;';
-echo '&lt;p&gt;&lt;strong&gt;PHP Version:&lt;/strong&gt; ' . phpversion() . '&lt;/p&gt;';
-echo '&lt;p&gt;&lt;strong&gt;Server Software:&lt;/strong&gt; ' . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown') . '&lt;/p&gt;';
-echo '&lt;p&gt;&lt;strong&gt;Server Port:&lt;/strong&gt; ' . ($_SERVER['SERVER_PORT'] ?? 'Unknown') . '&lt;/p&gt;';
-echo '&lt;p&gt;&lt;strong&gt;Document Root:&lt;/strong&gt; ' . ($_SERVER['DOCUMENT_ROOT'] ?? 'Unknown') . '&lt;/p&gt;';
-echo '&lt;/div&gt;';
+echo '<div class="section">';
+echo '<h2>1. PHP Environment</h2>';
+echo '<p><strong>PHP Version:</strong> ' . phpversion() . '</p>';
+echo '<p><strong>Server Software:</strong> ' . ($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown') . '</p>';
+echo '<p><strong>Server Port:</strong> ' . ($_SERVER['SERVER_PORT'] ?? 'Unknown') . '</p>';
+echo '<p><strong>Document Root:</strong> ' . ($_SERVER['DOCUMENT_ROOT'] ?? 'Unknown') . '</p>';
+echo '</div>';
 
 // 2. Check Environment Variables
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;2. Environment Variables (Database)&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>2. Environment Variables (Database)</h2>';
 
 $requiredVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS'];
 $allSet = true;
 
 foreach ($requiredVars as $var) {
     $value = getenv($var);
-    $isset = $value !== false &amp;&amp; !empty($value);
+    $isset = $value !== false && !empty($value);
     
     if (!$isset) {
         $allSet = false;
@@ -53,26 +53,26 @@ foreach ($requiredVars as $var) {
     $status = $isset ? '✓ SET' : '✗ MISSING';
     
     // Mask password
-    if ($var === 'DB_PASS' &amp;&amp; $isset) {
+    if ($var === 'DB_PASS' && $isset) {
         $displayValue = str_repeat('*', strlen($value));
     } else {
         $displayValue = $isset ? $value : 'NOT SET';
     }
     
-    echo "&lt;p class='$class'&gt;&lt;strong&gt;$var:&lt;/strong&gt; $displayValue ($status)&lt;/p&gt;";
+    echo "<p class='$class'><strong>$var:</strong> $displayValue ($status)</p>";
 }
 
 if (!$allSet) {
-    echo '&lt;p class="error"&gt;⚠️ MISSING VARIABLES! Set them in Zeabur Dashboard → Variables&lt;/p&gt;';
+    echo '<p class="error">⚠️ MISSING VARIABLES! Set them in Zeabur Dashboard → Variables</p>';
 } else {
-    echo '&lt;p class="ok"&gt;✓ All environment variables are set&lt;/p&gt;';
+    echo '<p class="ok">✓ All environment variables are set</p>';
 }
 
-echo '&lt;/div&gt;';
+echo '</div>';
 
 // 3. Check Database Connection
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;3. Database Connection Test&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>3. Database Connection Test</h2>';
 
 try {
     require_once __DIR__ . '/config/environment.php';
@@ -81,32 +81,32 @@ try {
     $conn = getConnection();
     
     if ($conn) {
-        echo '&lt;p class="ok"&gt;✓ Database connection successful!&lt;/p&gt;';
+        echo '<p class="ok">✓ Database connection successful!</p>';
         
         // Test query
-        $stmt = $conn-&gt;query("SELECT version()");
-        $version = $stmt-&gt;fetchColumn();
-        echo "&lt;p class='ok'&gt;PostgreSQL Version: $version&lt;/p&gt;";
+        $stmt = $conn->query("SELECT version()");
+        $version = $stmt->fetchColumn();
+        echo "<p class='ok'>PostgreSQL Version: $version</p>";
         
         // Check if companies table exists
-        $stmt = $conn-&gt;query("SELECT COUNT(*) FROM companies");
-        $count = $stmt-&gt;fetchColumn();
-        echo "&lt;p class='ok'&gt;✓ Companies table exists ($count companies found)&lt;/p&gt;";
+        $stmt = $conn->query("SELECT COUNT(*) FROM companies");
+        $count = $stmt->fetchColumn();
+        echo "<p class='ok'>✓ Companies table exists ($count companies found)</p>";
         
     } else {
-        echo '&lt;p class="error"&gt;✗ Database connection failed&lt;/p&gt;';
+        echo '<p class="error">✗ Database connection failed</p>';
     }
     
 } catch (Exception $e) {
-    echo '&lt;p class="error"&gt;✗ Database Error: ' . htmlspecialchars($e-&gt;getMessage()) . '&lt;/p&gt;';
-    echo '&lt;pre class="error"&gt;' . htmlspecialchars($e-&gt;getTraceAsString()) . '&lt;/pre&gt;';
+    echo '<p class="error">✗ Database Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
+    echo '<pre class="error">' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
 }
 
-echo '&lt;/div&gt;';
+echo '</div>';
 
 // 4. Check File Permissions
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;4. File System Check&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>4. File System Check</h2>';
 
 $filesToCheck = [
     '.env',
@@ -119,17 +119,17 @@ foreach ($filesToCheck as $file) {
     $path = __DIR__ . '/' . $file;
     if (file_exists($path)) {
         $perms = substr(sprintf('%o', fileperms($path)), -4);
-        echo "&lt;p class='ok'&gt;✓ $file (permissions: $perms)&lt;/p&gt;";
+        echo "<p class='ok'>✓ $file (permissions: $perms)</p>";
     } else {
-        echo "&lt;p class='error'&gt;✗ $file NOT FOUND&lt;/p&gt;";
+        echo "<p class='error'>✗ $file NOT FOUND</p>";
     }
 }
 
-echo '&lt;/div&gt;';
+echo '</div>';
 
 // 5. Check PHP Extensions
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;5. Required PHP Extensions&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>5. Required PHP Extensions</h2>';
 
 $requiredExtensions = ['pdo', 'pdo_pgsql', 'pgsql', 'zip', 'opcache'];
 
@@ -137,44 +137,44 @@ foreach ($requiredExtensions as $ext) {
     $loaded = extension_loaded($ext);
     $class = $loaded ? 'ok' : 'error';
     $status = $loaded ? '✓ LOADED' : '✗ MISSING';
-    echo "&lt;p class='$class'&gt;$ext: $status&lt;/p&gt;";
+    echo "<p class='$class'>$ext: $status</p>";
 }
 
-echo '&lt;/div&gt;';
+echo '</div>';
 
 // 6. Port detection
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;6. Port Configuration&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>6. Port Configuration</h2>';
 $port = getenv('PORT') ?: '80';
 $zeaburPort = getenv('ZEABUR_PORT') ?: 'Not set';
-echo "&lt;p&gt;&lt;strong&gt;PORT env var:&lt;/strong&gt; $port&lt;/p&gt;";
-echo "&lt;p&gt;&lt;strong&gt;ZEABUR_PORT env var:&lt;/strong&gt; $zeaburPort&lt;/p&gt;";
-echo "&lt;p&gt;&lt;strong&gt;Server is listening on port:&lt;/strong&gt; " . ($_SERVER['SERVER_PORT'] ?? 'Unknown') . "&lt;/p&gt;";
-echo '&lt;/div&gt;';
+echo "<p><strong>PORT env var:</strong> $port</p>";
+echo "<p><strong>ZEABUR_PORT env var:</strong> $zeaburPort</p>";
+echo "<p><strong>Server is listening on port:</strong> " . ($_SERVER['SERVER_PORT'] ?? 'Unknown') . "</p>";
+echo '</div>';
 
 // 7. Recommendations
-echo '&lt;div class="section"&gt;';
-echo '&lt;h2&gt;7. ✅ Next Steps&lt;/h2&gt;';
+echo '<div class="section">';
+echo '<h2>7. ✅ Next Steps</h2>';
 
 if (!$allSet) {
-    echo '&lt;p class="warning"&gt;⚠️ Fix missing environment variables first!&lt;/p&gt;';
-    echo '&lt;ol&gt;';
-    echo '&lt;li&gt;Go to Zeabur Dashboard → Your Service → Variables&lt;/li&gt;';
-    echo '&lt;li&gt;Add these variables:&lt;ul&gt;';
-    echo '&lt;li&gt;DB_HOST = db.aahaznqptohmkdiqpjnx.supabase.co&lt;/li&gt;';
-    echo '&lt;li&gt;DB_PORT = 6543&lt;/li&gt;';
-    echo '&lt;li&gt;DB_NAME = postgres&lt;/li&gt;';
-    echo '&lt;li&gt;DB_USER = postgres&lt;/li&gt;';
-    echo '&lt;li&gt;DB_PASS = [your_supabase_database_password]&lt;/li&gt;';
-    echo '&lt;/ul&gt;&lt;/li&gt;';
-    echo '&lt;li&gt;Redeploy the service&lt;/li&gt;';
-    echo '&lt;li&gt;Visit this page again to verify&lt;/li&gt;';
-    echo '&lt;/ol&gt;';
+    echo '<p class="warning">⚠️ Fix missing environment variables first!</p>';
+    echo '<ol>';
+    echo '<li>Go to Zeabur Dashboard → Your Service → Variables</li>';
+    echo '<li>Add these variables:<ul>';
+    echo '<li>DB_HOST = db.aahaznqptohmkdiqpjnx.supabase.co</li>';
+    echo '<li>DB_PORT = 6543</li>';
+    echo '<li>DB_NAME = postgres</li>';
+    echo '<li>DB_USER = postgres</li>';
+    echo '<li>DB_PASS = [your_supabase_database_password]</li>';
+    echo '</ul></li>';
+    echo '<li>Redeploy the service</li>';
+    echo '<li>Visit this page again to verify</li>';
+    echo '</ol>';
 } else {
-    echo '&lt;p class="ok"&gt;✓ All checks passed! Try accessing the login page now:&lt;/p&gt;';
-    echo '&lt;p&gt;&lt;a href="/auth/login.php" style="color: #00f0ff;"&gt;→ Go to Login Page&lt;/a&gt;&lt;/p&gt;';
+    echo '<p class="ok">✓ All checks passed! Try accessing the login page now:</p>';
+    echo '<p><a href="/auth/login.php" style="color: #00f0ff;">→ Go to Login Page</a></p>';
 }
 
-echo '&lt;/div&gt;';
+echo '</div>';
 
-echo '&lt;/body&gt;&lt;/html&gt;';
+echo '</body></html>';

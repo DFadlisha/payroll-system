@@ -127,7 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 $role = $emp['role'] ?? 'staff';
 
                 // Priorities: Leader > Intern > Part Time > Staff
-                // Priorities: Leader > Intern > Part Time > Staff
                 if ($role === 'leader' || $employmentType === 'leader') {
                     $monthlyTarget = 1900;
                 } elseif ($employmentType === 'intern' || $role === 'intern') {
@@ -518,10 +517,7 @@ try {
         </div>
     <?php endif; ?>
 
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1><i class="bi bi-cash-stack me-2"></i>Payroll Management</h1>
-    </div>
+
 
     <!-- Welcome Header -->
     <div class="mb-4">
@@ -609,19 +605,19 @@ try {
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card danger border-0 shadow-sm">
+            <div class="stats-card border-0 shadow-sm">
                 <h2 class="text-danger"><?= formatMoney($totals['deductions']) ?></h2>
                 <p class="text-muted mb-0">Total Deductions</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card success border-0 shadow-sm">
+            <div class="stats-card border-0 shadow-sm">
                 <h2 class="text-success"><?= formatMoney($totals['net']) ?></h2>
                 <p class="text-muted mb-0">Total Net Pay</p>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stats-card warning border-0 shadow-sm">
+            <div class="stats-card border-0 shadow-sm">
                 <h2 class="text-warning">
                     <?= formatMoney($totals['epf_employer'] + $totals['socso_employer'] + $totals['eis_employer']) ?>
                 </h2>
