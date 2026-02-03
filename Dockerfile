@@ -55,12 +55,12 @@ RUN echo '<Directory /var/www/html>\n\
     </IfModule>' > /etc/apache2/conf-available/payroll.conf \
     && a2enconf payroll
 
-# Expose port
-EXPOSE 80
+# Expose port (Cloud standard)
+EXPOSE 8080
 
 # Optimized health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-80}/health.php || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/health.php || exit 1
 
 # Copy and set up entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
