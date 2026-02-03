@@ -154,213 +154,219 @@ try {
 
     $attendanceList = [];
 
-    $stmt = $conn->prepare("
-        SELECT p.id as user_id, p.full_name, p.role, p.employment_type,
-               a.id as attendance_id, a.clock_in, a.clock_out, a.status,
-               a.overtime_hours, a.ot_hours, a.ot_sunday_hours, a.ot_public_hours,
-               a.project_hours, a.extra_shifts, a.late_minutes,
-               l.name as location_name, a.location_id
-        FROM profiles p
-        LEFT JOIN attendance a ON p.id = a.user_id AND DATE(a.clock_in) = ?
-        LEFT JOIN work_locations l ON a.location_id = l.id
-        WHERE p.company_id = ? AND p.role IN ('staff', 'leader', 'part_time', 'intern')
-        ORDER BY p.full_name
-    ");
-    $stmt->execute([$selectedDate, $companyId]);
-    $attendanceList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $conn->prepare("
+                SELECT p.id as user_id, p.full_name, p.role, p.employment_type,
+                       a.id as attendance_id, a.clock_in, a.clock_out, a.status,
+                       a.overtime_hours, a.ot_hours, a.ot_sunday_hours, a.ot_public_hours,
+                       a.project_hours, a.extra_shifts, a.late_minutes,
+                       l.name as location_name, a.location_id, a.gps_location
+                FROM profiles p
+                LEFT JOIN attendance a ON p.id = a.user_id AND DATE(a.clock_in) = ?
+                LEFT JOIN work_locations l ON a.location_id = l.id
+                WHERE p.company_id = ? AND p.role IN ('staff', 'leader', 'part_time', 'intern')
+                ORDER BY p.full_name
+            ");
+            $stmt->execute([$selectedDate, $companyId]);
+            $attendanceList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Stats
-    $present = 0;
-    $late = 0;
-    $absent = 0;
-    foreach ($attendanceList as $att) {
-        if ($att['attendance_id']) {
-            if ($att['late_minutes'] > 0)
-                $late++;
-            else
-                $present++;
-        } else {
-            $absent++;
+            // Stats
+            $present = 0;
+            $late = 0;
+            $absent = 0;
+            foreach ($attendanceList as $att) {
+                if ($att['attendance_id']) {
+                    if ($att['late_minutes'] > 0)
+                        $late++;
+                    else
+                        $present++;
+                } else {
+                    $absent++;
+                }
+            }
+
+        } catch (PDOException $e) {
+            error_log("Attendance page fetch error: " . $e->getMessage());
+            $attendanceList = [];
+            $locations = [];
         }
-    }
+        ?>
 
-} catch (PDOException $e) {
-    error_log("Attendance page fetch error: " . $e->getMessage());
-    $attendanceList = [];
-    $locations = [];
-}
-?>
+        <?php include '../includes/hr_sidebar.php'; ?>
 
-<?php include '../includes/hr_sidebar.php'; ?>
+        <div class="main-content">
+            <?php include '../includes/top_navbar.php'; ?>
 
-<div class="main-content">
-    <?php include '../includes/top_navbar.php'; ?>
+            <!-- Flash Messages -->
+            <?php if ($message): ?>
+                <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
+                    <?= htmlspecialchars($message) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-    <!-- Flash Messages -->
-    <?php if ($message): ?>
-        <div class="alert alert-<?= $messageType === 'error' ? 'danger' : $messageType ?> alert-dismissible fade show">
-            <?= htmlspecialchars($message) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold">Attendance Management</h2>
-            <p class="text-muted">Manage daily attendance, OT, and locations.</p>
-        </div>
-        <div class="card border-0 shadow-sm px-3 py-2">
-            <form method="GET" class="d-flex align-items-center gap-2 mb-0">
-                <label class="fw-bold text-nowrap">Select Date:</label>
-                <input type="date" name="date" class="form-control border-0 bg-light" value="<?= $selectedDate ?>"
-                    onchange="this.form.submit()">
-            </form>
-        </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="stats-card success border-0 shadow-sm">
-                <h2><?= $present ?></h2>
-                <p>Present</p>
-                <div class="stats-icon"><i class="bi bi-person-check-fill text-success"></i></div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold">Attendance Management</h2>
+                    <p class="text-muted">Manage daily attendance, OT, and locations.</p>
+                </div>
+                <div class="card border-0 shadow-sm px-3 py-2">
+                    <form method="GET" class="d-flex align-items-center gap-2 mb-0">
+                        <label class="fw-bold text-nowrap">Select Date:</label>
+                        <input type="date" name="date" class="form-control border-0 bg-light" value="<?= $selectedDate ?>"
+                            onchange="this.form.submit()">
+                    </form>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stats-card warning border-0 shadow-sm">
-                <h2><?= $late ?></h2>
-                <p>Late / Issues</p>
-                <div class="stats-icon"><i class="bi bi-exclamation-triangle-fill text-warning"></i></div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stats-card danger border-0 shadow-sm">
-                <h2><?= $absent ?></h2>
-                <p>Absent / No Clock-In</p>
-                <div class="stats-icon"><i class="bi bi-person-x-fill text-danger"></i></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Attendance Table -->
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">Employee</th>
-                            <th>Role</th>
-                            <th>Time In/Out</th>
-                            <th>Location</th>
-                            <th>OT (N/S/P)</th>
-                            <th>Allowance</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($attendanceList as $att):
-                            $hasAtt = !empty($att['attendance_id']);
-                            $roleBadge = match ($att['role']) {
-                                'leader' => 'bg-info',
-                                'intern' => 'bg-warning text-dark',
-                                'part_time' => 'bg-secondary',
-                                default => 'bg-primary'
-                            };
+            <!-- Summary Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="stats-card success border-0 shadow-sm">
+                        <h2><?= $present ?></h2>
+                        <p>Present</p>
+                        <div class="stats-icon"><i class="bi bi-person-check-fill text-success"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card warning border-0 shadow-sm">
+                        <h2><?= $late ?></h2>
+                        <p>Late / Issues</p>
+                        <div class="stats-icon"><i class="bi bi-exclamation-triangle-fill text-warning"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card danger border-0 shadow-sm">
+                        <h2><?= $absent ?></h2>
+                        <p>Absent / No Clock-In</p>
+                        <div class="stats-icon"><i class="bi bi-person-x-fill text-danger"></i></div>
+                    </div>
+                </div>
+            </div>
 
-                            $statusBadge = 'bg-secondary';
-                            $statusText = 'Absent';
-                            if ($hasAtt) {
-                                if ($att['late_minutes'] > 0) {
-                                    $statusBadge = 'bg-warning text-dark';
-                                    $statusText = 'Late';
-                                } elseif ($att['status'] === 'completed') {
-                                    $statusBadge = 'bg-success';
-                                    $statusText = 'Present';
-                                } elseif ($att['status'] === 'active') {
-                                    $statusBadge = 'bg-info';
-                                    $statusText = 'Active';
-                                }
-                            }
-                            ?>
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold"><?= htmlspecialchars($att['full_name']) ?></div>
-                                </td>
-                                <td><span class="badge <?= $roleBadge ?> rounded-pill"><?= ucfirst($att['role']) ?></span>
-                                </td>
-                                <td>
-                                    <?php if ($hasAtt): ?>
-                                        <div class="small">
-                                            <div>In: <?= $att['clock_in'] ? date('H:i', strtotime($att['clock_in'])) : '-' ?>
-                                            </div>
-                                            <div>Out: <?= $att['clock_out'] ? date('H:i', strtotime($att['clock_out'])) : '-' ?>
-                                            </div>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($hasAtt && $att['location_name']): ?>
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                                            <?= htmlspecialchars($att['location_name']) ?>
-                                        </div>
-                                    <?php elseif ($hasAtt): ?>
-                                        <span class="text-muted small">Unknown</span>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($hasAtt): ?>
-                                        <span class="badge bg-light text-dark border">
-                                            <?= floatval($att['ot_hours']) ?> / <?= floatval($att['ot_sunday_hours']) ?> /
-                                            <?= floatval($att['ot_public_hours']) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($hasAtt): ?>
-                                        <small class="text-muted">
-                                            Late: <?= $att['late_minutes'] ?>m<br>
-                                            Proj: <?= $att['project_hours'] ?>
-                                        </small>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td><span class="badge <?= $statusBadge ?> rounded-pill"><?= $statusText ?></span></td>
-                                <td class="text-end pe-4">
-                                    <?php
-                                    // Prepare data for JS Modal
-                                    $attData = htmlspecialchars(json_encode($att), ENT_QUOTES, 'UTF-8');
+            <!-- Attendance Table -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Employee</th>
+                                    <th>Role</th>
+                                    <th>Time In/Out</th>
+                                    <th>Location</th>
+                                    <th>OT (N/S/P)</th>
+                                    <th>Allowance</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($attendanceList as $att):
+                                    $hasAtt = !empty($att['attendance_id']);
+                                    $roleBadge = match ($att['role']) {
+                                        'leader' => 'bg-info',
+                                        'intern' => 'bg-warning text-dark',
+                                        'part_time' => 'bg-secondary',
+                                        default => 'bg-primary'
+                                    };
+
+                                    $statusBadge = 'bg-secondary';
+                                    $statusText = 'Absent';
+                                    if ($hasAtt) {
+                                        if ($att['late_minutes'] > 0) {
+                                            $statusBadge = 'bg-warning text-dark';
+                                            $statusText = 'Late';
+                                        } elseif ($att['status'] === 'completed') {
+                                            $statusBadge = 'bg-success';
+                                            $statusText = 'Present';
+                                        } elseif ($att['status'] === 'active') {
+                                            $statusBadge = 'bg-info';
+                                            $statusText = 'Active';
+                                        }
+                                    }
                                     ?>
-                                    <?php if ($hasAtt): ?>
-                                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
-                                            onclick='openEditModal(<?= $attData ?>)'>
-                                            <i class="bi bi-pencil me-1"></i> Edit
-                                        </button>
-                                    <?php else: ?>
-                                        <button class="btn btn-sm btn-outline-success rounded-pill px-3"
-                                            onclick='openAddModal(<?= $attData ?>)'>
-                                            <i class="bi bi-plus-lg me-1"></i> Add
-                                        </button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold"><?= htmlspecialchars($att['full_name']) ?></div>
+                                        </td>
+                                        <td><span class="badge <?= $roleBadge ?> rounded-pill"><?= ucfirst($att['role']) ?></span>
+                                        </td>
+                                        <td>
+                                            <?php if ($hasAtt): ?>
+                                                <div class="small">
+                                                    <div>In: <?= $att['clock_in'] ? date('H:i', strtotime($att['clock_in'])) : '-' ?>
+                                                    </div>
+                                                    <div>Out: <?= $att['clock_out'] ? date('H:i', strtotime($att['clock_out'])) : '-' ?>
+                                                    </div>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($hasAtt && $att['location_name']): ?>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                                    <?= htmlspecialchars($att['location_name']) ?>
+                                                </div>
+                                            <?php elseif ($hasAtt && !empty($att['gps_location'])): ?>
+                                                <a href="https://maps.google.com/?q=<?= htmlspecialchars($att['gps_location']) ?>" target="_blank" class="text-decoration-none small text-primary" title="View on Map">
+                                                    <i class="bi bi-geo border rounded-circle p-1 me-1"></i>GPS Signal
+                                                </a>
+                                            <?php elseif ($hasAtt): ?>
+                                                <span class="text-muted small">Unknown</span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($hasAtt): ?>
+                                                <span class="badge bg-light text-dark border">
+                                                    <?= floatval($att['ot_hours']) ?> / <?= floatval($att['ot_sunday_hours']) ?> /
+                                                    <?= floatval($att['ot_public_hours']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($hasAtt): ?>
+                                                <small class="text-muted">
+                                                    Late: <?= $att['late_minutes'] ?>m<br>
+                                                    Proj: <?= $att['project_hours'] ?>
+                                                </small>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><span class="badge <?= $statusBadge ?> rounded-pill"><?= $statusText ?></span></td>
+                                        <td class="text-end pe-4">
+                                            <?php
+                                            // Prepare data for JS Modal
+                                            $attData = htmlspecialchars(json_encode($att), ENT_QUOTES, 'UTF-8');
+                                            ?>
+                                            <?php if ($hasAtt): ?>
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                                    data-att="<?= $attData ?>"
+                                                    onclick="openEditModal(JSON.parse(this.dataset.att))">
+                                                    <i class="bi bi-pencil me-1"></i> Edit
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-outline-success rounded-pill px-3"
+                                                    data-att="<?= $attData ?>"
+                                                    onclick="openAddModal(JSON.parse(this.dataset.att))">
+                                                    <i class="bi bi-plus-lg me-1"></i> Add
+                                                </button>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
 <!-- Attendance Modal (Add/Edit) -->
 <div class="modal fade" id="attendanceModal" tabindex="-1">
