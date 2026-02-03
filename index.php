@@ -1,4 +1,7 @@
 <?php
+// Start output buffering
+ob_start();
+
 /**
  * ============================================
  * HOME PAGE - MI-NES PAYROLL SYSTEM

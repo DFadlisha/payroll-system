@@ -1,4 +1,7 @@
 <?php
+// Start output buffering immediately to prevent "headers already sent" errors
+ob_start();
+
 /**
  * ============================================
  * LOGIN PAGE
