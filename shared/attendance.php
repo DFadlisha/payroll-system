@@ -113,6 +113,7 @@ if ($isAdmin) {
                 <p class="text-muted mt-3">No verified attendance records for this selection.</p>
             </div>
         <?php else: ?>
+            <!-- Cards Grid -->
             <div class="row g-4">
                 <?php foreach ($logs as $index => $log): ?>
                     <div class="col-xl-4 col-md-6 animate-fade-in" style="animation-delay: <?= $index * 0.1 ?>s">
@@ -161,32 +162,34 @@ if ($isAdmin) {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
 
-                        <!-- Modal for detailed verification -->
-                        <div class="modal fade" id="modal-<?= $log['id'] ?>" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 border-0">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title fw-bold">Security Audit</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body p-4 text-center">
-                                        <img src="../<?= htmlspecialchars($log['clock_in_photo']) ?>" class="img-fluid rounded-4 mb-3 shadow-sm">
-                                        <div class="text-start">
-                                            <p><strong>Staff:</strong> <?= htmlspecialchars($log['full_name']) ?></p>
-                                            <p><strong>Device Info:</strong> <span class="small text-muted"><?= htmlspecialchars($log['device_info']) ?></span></p>
-                                            <hr>
-                                            <a href="https://www.google.com/maps?q=<?= explode(',', $log['gps_location'] ?? '0,0')[0] ?>,<?= explode(',', $log['gps_location'] ?? '0,0')[1] ?>" target="_blank" class="btn btn-danger w-100 rounded-pill">
-                                                <i class="bi bi-map me-1"></i> Open GPS Location in Google Maps
-                                            </a>
-                                        </div>
-                                    </div>
+            <!-- Modals (Placed outside grid to avoid CSS Transform/Z-index stacking context issues) -->
+            <?php foreach ($logs as $log): ?>
+                <div class="modal fade" id="modal-<?= $log['id'] ?>" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0">
+                            <div class="modal-header">
+                                <h5 class="modal-title fw-bold">Security Audit</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body p-4 text-center">
+                                <img src="../<?= htmlspecialchars($log['clock_in_photo']) ?>" class="img-fluid rounded-4 mb-3 shadow-sm">
+                                <div class="text-start">
+                                    <p><strong>Staff:</strong> <?= htmlspecialchars($log['full_name']) ?></p>
+                                    <p><strong>Device Info:</strong> <span class="small text-muted"><?= htmlspecialchars($log['device_info']) ?></span></p>
+                                    <hr>
+                                    <a href="https://www.google.com/maps?q=<?= explode(',', $log['gps_location'] ?? '0,0')[0] ?>,<?= explode(',', $log['gps_location'] ?? '0,0')[1] ?>" target="_blank" class="btn btn-danger w-100 rounded-pill">
+                                        <i class="bi bi-map me-1"></i> Open GPS Location in Google Maps
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                </div>
+            <?php endforeach; ?>
         <?php endif; ?>
     </div>
 </div>

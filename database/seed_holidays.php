@@ -9,7 +9,10 @@ if (!defined('DB_HOST')) {
 }
 
 function fetchAndSeedHolidays($year) {
-    global $conn;
+    if (!function_exists('getConnection')) {
+        require_once __DIR__ . '/../config/database.php';
+    }
+    $conn = getConnection();
     
     // Check if we already have holidays for this year to avoid spamming API
     $stmt = $conn->prepare("SELECT COUNT(*) FROM public_holidays WHERE EXTRACT(YEAR FROM holiday_date) = ?");
