@@ -140,11 +140,11 @@ try {
                         <span class="badge bg-white text-primary mb-3 px-3 py-2 rounded-pill fw-bold shadow-sm">
                             <i class="bi bi-patch-check-fill text-success me-1"></i> Verified Arrival
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-dark">Clocked in at
+                        <h2 class="display-6 fw-bold mb-2 text-white">Clocked in at
                             <span class="opacity-75"><?= formatTime($todayAttendance['clock_in']) ?></span>
                         </h2>
                         <?php if (!$todayAttendance['clock_out']): ?>
-                            <p class="text-dark opacity-75 fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
+                            <p class="text-white opacity-75 fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
                         <?php else: ?>
                             <p class="fs-5 mb-0" style="color: #6EE7B7;">You've completed your shift. Great job!</p>
                         <?php endif; ?>
@@ -152,8 +152,8 @@ try {
                         <span class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
                             <i class="bi bi-hourglass-split me-1"></i> Not Started
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-dark">Start your work day</h2>
-                        <p class="text-dark opacity-75 fs-5 mb-0">Ready to clock in?</p>
+                        <h2 class="display-6 fw-bold mb-2 text-white">Start your work day</h2>
+                        <p class="text-white opacity-75 fs-5 mb-0">Ready to clock in?</p>
                     <?php endif; ?>
                 </div>
 

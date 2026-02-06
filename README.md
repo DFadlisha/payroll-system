@@ -73,7 +73,6 @@ I have removed all older redundant guides and utility scripts to keep the projec
 The Staff portal is fully responsive and optimized for mobile devices.
 - **Clock In/Out**: GPS-enabled attendance tracking.
 - **Payslips**: View and download monthly payslips (PDF).
-- **Leaves**: Apply for leaves and track status.
 - **Profile**: Manage details and declare dependents for tax purposes.
 
 ### 🏢 For HR Admin

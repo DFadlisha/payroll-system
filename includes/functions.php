@@ -213,38 +213,7 @@ function getMonthName($month)
     return $months[$month] ?? '';
 }
 
-/**
- * Terjemah jenis cuti ke Bahasa Malaysia
- * @param string $type Jenis cuti dalam English
- * @return string
- */
-function getLeaveTypeName($type)
-{
-    $types = [
-        'annual' => 'Annual Leave',
-        'medical' => 'Medical Leave',
-        'emergency' => 'Emergency Leave',
-        'unpaid' => 'Unpaid Leave',
-        'nrl' => 'NRL (Replacement Leave)',
-        'other' => 'Other'
-    ];
-    return $types[$type] ?? $type;
-}
 
-/**
- * Terjemah status cuti ke Bahasa Malaysia
- * @param string $status Status cuti
- * @return array dengan nama dan warna badge
- */
-function getLeaveStatusBadge($status)
-{
-    $statuses = [
-        'pending' => ['name' => 'Pending', 'class' => 'bg-warning'],
-        'approved' => ['name' => 'Approved', 'class' => 'bg-success'],
-        'rejected' => ['name' => 'Rejected', 'class' => 'bg-danger']
-    ];
-    return $statuses[$status] ?? ['name' => $status, 'class' => 'bg-secondary'];
-}
 
 /**
  * Terjemah jenis pekerjaan (employment_type from Supabase)

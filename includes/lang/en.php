@@ -45,7 +45,7 @@ return [
         'dashboard' => 'Dashboard',
         'employees' => 'Employees',
         'attendance' => 'Attendance',
-        'leaves' => 'Leaves',
+
         'payroll' => 'Payroll',
         'reports' => 'Reports',
         'profile' => 'Profile',
@@ -111,12 +111,12 @@ return [
         'welcome_back' => 'Welcome back',
         'total_employees' => 'Total Employees',
         'present_today' => 'Present Today',
-        'pending_leaves' => 'Pending Leaves',
+
         'monthly_payroll' => 'Monthly Payroll',
         'quick_actions' => 'Quick Actions',
         'recent_activities' => 'Recent Activities',
         'attendance_overview' => 'Attendance Overview',
-        'leave_requests' => 'Leave Requests',
+
     ],
 
     // Employees
@@ -155,7 +155,7 @@ return [
         'present' => 'Present',
         'late' => 'Late',
         'absent' => 'Absent',
-        'on_leave' => 'On Leave',
+
         'ot_hours' => 'OT Hours',
         'ot_sunday' => 'Sunday OT',
         'ot_public' => 'Public Holiday OT',
@@ -172,32 +172,7 @@ return [
         'rate_late' => 'Late Deduct',
     ],
 
-    // Leaves
-    'leaves' => [
-        'title' => 'Leave Management',
-        'apply' => 'Apply Leave',
-        'my_leaves' => 'My Leaves',
-        'leave_type' => 'Leave Type',
-        'annual' => 'Annual Leave',
-        'medical' => 'Medical Leave',
-        'unpaid' => 'Unpaid Leave',
-        'nrl' => 'Need Replacement Leave (NRL)',
-        'start_date' => 'Start Date',
-        'end_date' => 'End Date',
-        'days' => 'Days',
-        'reason' => 'Reason',
-        'pending' => 'Pending',
-        'approved' => 'Approved',
-        'rejected' => 'Rejected',
-        'balance' => 'Leave Balance',
-        'used' => 'Used',
-        'remaining' => 'Remaining',
-        'apply_success' => 'Leave application submitted successfully.',
-        'approve_success' => 'Leave approved successfully.',
-        'reject_success' => 'Leave rejected successfully.',
-        'no_balance' => 'Insufficient leave balance.',
-        'entitled' => 'Entitled',
-    ],
+
 
     // Payroll
     'payroll' => [
@@ -230,7 +205,7 @@ return [
         'title' => 'Reports',
         'attendance_report' => 'Attendance Report',
         'payroll_report' => 'Payroll Report',
-        'leave_report' => 'Leave Report',
+
         'employee_report' => 'Employee Report',
         'export_pdf' => 'Export PDF',
         'export_excel' => 'Export Excel',
