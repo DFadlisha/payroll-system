@@ -1,7 +1,4 @@
 <?php
-/**
- * Health Check Endpoint
- * Used by Render/Railway/AWS to verify the app is running.
- */
+// Simple health check endpoint for Zeabur/Render
 http_response_code(200);
-echo "OK";
+echo json_encode(["status" => "ok", "timestamp" => time()]);

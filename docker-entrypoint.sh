@@ -1,34 +1,12 @@
 #!/bin/bash
 set -e
 
-# Define port, default to 8080 if not set (standard for cloud containers)
-# If Zeabur passes PORT, we use it.
-PORT=${PORT:-8080}
+# Default PORT to 80 if not set
+export PORT=${PORT:-80}
 
-echo "🚀 Starting application setup..."
-echo "configured to listen on port: $PORT"
+# Update Apache port configuration dynamically based on PORT env var
+sed -i "s/Listen 80/Listen ${PORT}/g" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/g" /etc/apache2/sites-available/000-default.conf
 
-# Robustly update Apache port configuration using Regex to catch any existing number
-if [ -f /etc/apache2/ports.conf ]; then
-    echo "Updating ports.conf..."
-    sed -i -E "s/Listen [0-9]+/Listen $PORT/g" /etc/apache2/ports.conf
-fi
-
-if [ -f /etc/apache2/sites-available/000-default.conf ]; then
-    echo "Updating sites-available/000-default.conf..."
-    sed -i -E "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf
-fi
-
-# Add ServerName to prevent startup warnings
-if ! grep -q "ServerName localhost" /etc/apache2/apache2.conf; then
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf
-fi
-
-# Verify configuration in logs
-echo "--- VERIFY APACHE CONFIG ---"
-grep "Listen" /etc/apache2/ports.conf
-grep "VirtualHost" /etc/apache2/sites-available/000-default.conf
-echo "----------------------------"
-
-echo "✅ Awaiting incoming connections..."
+# Start Apache in foreground
 exec apache2-foreground

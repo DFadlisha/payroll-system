@@ -1,69 +1,34 @@
-# Multi-stage build for optimized image size
-FROM composer:latest AS composer-build
-WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --prefer-dist
-
 FROM php:8.2-apache
 
-# Install system dependencies in a single layer
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install dependencies for PostgreSQL and other extensions
+RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
-    curl \
-    && docker-php-ext-install -j$(nproc) pdo pdo_pgsql pgsql zip opcache \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    unzip \
+    && docker-php-ext-install pdo pdo_pgsql pgsql zip
 
-# Enable Apache modules
-RUN a2enmod rewrite headers expires deflate
-
-# Configure PHP for production
-RUN { \
-    echo 'opcache.enable=1'; \
-    echo 'opcache.memory_consumption=128'; \
-    echo 'opcache.interned_strings_buffer=8'; \
-    echo 'opcache.max_accelerated_files=10000'; \
-    echo 'opcache.revalidate_freq=2'; \
-    echo 'opcache.fast_shutdown=1'; \
-    echo 'realpath_cache_size=4096K'; \
-    echo 'realpath_cache_ttl=600'; \
-    } > /usr/local/etc/php/conf.d/opcache.ini
+# Enable Apache mod_rewrite for nice URLs
+RUN a2enmod rewrite
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy vendor from composer build stage
-COPY --from=composer-build /app/vendor ./vendor
-
 # Copy application files
-COPY --chown=www-data:www-data . .
+COPY . .
 
 # Set permissions
-RUN chmod -R 755 /var/www/html && \
-    find /var/www/html -type f -exec chmod 644 {} \; && \
-    find /var/www/html -type d -exec chmod 755 {} \;
+RUN chown -R www-data:www-data /var/www/html
 
-# Create optimized Apache configuration
-RUN echo '<Directory /var/www/html>\n\
-    Options -Indexes +FollowSymLinks\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    </Directory>\n\
-    <IfModule mod_deflate.c>\n\
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript\n\
-    </IfModule>' > /etc/apache2/conf-available/payroll.conf \
-    && a2enconf payroll
+# Configure Apache to use the PORT environment variable (Zeabur requirement)
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
-# Expose port (Cloud standard)
-EXPOSE 8080
-
-# Optimized health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8080}/health.php || exit 1
-
-# Copy and set up entrypoint script
+# Add a custom entrypoint script to handle startup
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-CMD ["/usr/local/bin/docker-entrypoint.sh"]
+# Expose the port (default 80, but Zeabur might change it)
+ENV PORT=80
+EXPOSE ${PORT}
+
+# Use the entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]
