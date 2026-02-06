@@ -125,55 +125,51 @@ try {
     </div>
 
     <!-- Clock In/Out Hero Card -->
-    <div class="card border-0 text-white overflow-hidden position-relative mb-5 animate-fade-in"
-        style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); min-height: 220px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.2);">
-        <!-- Decorative Shapes -->
-        <div class="position-absolute end-0 top-0 p-5 mt-n5 me-n5 rounded-circle bg-white opacity-10"
+    <div class="card border-0 overflow-hidden position-relative mb-5 animate-fade-in shadow-sm"
+        style="background: #ffffff; min-height: 220px; border-radius: 24px;">
+        <!-- Decorative Shapes (Subtle Gray) -->
+        <div class="position-absolute end-0 top-0 p-5 mt-n5 me-n5 rounded-circle bg-light opacity-50"
             style="width: 300px; height: 300px;"></div>
-        <div class="position-absolute start-0 bottom-0 p-5 mb-n5 ms-n5 rounded-circle bg-white opacity-05"
-            style="width: 200px; height: 200px;"></div>
 
         <div class="card-body p-4 p-lg-5 position-relative">
             <div class="row align-items-center">
                 <div class="col-lg-7 mb-4 mb-lg-0">
                     <?php if ($todayAttendance): ?>
-                        <span class="badge bg-white text-primary mb-3 px-3 py-2 rounded-pill fw-bold shadow-sm">
-                            <i class="bi bi-patch-check-fill text-success me-1"></i> Verified Arrival
+                        <span class="badge bg-success-soft text-success mb-3 px-3 py-2 rounded-pill fw-bold border border-success border-opacity-10">
+                            <i class="bi bi-patch-check-fill me-1"></i> Verified Arrival
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-white">Clocked in at
-                            <span class="opacity-75"><?= formatTime($todayAttendance['clock_in']) ?></span>
+                        <h2 class="display-6 fw-bold mb-2 text-dark">Clocked in at
+                            <span class="text-primary"><?= formatTime($todayAttendance['clock_in']) ?></span>
                         </h2>
                         <?php if (!$todayAttendance['clock_out']): ?>
-                            <p class="text-white opacity-75 fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
+                            <p class="text-muted fs-5 mb-0">Have a productive day! Don't forget to clock out.</p>
                         <?php else: ?>
-                            <p class="fs-5 mb-0" style="color: #6EE7B7;">You've completed your shift. Great job!</p>
+                            <p class="fs-5 mb-0 text-success">You've completed your shift. Great job!</p>
                         <?php endif; ?>
                     <?php else: ?>
-                        <span class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
+                        <span class="badge bg-warning-soft text-warning mb-3 px-3 py-2 rounded-pill fw-bold border border-warning border-opacity-10">
                             <i class="bi bi-hourglass-split me-1"></i> Not Started
                         </span>
-                        <h2 class="display-6 fw-bold mb-2 text-white">Start your work day</h2>
-                        <p class="text-white opacity-75 fs-5 mb-0">Ready to clock in?</p>
+                        <h2 class="display-6 fw-bold mb-2 text-dark">Start your work day</h2>
+                        <p class="text-muted fs-5 mb-0 opacity-75">Ready to clock in?</p>
                     <?php endif; ?>
                 </div>
 
                 <div class="col-lg-5 text-lg-end">
                     <?php if (!$todayAttendance): ?>
                         <a href="attendance.php" 
-                           class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow-lg hover-scale">
-                            <i class="bi bi-fingerprint me-2 text-primary"></i> Clock In Now
+                           class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-lg hover-scale">
+                            <i class="bi bi-fingerprint me-2"></i> Clock In Now
                         </a>
                     <?php elseif (!$todayAttendance['clock_out']): ?>
                         <a href="attendance.php" 
-                           class="btn btn-outline-light btn-lg rounded-pill px-5 py-3 fw-bold hover-scale">
+                           class="btn btn-outline-primary btn-lg rounded-pill px-5 py-3 fw-bold hover-scale">
                             <i class="bi bi-box-arrow-right me-2"></i> Clock Out
                         </a>
                     <?php else: ?>
-                        <div
-                            class="bg-white bg-opacity-10 p-4 rounded-4 text-center backdrop-blur border border-white border-opacity-10">
-                            <h3 class="fw-bold mb-1 text-white"><i
-                                    class="bi bi-check-circle-fill text-success me-2"></i>Completed</h3>
-                            <p class="mb-0 text-white-50">Shift Summary Available</p>
+                        <div class="bg-light p-4 rounded-4 text-center border">
+                            <h3 class="fw-bold mb-1 text-success"><i class="bi bi-check-circle-fill me-2"></i>Completed</h3>
+                            <p class="mb-0 text-muted">Shift Summary Available</p>
                         </div>
                     <?php endif; ?>
                 </div>
