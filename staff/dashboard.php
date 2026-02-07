@@ -33,6 +33,7 @@ try {
             (SELECT clock_in FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_clock_in,
             (SELECT clock_out FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_clock_out,
             (SELECT status FROM attendance WHERE user_id = p.id AND DATE(clock_in) = ? LIMIT 1) as today_status,
+            (SELECT clock_in FROM attendance WHERE user_id = p.id AND status = 'active' ORDER BY clock_in DESC LIMIT 1) as active_clock_in,
             (SELECT COUNT(*) FROM attendance  WHERE user_id = p.id AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as total_days,
             (SELECT COUNT(*) FROM attendance WHERE user_id = p.id AND status = 'completed' AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as present,
             (SELECT COUNT(*) FROM attendance WHERE user_id = p.id AND status = 'active' AND EXTRACT(MONTH FROM clock_in) = ? AND EXTRACT(YEAR FROM clock_in) = ?) as active,
@@ -66,6 +67,15 @@ try {
             'clock_out' => $dashboardData['today_clock_out'],
             'status' => $dashboardData['today_status']
         ] : null;
+
+        // Fallback: If no today attendance, check if there's an ACTIVE session from yesterday (Overnight Shift)
+        if (!$todayAttendance && $dashboardData['active_clock_in']) {
+            $todayAttendance = [
+                'clock_in' => $dashboardData['active_clock_in'],
+                'clock_out' => null,
+                'status' => 'active'
+            ];
+        }
         
         $attendanceStats = [
             'total_days' => $dashboardData['total_days'],
