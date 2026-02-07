@@ -390,6 +390,7 @@ try {
         ['SOCSO', number_format($payslip['socso_employee'], 2)],
         ['EIS', number_format($payslip['eis_employee'], 2)],
         ['PCB (TAX)', number_format($payslip['pcb_tax'], 2)],
+        ['ADVANCE', number_format($payslip['advance'] ?? 0, 2)],
     ];
 
     $pdf->SetFont('helvetica', '', 7);

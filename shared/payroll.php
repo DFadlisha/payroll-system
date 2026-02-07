@@ -345,9 +345,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     "INSERT INTO payroll (id, user_id, month, year, basic_salary, regular_hours, overtime_hours,"
                     . " ot_normal_hours, ot_normal, ot_sunday_hours, ot_sunday, ot_public_hours, ot_public,"
                     . " gross_pay, epf_employee, epf_employer, socso_employee, socso_employer,"
-                    . " eis_employee, eis_employer, pcb_tax, net_pay, status)"
-                    . " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')"
+                    . " eis_employee, eis_employer, pcb_tax, advance, net_pay, status)"
+                    . " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')"
                 );
+
+                $advance = 0; // Default advance to 0
 
                 $stmt->execute([
                     $payrollUuid,
@@ -371,6 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                     $eisEmployee,
                     $eisEmployer,
                     $pcbTax,
+                    $advance,
                     $netPay
                 ]);
 
@@ -442,6 +445,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     } catch (PDOException $e) {
         error_log("Update payroll status error: " . $e->getMessage());
         $message = 'System error.';
+        $messageType = 'error';
+    }
+}
+
+// Process advance update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_advance'])) {
+    $payrollId = $_POST['payroll_id'];
+    $advance = floatval($_POST['advance']);
+
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("SELECT gross_pay, epf_employee, socso_employee, eis_employee, pcb_tax FROM payroll WHERE id = ?");
+        $stmt->execute([$payrollId]);
+        $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($payroll) {
+            $totalDeductions = $payroll['epf_employee'] + $payroll['socso_employee'] + $payroll['eis_employee'] + $payroll['pcb_tax'] + $advance;
+            $newNetPay = $payroll['gross_pay'] - $totalDeductions;
+            $stmt = $conn->prepare("UPDATE payroll SET advance = ?, net_pay = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$advance, $newNetPay, $payrollId]);
+            $message = 'Advance amount updated successfully.';
+            $messageType = 'success';
+        } else {
+            $message = 'Payroll record not found.';
+            $messageType = 'error';
+        }
+    } catch (PDOException $e) {
+        error_log("Update advance error: " . $e->getMessage());
+        $message = 'System error: ' . $e->getMessage();
         $messageType = 'error';
     }
 }
@@ -677,6 +709,11 @@ try {
                                             </select>
                                             <input type="hidden" name="update_status" value="1">
                                         </form>
+                                        <button class="btn btn-sm btn-outline-warning ms-1 rounded-circle" 
+                                            onclick="openAdvanceModal('<?= $p['id'] ?>', '<?= htmlspecialchars($p['full_name']) ?>', '<?= $p['advance'] ?? 0 ?>')"
+                                            title="Edit Advance" style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
+                                            <i class="bi bi-cash-coin"></i>
+                                        </button>
                                         <a href="../includes/generate_payslip_pdf.php?id=<?= $p['id'] ?>"
                                             class="btn btn-sm btn-outline-danger ms-1 rounded-circle" target="_blank"
                                             title="Print PDF" style="width: 32px; height: 32px; padding: 0; line-height: 30px;">
@@ -701,5 +738,7 @@ try {
         </div>
     </div>
 </div>
+
+<?php include 'advance_modal.php'; ?>
 
 <?php require_once '../includes/footer.php'; ?>

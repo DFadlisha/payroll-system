@@ -227,12 +227,38 @@ try {
                     <h2 class="fw-bold">Attendance Management</h2>
                     <p class="text-muted">Manage daily attendance, OT, and locations.</p>
                 </div>
-                <div class="card border-0 shadow-sm px-3 py-2">
-                    <form method="GET" class="d-flex align-items-center gap-2 mb-0">
-                        <label class="fw-bold text-nowrap">Select Date:</label>
-                        <input type="date" name="date" class="form-control border-0 bg-light" value="<?= $selectedDate ?>"
-                            onchange="this.form.submit()">
-                    </form>
+                <div class="d-flex gap-2">
+                    <!-- Export Button -->
+                    <div class="dropdown">
+                        <button class="btn btn-success rounded-pill px-4 shadow-sm" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="exportDropdown">
+                            <li>
+                                <h6 class="dropdown-header">Export Options</h6>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="export_attendance.php?export_type=single_date&date=<?= $selectedDate ?>">
+                                    <i class="bi bi-calendar-day me-2"></i>Current Date (<?= date('M d, Y', strtotime($selectedDate)) ?>)
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#dateRangeModal">
+                                    <i class="bi bi-calendar-range me-2"></i>Date Range...
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Date Selector -->
+                    <div class="card border-0 shadow-sm px-3 py-2">
+                        <form method="GET" class="d-flex align-items-center gap-2 mb-0">
+                            <label class="fw-bold text-nowrap">Select Date:</label>
+                            <input type="date" name="date" class="form-control border-0 bg-light" value="<?= $selectedDate ?>"
+                                onchange="this.form.submit()">
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -467,6 +493,47 @@ try {
                         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary rounded-pill px-4">Save Changes</button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Export Modal -->
+<div class="modal fade" id="dateRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-calendar-range text-success me-2"></i>Export Date Range
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="export_attendance.php" method="GET">
+                <input type="hidden" name="export_type" value="date_range">
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Select a date range to export all attendance records within that period.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input type="date" name="start_date" class="form-control" 
+                                value="<?= date('Y-m-01') ?>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">End Date</label>
+                            <input type="date" name="end_date" class="form-control" 
+                                value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="bi bi-download me-2"></i>Export
+                    </button>
                 </div>
             </form>
         </div>
